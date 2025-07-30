@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LumiNya の 小窝</title>
+    <meta name="description" content="Yumeka 的主页">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        :root {
+            /* 条纹宽度，范围大于 0 */
+            --stripe-width: 22px;
+
+            /* 角度，范围 0-89deg */
+            --angle: 45deg;
+
+            /* 速度 */
+            --speed: 1s;
+
+            /* 方向 */
+            --direction: -1;
+
+            /* 背景颜色 */
+            --bg-color: #ffe7be;
+
+            /* 条纹颜色 */
+            --stripe-color: #ffb681;
+
+            --full-width: calc(var(--stripe-width) * 2);
+            --size-x: calc(var(--full-width) / sin(var(--angle)));
+            --size-y: calc(var(--full-width) / cos(var(--angle)));
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: var(--bg-color);
+
+            /* 条纹背景 */
+            background-image: repeating-linear-gradient(var(--angle),
+                    var(--stripe-color),
+                    var(--stripe-color) var(--stripe-width),
+                    var(--bg-color) var(--stripe-width),
+                    var(--bg-color) var(--full-width));
+
+            background-size: var(--size-x) var(--size-y);
+
+            animation: plaid-scroll var(--speed) linear infinite;
+        }
+
+        @keyframes plaid-scroll {
+            from {
+                background-position: 0 0;
+            }
+
+            to {
+                background-position: calc(var(--direction) * var(--size-x)) 0;
+            }
+        }
+
+        .hover-lift {
+            transition: all 0.3s ease-in-out;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        #toast {
+            transform-origin: center;
+        }
+
+        .toast-entering {
+            animation: toast-in 0.3s cubic-bezier(0.215, 0.610, 0.355, 1.000) forwards;
+        }
+
+        .toast-exiting {
+            animation: toast-out 0.3s cubic-bezier(0.550, 0.055, 0.675, 0.190) forwards;
+        }
+
+        @keyframes toast-in {
+            from {
+                opacity: 0;
+                transform: scale(1.1);
+                filter: blur(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+                filter: blur(0);
+            }
+        }
+
+        @keyframes toast-out {
+            from {
+                opacity: 1;
+                transform: scale(1);
+                filter: blur(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: scale(0.9);
+                filter: blur(5px);
+            }
+        }
+
+    </style>
+</head>
+
+<body class="text-slate-700 antialiased overflow-x-hidden">
+
+    <div class="container mx-auto max-w-2xl px-4 py-12 sm:py-20">
+
+        <main class="bg-white/80 backdrop-blur-xl p-6 sm:p-10 rounded-3xl shadow-lg border border-white/50">
+
+            <header class="text-center mb-8">
+                <img src="./assets/avatar.jpg" alt="LumiNya的头像"
+                    class="w-28 h-28 rounded-full mx-auto mb-4 border-4 border-white shadow-md">
+
+                <div class="">
+                    <h1
+                        class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-pink-500 tracking-wider">
+                        LumiNya の 小窝
+                    </h1>
+
+                    <p class="text-slate-500 mt-2 text-sm">@LumiNya</p>
+                </div>
+
+            </header>
+
+            <section class="mb-10 space-y-4">
+                <h2 class="text-xl font-bold text-slate-800 border-b-2 border-purple-200 pb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-address-card text-purple-500"></i>
+                    关于我 | About Me
+                </h2>
+                <p class="mb-4 text-base leading-relaxed">
+                    你好~ 这里是 LumiNya，一个普通的初中生，爱好有很多，写代码、听音乐、玩游戏… 很高兴能在这里与你相遇，我<span
+                        class="font-semibold text-pink-500">喜欢和善良的人交朋友</span>。
+                </p>
+                <p class="mb-4 text-base leading-relaxed">
+                    我曾经的网名叫做“OceanInDreams”，后来，我退出MTF圈之后重新给自己找了个名字:LumiNya。你也可以叫我卢米娜/小娜。
+                </p>
+                <p class="mb-4 text-base leading-relaxed">
+                    我曾经是一名信竟生，因学业问题退役，现在会在课余时间折腾一些东西，比如网站什么的。
+                </p>
+                <p class="mb-4 text-base leading-relaxed">
+                    我还是一枚域名爱好者，喜欢注册/收藏各种域名。
+                </p>
+                <h2 class="text-xl font-bold text-slate-800 border-b-2 border-sky-200 pb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-address-card text-sky-500"></i>
+                    我の标签 | My Tags
+                </h2>
+                <div class="flex flex-wrap gap-2 text-sm select-none">
+                    <span onclick="copyText('OIer')"
+                        class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full font-medium">OIer</span>
+                    <span onclick="copyText('XNN')"
+                        class="bg-pink-100 text-pink-800 px-3 py-1 rounded-full font-medium">XNN</span>
+                    <span onclick="copyText('CCF CSP')"
+                        class="bg-teal-100 text-teal-800 px-3 py-1 rounded-full font-medium">CCF CSP</span>
+                    <span onclick="copyText('C++')"
+                        class="bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">C++</span>
+                    <span onclick="copyText('Python')"
+                        class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-medium">Python</span>
+                    <span onclick="copyText('ESP32')"
+                        class="bg-pink-100 text-pink-800 px-3 py-1 rounded-full font-medium">ESP32</span>
+                    <span onclick="copyText('OpenBVE')"
+                        class="bg-teal-100 text-teal-800 px-3 py-1 rounded-full font-medium">OpenBVE</span>
+                    <span onclick="copyText('GNU/Linux')"
+                        class="bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">GNU/Linux</span>
+                    <span onclick="copyText('计算机科学')"
+                        class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">计算机科学</span>
+                </div>
+            </section>
+
+            <section class="mb-10">
+                <h2
+                    class="text-xl font-bold text-slate-800 border-b-2 border-pink-200 pb-2 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-door-open text-pink-500"></i>
+                    传送门
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <a href="./flag/" target="_blank"
+                        class="hover-lift block bg-gradient-to-r from-indigo-100 to-purple-100 p-5 rounded-lg shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-1">LGBTQIA+ 骄傲旗帜生成器</h3>
+                        <p class="text-sm text-slate-600">一个为爱制作的小工具</p>
+                    </a>
+
+                    <a href="#" target="_blank"
+                        class="hover-lift block bg-slate-100 p-5 rounded-lg shadow-sm opacity-50">
+                        <h3 class="font-bold text-slate-800 mb-1">个人博客 (施工中)</h3>
+                        <p class="text-sm text-slate-600">单击查看仓库</p>
+                    </a>
+                </div>
+            </section>
+
+            <section>
+                <h2
+                    class="text-xl font-bold text-slate-800 border-b-2 border-sky-200 pb-2 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane text-sky-500"></i>
+                    找到我
+                </h2>
+                <div class="flex items-center justify-center gap-6 text-2xl">
+                    <a href="https://github.com/nekonekos" target="_blank"
+                        class="text-slate-500 hover:text-slate-900 transition-colors" aria-label="GitHub">
+                        <i class="fa-brands fa-github"></i>
+                    </a>
+                    <a href="https://x.com/OceanInDreams" target="_blank"
+                        class="text-slate-500 hover:text-black transition-colors" aria-label="X/Twitter">
+                        <i class="fa-brands fa-x-twitter"></i>
+                    </a>
+                    <a onclick="copyQQ()" target="_blank"
+                        class="text-slate-500 hover:text-blue-500 transition-colors cursor-pointer"
+                        aria-label="TencentQQ">
+                        <i class="fa-brands fa-qq"></i>
+                    </a>
+                    <a href="mailto:yumeka.love9@gmail.com" class="text-slate-500 hover:text-red-500 transition-colors"
+                        aria-label="Email">
+                        <i class="fa-solid fa-envelope"></i>
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <footer class="text-center mt-10 text-sm text-slate-600/90 font-light">
+            <p class="mt-2 opacity-70">&copy; 2025 LumiNya. All rights reserved.</p>
+        </footer>
+
+    </div>
+
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white px-5 py-2 rounded-lg shadow-xl hidden">
+    </div>
+
+    <script>
+        // 复制文本到剪贴板
+        function copyQQ() {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText('1686157307').then(() => {
+                    showToast('QQ 号码已复制到剪贴板');
+                }).catch(err => {
+                    console.error('无法复制: ', err);
+                    showToast('复制失败！');
+                });
+            } else {
+                showToast('浏览器不支持剪贴板功能');
+            }
+        }
+
+        function copyText(text) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('已复制到剪贴板！');
+                }).catch(err => {
+                    console.error('无法复制: ', err);
+                    showToast('复制失败！');
+                });
+            } else {
+                showToast('浏览器不支持剪贴板功能');
+            }
+        }
+
+        const toast = document.getElementById('toast'); // 提示消息框
+
+        // toast 定时器
+        let toastTimer = null;
+
+        // 显示提示消息
+        function showToast(message) {
+            // 清除之前的定时器，防止消息过早消失
+            clearTimeout(toastTimer);
+
+            // 设置提示消息内容
+            toast.textContent = message;
+            // 移除可能存在的CSS类，重置状态
+            toast.classList.remove('hidden', 'toast-exiting', 'toast-entering');
+
+            // 强制浏览器重新计算样式，以便动画能够重新触发
+            void toast.offsetWidth;
+            // 添加进入动画的CSS类
+            toast.classList.add('toast-entering');
+        }
+
+        // 监听提示消息框的动画结束事件
+        toast.addEventListener('animationend', (event) => {
+            // 如果是进入动画结束
+            if (event.animationName === 'toast-in') {
+                // 移除进入动画的CSS类
+                toast.classList.remove('toast-entering');
+
+                // 设置一个定时器，在2秒后添加退出动画
+                toastTimer = setTimeout(() => {
+                    toast.classList.add('toast-exiting');
+                }, 2000);
+
+                // 如果是退出动画结束
+            } else if (event.animationName === 'toast-out') {
+                // 移除退出动画的CSS类并隐藏元素
+                toast.classList.remove('toast-exiting');
+                toast.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>
