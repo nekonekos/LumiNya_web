@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>LumiNya ✦ 域名收藏馆 · 实时WHOIS</title>
+    <!-- Font Awesome 6 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* ========== 全局样式（完全保留个人主页风格）========= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'PingFang SC', 'Helvetica Neue', 'Hiragino Sans', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #d9f0f7;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 1rem;
+        }
+
+        /* 背景图片模糊层 */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('/img/bg.webp');
+            background-size: cover;
+            background-position: center 20%;
+            background-repeat: no-repeat;
+            filter: blur(12px) brightness(1.02);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .page-wrap {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* 顶栏 (毛玻璃) */
+        .top-bar {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 60px;
+            padding: 1rem 2rem;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0, 60, 100, 0.15);
+            font-weight: 650;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+            background: rgba(255, 255, 255, 0.25);
+            color: #014c79;
+            text-shadow: 2px 2px 6px rgba(255, 255, 255, 0.7);
+        }
+
+        .top-bar i {
+            margin: 0 10px;
+            color: #3d9fd3;
+        }
+
+        /* 通用毛玻璃卡片 */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.26);
+            backdrop-filter: blur(14px) saturate(150%);
+            -webkit-backdrop-filter: blur(14px) saturate(150%);
+            border-radius: 36px;
+            border: 1.5px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 20px 40px -12px rgba(0, 100, 140, 0.25), 0 4px 18px rgba(255, 255, 255, 0.5) inset;
+            padding: 2rem 2rem;
+            color: #01486b;
+        }
+
+        /* 页面描述 */
+        .page-description {
+            text-align: center;
+            font-size: 1.2rem;
+            background: rgba(255,255,240,0.4);
+            backdrop-filter: blur(4px);
+            padding: 0.8rem 2rem;
+            border-radius: 60px;
+            color: #015e8c;
+            border: 1px solid rgba(255,255,255,0.7);
+            margin: 0 0 1rem 0;
+        }
+
+        /* 域名网格 */
+        .domains-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        /* 单个域名卡片 */
+        .domain-item {
+            background: rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 32px;
+            padding: 1.5rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 6px 16px -6px rgba(0,100,130,0.2);
+            transition: 0.15s;
+        }
+        .domain-item:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-5px);
+        }
+
+        .domain-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(190, 228, 255, 0.7);
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 8px 16px rgba(0, 70, 120, 0.25);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            color: #1a76a8;
+        }
+
+        .domain-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(145deg, #01638f, #2899d4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.3rem;
+            word-break: break-all;
+        }
+
+        .domain-desc {
+            font-size: 1rem;
+            color: #01527a;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+            padding: 0 0.5rem;
+        }
+
+        /* Whois 信息区域 - 动态加载 */
+        .whois-info {
+            background: rgba(255,255,255,0.3);
+            backdrop-filter: blur(4px);
+            border-radius: 30px;
+            padding: 0.8rem 1rem;
+            width: 100%;
+            border: 1px solid rgba(255,255,255,0.6);
+            font-size: 0.85rem;
+            color: #013e5c;
+            text-align: left;
+            line-height: 1.5;
+            min-height: 100px; /* 避免加载抖动 */
+        }
+        .whois-info i {
+            color: #0284c7;
+            width: 20px;
+            margin-right: 5px;
+        }
+        .whois-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .loading-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3a7290;
+            gap: 8px;
+            padding: 10px 0;
+        }
+        .error-row {
+            color: #b94a48;
+            justify-content: center;
+        }
+
+        /* Footer */
+        .footer {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            border-radius: 48px;
+            padding: 1rem 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            color: #025a86;
+            font-size: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem 2.5rem;
+            margin-top: 0.5rem;
+        }
+        .footer a {
+            color: #0f5f8a;
+            text-decoration: none;
+            border-bottom: 1px dotted #7cb8d4;
+        }
+        .footer i {
+            margin-right: 5px;
+            color: #369ac8;
+        }
+
+        /* 响应式 */
+        @media (max-width: 550px) {
+            .top-bar { font-size: 1.5rem; padding: 0.8rem 1rem; }
+            .glass-card { padding: 1.5rem; }
+            .domain-name { font-size: 1.5rem; }
+        }
+        @media (max-width: 400px) {
+            .domain-item { padding: 1.2rem; }
+        }
+
+        .caption-mini {
+            font-size: 0.75rem; text-align: center; opacity: 0.7; margin-top: 0.5rem;
+            background: rgba(255,255,240,0.2); backdrop-filter: blur(4px); border-radius: 40px; padding: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrap">
+        <!-- 顶栏 -->
+        <div class="top-bar">
+            <i class="fas fa-globe"></i> LumiNya 的域名收藏馆 · 实时WHOIS <i class="fas fa-sync-alt"></i>
+        </div>
+
+        <!-- 简单描述 -->
+        <div class="page-description">
+            <i class="fas fa-compass"></i> 每个域名都有一段故事 · 下方显示实时WHOIS信息 <i class="fas fa-compass"></i>
+        </div>
+
+        <!-- 主卡片：域名网格 -->
+        <div class="glass-card">
+            <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.8rem; flex-wrap: wrap;">
+                <i class="fas fa-crown" style="color: #48b5e0; font-size: 2rem;"></i>
+                <span style="font-weight: 700; font-size: 1.8rem; color: #003f63;">📜 域名列表</span>
+                <span style="margin-left: auto; font-size: 0.9rem; background: rgba(255,255,240,0.5); padding: 0.3rem 1rem; border-radius: 40px;">多源查询 | 串行请求</span>
+            </div>
+
+            <div class="domains-grid" id="domainsGrid">
+                <!-- 每个域名卡片包含动态WHOIS区域，将由JavaScript填充 -->
+            </div>
+
+            <!-- 装饰脚注 -->
+            <div style="text-align: right; margin-top: 2rem; font-size: 0.9rem; color: #015e94; opacity: 0.9;">
+                <i class="fas fa-heart" style="color: #ffa7c0;"></i> 每个域名都是一段旅程
+            </div>
+        </div>
+
+        <!-- footer 沿用个人风格 -->
+        <div class="footer">
+            <span><i class="far fa-copyright"></i> 2026 LumiNya · 域名收藏家</span>
+            <span><i class="fas fa-tag"></i> 实时WHOIS查询</span>
+            <span><a href="#"><i class="fas fa-dragon"></i> 关于我</a></span>
+            <span><a href="#"><i class="fas fa-map-signs"></i> 联系</a></span>
+        </div>
+
+        <!-- 占位提示 -->
+        <div class="caption-mini">
+            ⭐ WHOIS 信息通过多个公共API串行查询，避免限流，数据更可靠 ⭐
+        </div>
+    </div>
+
+    <script>
+        // 域名列表数据
+        const domains = [
+            { name: 'luminya.cc', desc: '个人网站 · 服务器主域', icon: 'fa-cube' },
+            { name: 'mtf.pink', desc: '跨性别者 · 粉色寓所', icon: 'fa-heart' },
+            { name: '0721.quest', desc: '0721 日语梗 · 冒险', icon: 'fa-dragon' },
+            { name: 'xingzhanyun.com', desc: '星栈云平台 · 技术', icon: 'fa-cloud' }
+        ];
+
+        // 定义多个WHOIS API（按优先级排序）
+        const whoisApis = [
+            { url: 'https://whois.freeaPI.io/?domain=', type: 'text' },          // 纯文本，无需密钥
+            { url: 'https://whoisjson.com/api/v1/whois?domain=', type: 'json' }, // JSON格式
+            { url: 'https://api.techniSol.net/whois?domain=', type: 'text' }     // 备用文本API (需测试CORS)
+        ];
+
+        // 渲染所有卡片
+        function renderCards() {
+            const grid = document.getElementById('domainsGrid');
+            grid.innerHTML = ''; // 清空
+
+            domains.forEach(domain => {
+                const card = document.createElement('div');
+                card.className = 'domain-item';
+                card.innerHTML = `
+                    <div class="domain-icon"><i class="fas ${domain.icon}"></i></div>
+                    <div class="domain-name">${domain.name}</div>
+                    <div class="domain-desc">${domain.desc}</div>
+                    <div class="whois-info" data-domain="${domain.name}">
+                        <div class="loading-row"><i class="fas fa-spinner fa-pulse"></i> 查询WHOIS中...</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // 从文本或JSON中解析WHOIS关键字段
+        function parseWhois(domain, data, apiType) {
+            let creationDate = '未知';
+            let expiryDate = '未知';
+            let registrar = '未知';
+
+            if (apiType === 'json' && typeof data === 'object') {
+                // JSON API 解析 (whoisjson.com 格式)
+                const obj = data;
+                // 常见字段映射
+                creationDate = obj.created_date || obj.creation_date || obj.registered || obj.created || '未知';
+                expiryDate = obj.expiration_date || obj.expiry_date || obj.expires_date || obj.expire_date || '未知';
+                registrar = obj.registrar || obj.registrar_name || obj.sponsoringRegistrar || '未知';
+            } else {
+                // 文本API解析 (whois.freeaPI.io 返回纯文本)
+                const text = typeof data === 'string' ? data : '';
+                // 更全面的正则匹配（不区分大小写）
+                const creationMatch = text.match(/(?:Creation Date|Created On|Created|Registration Date|Domain Create Date|Created Date)\s*:\s*(.+?)(?:\n|$)/i);
+                if (creationMatch) creationDate = creationMatch[1].trim();
+
+                const expiryMatch = text.match(/(?:Expiry Date|Expiration Date|Expires On|Expires|Renewal Date|Registry Expiry Date|Domain Expiration Date)\s*:\s*(.+?)(?:\n|$)/i);
+                if (expiryMatch) expiryDate = expiryMatch[1].trim();
+
+                const registrarMatch = text.match(/(?:Registrar|Registrar Name|Sponsoring Registrar|Registrar IANA ID|Reseller)\s*:\s*(.+?)(?:\n|$)/i);
+                if (registrarMatch) registrar = registrarMatch[1].trim();
+            }
+
+            // 清理多余空白
+            return {
+                creationDate: creationDate.trim().replace(/\s+/g, ' '),
+                expiryDate: expiryDate.trim().replace(/\s+/g, ' '),
+                registrar: registrar.trim().replace(/\s+/g, ' ')
+            };
+        }
+
+        // 判断解析结果是否有效（至少有一个字段不是未知）
+        function isValidResult(result) {
+            return result.creationDate !== '未知' || result.expiryDate !== '未知' || result.registrar !== '未知';
+        }
+
+        // 针对单个域名尝试所有API（串行，每次失败后尝试下一个）
+        async function fetchWhoisForDomain(domain) {
+            for (const api of whoisApis) {
+                try {
+                    const url = api.url + domain;
+                    const response = await fetch(url);
+                    if (!response.ok) continue;
+
+                    let data;
+                    if (api.type === 'json') {
+                        data = await response.json();
+                    } else {
+                        data = await response.text();
+                    }
+
+                    const result = parseWhois(domain, data, api.type);
+                    if (isValidResult(result)) {
+                        // 成功获取有效数据
+                        return result;
+                    }
+                    // 如果数据无效，继续尝试下一个API
+                } catch (e) {
+                    console.warn(`API ${api.url} failed for ${domain}:`, e);
+                }
+            }
+            // 所有API都失败，返回未知
+            return { creationDate: '未知', expiryDate: '未知', registrar: '未知' };
+        }
+
+        // 串行更新所有域名的WHOIS（避免并发限流）
+        async function updateAllWhois() {
+            const containers = document.querySelectorAll('.whois-info');
+            
+            for (const container of containers) {
+                const domain = container.dataset.domain;
+                // 串行请求，每个间隔0.5秒，减轻API压力
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const result = await fetchWhoisForDomain(domain);
+                
+                // 格式化日期（如果包含T，只取日期部分）
+                const formatDate = (dateStr) => {
+                    if (dateStr && dateStr.includes('T')) {
+                        return dateStr.split('T')[0];
+                    }
+                    return dateStr;
+                };
+
+                container.innerHTML = `
+                    <div class="whois-row"><i class="fas fa-calendar-alt"></i> 创建: ${formatDate(result.creationDate)}</div>
+                    <div class="whois-row"><i class="fas fa-hourglass-end"></i> 过期: ${formatDate(result.expiryDate)}</div>
+                    <div class="whois-row"><i class="fas fa-building"></i> 注册商: ${result.registrar}</div>
+                `;
+            }
+        }
+
+        // 初始化页面
+        window.addEventListener('load', async () => {
+            renderCards();
+            // 延迟一小段时间后开始查询
+            setTimeout(() => {
+                updateAllWhois();
+            }, 200);
+        });
+    </script>
+</body>
+</html>
