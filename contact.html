@@ -426,13 +426,13 @@
         // ==================== EmailJS 初始化 (请替换为您的信息) ====================
         (function() {
             // 替换为您的 EmailJS Public Key (User ID)
-            emailjs.init("YOUR_PUBLIC_KEY"); 
+            emailjs.init("wRa-SMKoETCdlO1oi"); 
         })();
 
         // ==================== 配置ID (请替换为您的信息) ====================
         const EMAILJS_CONFIG = {
-            serviceId: "YOUR_SERVICE_ID",  // 替换为您的 Service ID
-            templateId: "YOUR_TEMPLATE_ID", // 替换为您的 Template ID
+            serviceId: "service_nxxb1b8",  // 替换为您的 Service ID
+            templateId: "template_h30ihvt", // 替换为您的 Template ID
         };
 
         // ==================== 初始化富文本编辑器 ====================
@@ -568,8 +568,8 @@
             }
 
             // 检查EmailJS配置是否已修改
-            if (EMAILJS_CONFIG.serviceId === "service_nxxb1b8" || 
-                EMAILJS_CONFIG.templateId === "template_h30ihvt") {
+            if (EMAILJS_CONFIG.serviceId === "" || 
+                EMAILJS_CONFIG.templateId === "") {
                 showToast('❌ 请先配置EmailJS参数', false, 'actionToast');
                 console.log('待发送内容：', { title, contactType, contactValue, message, ip });
                 submitBtn.disabled = false;
