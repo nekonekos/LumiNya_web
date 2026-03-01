@@ -9,8 +9,8 @@
     <!-- 引入 Quill 富文本编辑器 -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-    <!-- 引入 SMTP.js 用于发送邮件 -->
-    <script src="https://cdn.jsdelivr.net/npm/smtpjs@v3/smtp.js"></script>
+    <!-- 引入 EmailJS 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
         /* ========== 全局样式 (完全沿用个人主页) ========== */
         * {
@@ -392,7 +392,6 @@
                 <!-- 正文 (富文本编辑器) -->
                 <div class="form-group">
                     <label class="form-label">正文</label>
-                    <!-- 创建 Quill 编辑器容器 -->
                     <div id="editor-container" class="quill-editor"></div>
                 </div>
 
@@ -414,7 +413,7 @@
 
         <!-- 复制提示 Toast -->
         <div id="copyToast" class="copy-toast">已复制到剪贴板</div>
-        <!-- 操作提示 Toast (用于发送成功/失败) -->
+        <!-- 操作提示 Toast -->
         <div id="actionToast" class="copy-toast"></div>
 
         <!-- 小提示 -->
@@ -424,14 +423,16 @@
     </div>
 
     <script>
-        // ==================== SMTP 配置 (请用户自行填写) ====================
-        const SMTP_CONFIG = {
-            host: "smtp.qq.com",      // SMTP服务器地址 (例如 smtp.qq.com)
-            port: 587,                      // 端口 (常用587或465)
-            user: "luminyaweb@qq.com",  // 发件邮箱账号
-            pass: "vfxxingulqihbfic",           // 发件邮箱密码或授权码
-            from: "luminyaweb@qq.com",  // 发件人地址
-            to: "luminya.official@qq.com"           // 接收留言通知的邮箱 (可与上方不一致)
+        // ==================== EmailJS 初始化 (请替换为您的信息) ====================
+        (function() {
+            // 替换为您的 EmailJS Public Key (User ID)
+            emailjs.init("YOUR_PUBLIC_KEY"); 
+        })();
+
+        // ==================== 配置ID (请替换为您的信息) ====================
+        const EMAILJS_CONFIG = {
+            serviceId: "YOUR_SERVICE_ID",  // 替换为您的 Service ID
+            templateId: "YOUR_TEMPLATE_ID", // 替换为您的 Template ID
         };
 
         // ==================== 初始化富文本编辑器 ====================
@@ -448,24 +449,18 @@
         });
 
         // ==================== 工具函数 ====================
-        // 显示 Toast (可指定不同容器)
         function showToast(message, isSuccess = true, toastId = 'copyToast') {
             const toast = document.getElementById(toastId);
-            if (!toast) {
-                console.warn('Toast element not found:', toastId);
-                return;
-            }
+            if (!toast) return;
             toast.textContent = message;
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
-        // 复制文本
         function copyText(text) {
             navigator.clipboard.writeText(text).then(() => {
                 showToast('✅ 复制成功', true, 'copyToast');
             }).catch(() => {
-                // 降级
                 const textarea = document.createElement('textarea');
                 textarea.value = text;
                 document.body.appendChild(textarea);
@@ -480,7 +475,6 @@
             });
         }
 
-        // 获取客户端IP (使用 ipify.org)
         async function getClientIP() {
             try {
                 const response = await fetch('https://api.ipify.org?format=json');
@@ -488,21 +482,18 @@
                 return data.ip;
             } catch (e) {
                 console.error('获取IP失败', e);
-                return null;  // 返回 null 表示获取失败
+                return null;
             }
         }
 
-        // 校验手机号 (简单中国手机号)
         function isValidPhone(phone) {
             return /^1[3-9]\d{9}$/.test(phone);
         }
 
-        // 校验邮箱
         function isValidEmail(email) {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         }
 
-        // 实时校验输入框
         function validateContact() {
             const input = document.getElementById('contactInput');
             const type = document.getElementById('contactType').value;
@@ -520,38 +511,25 @@
                 input.classList.remove('error');
                 document.getElementById('contactError').textContent = '';
             }
-            return valid || value === ''; // 如果为空不标记错误，但在提交时会校验
+            return valid || value === '';
         }
 
-        // 绑定输入事件
         document.getElementById('contactInput').addEventListener('input', validateContact);
-        document.getElementById('contactType').addEventListener('change', function() {
-            validateContact();
-        });
+        document.getElementById('contactType').addEventListener('change', validateContact);
 
-        // ==================== 发送留言 ====================
+        // ==================== 发送留言 (使用 EmailJS) ====================
         async function sendMessage() {
             const submitBtn = document.getElementById('submitBtn');
-            // 防止重复点击
             submitBtn.disabled = true;
-
-            // 检查 SMTP.js 是否加载成功
-            if (typeof Email === 'undefined') {
-                showToast('❌ 邮件发送库未加载，请检查网络或刷新重试', false, 'actionToast');
-                submitBtn.disabled = false;
-                return;
-            }
 
             // 获取表单值
             const title = document.getElementById('title').value.trim();
             const contactValue = document.getElementById('contactInput').value.trim();
             const contactType = document.getElementById('contactType').value;
-            // 获取富文本内容 (HTML格式)
             const message = quill.root.innerHTML.trim();
-            // 去除空标签等情况，简单判断是否有实际内容
             const plainText = quill.getText().trim();
 
-            // 简单非空校验
+            // 非空校验
             if (!title) {
                 showToast('❌ 请输入标题', false, 'actionToast');
                 submitBtn.disabled = false;
@@ -568,7 +546,7 @@
                 return;
             }
 
-            // 校验联系方式格式
+            // 联系方式格式校验
             let contactValid = false;
             if (contactType === 'phone') {
                 contactValid = isValidPhone(contactValue);
@@ -589,52 +567,45 @@
                 return;
             }
 
-            // 构造邮件内容
-            const subject = `网站留言通知：${title}`;
-            const body = `
-                网站留言通知
-
-                标题：${title}
-
-                发送者ip地址：${ip}
-
-                正文内容：
-                ${message}
-
-                联系方式：${contactType === 'phone' ? '手机号' : '邮箱'}：${contactValue}
-            `;
-
-            // 检查SMTP配置是否已修改
-            if (SMTP_CONFIG.host === "smtp.example.com") {
-                showToast('❌ 请先配置SMTP参数', false, 'actionToast');
-                console.log('待发送内容：', body);
+            // 检查EmailJS配置是否已修改
+            if (EMAILJS_CONFIG.serviceId === "service_nxxb1b8" || 
+                EMAILJS_CONFIG.templateId === "template_h30ihvt") {
+                showToast('❌ 请先配置EmailJS参数', false, 'actionToast');
+                console.log('待发送内容：', { title, contactType, contactValue, message, ip });
                 submitBtn.disabled = false;
                 return;
             }
 
+            // 准备模板参数 (这些变量名应与您在EmailJS后台定义的模板变量一致)
+            const templateParams = {
+                to_name: "LumiNya",          // 接收人名称（可自定义）
+                from_name: contactValue,      // 访客的联系方式
+                title: title,                  // 留言标题
+                message: message,               // 留言正文 (HTML)
+                ip: ip,                         // 发送者IP
+                contact_type: contactType === 'phone' ? '手机号' : '邮箱', // 联系方式类型
+                reply_to: contactValue          // 回复地址（可选）
+            };
+
             try {
-                const result = await Email.send({
-                    Host: SMTP_CONFIG.host,
-                    Port: SMTP_CONFIG.port,
-                    Username: SMTP_CONFIG.user,
-                    Password: SMTP_CONFIG.pass,
-                    To: SMTP_CONFIG.to,
-                    From: SMTP_CONFIG.from,
-                    Subject: subject,
-                    Body: body
-                });
-                if (result === 'OK') {
+                const response = await emailjs.send(
+                    EMAILJS_CONFIG.serviceId, 
+                    EMAILJS_CONFIG.templateId, 
+                    templateParams
+                );
+                
+                if (response.status === 200) {
                     showToast('✅ 留言发送成功！页面即将刷新', true, 'actionToast');
-                    // 延时后刷新页面，让用户看到成功提示
                     setTimeout(() => {
-                        location.reload();  // 强制刷新，清空所有内容
+                        location.reload();
                     }, 1500);
                 } else {
-                    showToast('❌ 发送失败：' + result, false, 'actionToast');
+                    showToast('❌ 发送失败，请稍后重试', false, 'actionToast');
                     submitBtn.disabled = false;
                 }
-            } catch (e) {
-                showToast('❌ 发送异常：' + e.message, false, 'actionToast');
+            } catch (error) {
+                console.error('EmailJS 发送失败:', error);
+                showToast('❌ 发送异常：' + (error.text || '未知错误'), false, 'actionToast');
                 submitBtn.disabled = false;
             }
         }
