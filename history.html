@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>搭建历程 | LumiNya</title>
+    <!-- Font Awesome 6 (与个人主页相同) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* ========== 全局样式 (完全沿用个人主页) ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'PingFang SC', 'Helvetica Neue', 'Hiragino Sans', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #d9f0f7;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 1rem;
+        }
+
+        /* 背景图片模糊层 (请确保 /img/bg.webp 存在) */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('/img/bg.webp');
+            background-size: cover;
+            background-position: center 20%;
+            background-repeat: no-repeat;
+            filter: blur(12px) brightness(1.02);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .page-wrap {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+
+        /* 顶栏 (毛玻璃) */
+        .top-bar {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 60px;
+            padding: 1rem 2rem;
+            text-align: center;
+            font-weight: 650;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+            color: #014c79;
+            text-shadow: 2px 2px 6px rgba(255, 255, 255, 0.7);
+        }
+        .top-bar i {
+            margin: 0 10px;
+            color: #3d9fd3;
+        }
+
+        /* 通用毛玻璃卡片 */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.26);
+            backdrop-filter: blur(14px) saturate(150%);
+            -webkit-backdrop-filter: blur(14px) saturate(150%);
+            border-radius: 36px;
+            border: 1.5px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 20px 40px -12px rgba(0, 100, 140, 0.25), 0 4px 18px rgba(255, 255, 255, 0.5) inset;
+            padding: 2rem 2rem;
+            color: #01486b;
+        }
+
+        /* 页面标题 (与个人主页的 hello-tag 类似) */
+        .page-title {
+            text-align: center;
+            font-size: 1.5rem;
+            background: rgba(255,255,240,0.4);
+            backdrop-filter: blur(4px);
+            padding: 0.8rem 2rem;
+            border-radius: 60px;
+            color: #015e8c;
+            border: 1px solid rgba(255,255,255,0.7);
+            margin-bottom: 0.5rem;
+        }
+
+        /* 历程网格 (每个卡片一个年份) */
+        .timeline-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        /* 历程卡片 (复用 link-item 样式，但改为纵向) */
+        .timeline-item {
+            background: rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 28px;
+            padding: 1.5rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 6px 16px -6px rgba(0,100,130,0.2);
+            transition: 0.15s;
+        }
+        .timeline-item:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-5px);
+        }
+
+        .timeline-year {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(145deg, #01638f, #2899d4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.8rem;
+            line-height: 1.2;
+        }
+
+        .timeline-desc {
+            color: #01527a;
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .timeline-desc i {
+            color: #0481c4;
+            margin-right: 5px;
+        }
+
+        /* 页脚 */
+        .footer {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            border-radius: 48px;
+            padding: 1rem 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            color: #025a86;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem 2.5rem;
+            margin-top: 0.5rem;
+        }
+        .footer a {
+            color: #0f5f8a;
+            text-decoration: none;
+            border-bottom: 1px dotted #7cb8d4;
+        }
+        .footer i {
+            margin-right: 5px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 550px) {
+            .top-bar { font-size: 1.5rem; padding: 0.8rem 1rem; }
+            .glass-card { padding: 1.5rem; }
+            .timeline-year { font-size: 1.8rem; }
+        }
+
+        .caption-mini {
+            font-size: 0.75rem; text-align: center; opacity: 0.7; margin-top: 0.5rem;
+            background: rgba(255,255,240,0.2); backdrop-filter: blur(4px); border-radius: 40px; padding: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrap">
+        <!-- 顶栏 (与个人主页一致) -->
+        <div class="top-bar">
+            <i class="fas fa-cherry-blossom"></i> LumiNya 的网站搭建历程 <i class="fas fa-fan"></i>
+        </div>
+
+        <!-- 页面描述 -->
+        <div class="page-title">
+            <i class="fas fa-compass"></i> 从白纸黑字到毛玻璃风格 · 进化之路 <i class="fas fa-compass"></i>
+        </div>
+
+        <!-- 主卡片：历程列表 -->
+        <div class="glass-card">
+            <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                <i class="fas fa-history" style="color: #48b5e0; font-size: 2rem;"></i>
+                <span style="font-weight: 700; font-size: 1.8rem; color: #003f63;"> 时间轴</span>
+            </div>
+
+            <div class="timeline-grid">
+                <!-- 2022 -->
+                <div class="timeline-item">
+                    <div class="timeline-year">2022</div>
+                    <div class="timeline-desc">
+                        <i class="fas fa-file-code"></i> 第一个个人html网站搭建，使用小皮Windows面板+natapp穿透为随机域名，只有白纸黑字的单页面
+                    </div>
+                </div>
+                <!-- 2023 -->
+                <div class="timeline-item">
+                    <div class="timeline-year">2023</div>
+                    <div class="timeline-desc">
+                        <i class="fas fa-globe"></i> 注册第一个个人域名，升级网站，使用Dreamweaver搭建界面
+                    </div>
+                </div>
+                <!-- 2024 -->
+                <div class="timeline-item">
+                    <div class="timeline-year">2024</div>
+                    <div class="timeline-desc">
+                        <i class="fas fa-server"></i> 购买第一个服务器，采用拟态源码搭建个人网站
+                    </div>
+                </div>
+                <!-- 2025 -->
+                <div class="timeline-item">
+                    <div class="timeline-year">2025</div>
+                    <div class="timeline-desc">
+                        <i class="fab fa-github"></i> 去服务器化，改用Github pages，搭建Zyyo主题个人网站
+                    </div>
+                </div>
+                <!-- 2026-现在 -->
+                <div class="timeline-item">
+                    <div class="timeline-year">2026-现在</div>
+                    <div class="timeline-desc">
+                        <i class="fas fa-glass-cheers"></i> 采用毛玻璃特效界面，更高的整合度，也就是您现在看到的这个站点 ✨
+                    </div>
+                </div>
+            </div>
+
+            <!-- 装饰脚注 -->
+            <div style="text-align: right; margin-top: 2rem; font-size: 0.9rem; color: #015e94; opacity: 0.9;">
+                <i class="fas fa-heart" style="color: #ffa7c0;"></i> 每一步都算数
+            </div>
+        </div>
+
+        <!-- 页脚 (可自定义链接) -->
+        <div class="footer">
+            <span><i class="far fa-copyright"></i> 2026 LumiNya</span>
+            <span><i class="fas fa-tag"></i> 搭建史</span>
+            <span><a href="/"><i class="fas fa-dragon"></i> 返回首页</a></span>
+        </div>
+
+        <!-- 小提示 (可保留或删除) -->
+        <div class="caption-mini">
+            ⭐ 记录每一个脚印 ⭐
+        </div>
+    </div>
+</body>
+</html>
