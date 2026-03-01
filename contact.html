@@ -216,7 +216,7 @@
             font-size: 1rem;
         }
 
-        /* 富文本编辑器容器 (覆盖Quill默认样式，使其融入毛玻璃) */
+        /* 富文本编辑器容器 */
         .quill-editor {
             background: rgba(255, 255, 255, 0.4);
             backdrop-filter: blur(5px);
@@ -335,7 +335,7 @@
         <div class="glass-card">
             <div class="card-title">
                 <i class="fas fa-address-card"></i>
-                <h2> 联系方式</h2>
+                <h2>📞 联系方式</h2>
             </div>
             <div class="contact-list">
                 <!-- QQ -->
@@ -354,7 +354,7 @@
                 <div class="contact-item">
                     <div class="contact-icon"><i class="fas fa-envelope"></i></div>
                     <span class="contact-text"><a href="mailto:contact@luminya.cc" class="mail-link">contact@luminya.cc</a></span>
-                    <span style="flex:1;"></span> <!-- 占位 -->
+                    <span style="flex:1;"></span>
                 </div>
             </div>
         </div>
@@ -363,7 +363,7 @@
         <div class="glass-card">
             <div class="card-title">
                 <i class="fas fa-pencil-alt"></i>
-                <h2> 留言</h2>
+                <h2>📝 留言</h2>
             </div>
 
             <form id="contactForm">
@@ -451,6 +451,10 @@
         // 显示 Toast (可指定不同容器)
         function showToast(message, isSuccess = true, toastId = 'copyToast') {
             const toast = document.getElementById(toastId);
+            if (!toast) {
+                console.warn('Toast element not found:', toastId);
+                return;
+            }
             toast.textContent = message;
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 2000);
@@ -531,6 +535,13 @@
             // 防止重复点击
             submitBtn.disabled = true;
 
+            // 检查 SMTP.js 是否加载成功
+            if (typeof Email === 'undefined') {
+                showToast('❌ 邮件发送库未加载，请检查网络或刷新重试', false, 'actionToast');
+                submitBtn.disabled = false;
+                return;
+            }
+
             // 获取表单值
             const title = document.getElementById('title').value.trim();
             const contactValue = document.getElementById('contactInput').value.trim();
@@ -593,7 +604,7 @@
                 联系方式：${contactType === 'phone' ? '手机号' : '邮箱'}：${contactValue}
             `;
 
-            // 使用 SMTP.js 发送邮件
+            // 检查SMTP配置是否已修改
             if (SMTP_CONFIG.host === "smtp.example.com") {
                 showToast('❌ 请先配置SMTP参数', false, 'actionToast');
                 console.log('待发送内容：', body);
