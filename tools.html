@@ -59,8 +59,17 @@
             </div>
         </div>
 
-        <div class="glass-card" style="text-align:center;font-size:0.95rem">
-            <div>更多工具计划中：端口扫描（只限合法授权）、域名解析、子网计算器等。</div>
+        <div class="glass-card">
+            <h3 style="margin-bottom:0.6rem">网站连通性检测</h3>
+            <p style="margin-bottom:0.6rem;color:rgba(1,62,92,0.85)">请输入要检测的 URL 或域名（支持自动补全 https://）。工具将尝试以 <code>HEAD</code> 请求检测响应码和响应时延，若被阻止会自动退回到 <code>GET</code>。注意：由于浏览器跨域限制，部分站点可能无法直接返回状态（提示将说明原因）。</p>
+
+            <div class="ip-form" style="align-items:flex-start">
+                <input id="checkUrl" class="form-input" placeholder="例如 example.com 或 https://example.com">
+                <button id="checkBtn" class="btn"><i class="fas fa-network-wired"></i> 检测连通性</button>
+                <button id="openBtn" class="btn secondary"><i class="fas fa-external-link-alt"></i> 打开站点</button>
+            </div>
+
+            <div id="checkResult" class="result" style="margin-top:0.8rem">等待检测。</div>
         </div>
 
         <div class="footer">数据来源：<a href="https://ip-api.com/" target="_blank" rel="noreferrer">ip-api.com</a> （街区级）· <span style="margin-left:8px">页面由 LumiNya 提供</span></div>
@@ -178,6 +187,57 @@
         ipInput.addEventListener('keydown',(e)=>{if(e.key==='Enter') lookupBtn.click();});
 
         detectBtn.addEventListener('click',()=>{ipInput.value='';fetchIP();});
+
+        // ---------- 网站连通性检测逻辑 ----------
+        const checkBtn = document.getElementById('checkBtn');
+        const openBtn = document.getElementById('openBtn');
+        const checkUrlInput = document.getElementById('checkUrl');
+        const checkResult = document.getElementById('checkResult');
+
+        function normalizeUrl(u){
+            if(!u) return null;
+            u = u.trim();
+            if(!/^https?:\/\//i.test(u)) u = 'https://' + u;
+            return u;
+        }
+
+        async function checkConnectivity(raw){
+            const url = normalizeUrl(raw);
+            if(!url){ checkResult.innerHTML = '<div style="color:#b94a48">请输入有效的 URL 或域名。</div>'; return; }
+            checkResult.innerHTML = '<div style="color:#3a7290"><i class="fas fa-spinner fa-spin"></i> 正在检测…</div>';
+            try{
+                const start = performance.now();
+                let res;
+                try{
+                    res = await fetch(url, { method: 'HEAD', mode: 'cors', cache: 'no-store', redirect: 'follow' });
+                }catch(e){
+                    // 有些站点不支持 HEAD 或会拦截，尝试 GET
+                    try{ res = await fetch(url, { method: 'GET', mode: 'cors', cache: 'no-store', redirect: 'follow' }); }
+                    catch(err2){ throw err2; }
+                }
+                const time = Math.round(performance.now() - start);
+                if(res && typeof res.status === 'number'){
+                    const ct = res.headers.get('content-type') || '-';
+                    checkResult.innerHTML = `
+                        <div><b>状态码：</b>${res.status} ${res.statusText || ''}</div>
+                        <div><b>时延：</b>${time} ms</div>
+                        <div><b>内容类型：</b>${ct}</div>
+                        <div style="margin-top:0.6rem;color:#666">注意：如果无法获取状态码，可能由于目标站点阻止跨域请求或禁用 HEAD。</div>
+                    `;
+                }else{
+                    checkResult.innerHTML = '<div style="color:#a67c00">检测完成，但未返回状态码——可能受 CORS 限制。</div>';
+                }
+            }catch(err){
+                checkResult.innerHTML = `<div style="color:#b94a48">检测失败：${err.message||err}</div><div style="margin-top:0.5rem;color:#666">提示：若站点阻止跨域或禁用 HEAD 请求，请使用后端代理或在服务器环境测试。</div>`;
+            }
+        }
+
+        checkBtn.addEventListener('click',()=>{ checkConnectivity(checkUrlInput.value); });
+        checkUrlInput.addEventListener('keydown',(e)=>{ if(e.key === 'Enter') checkBtn.click(); });
+        openBtn.addEventListener('click',()=>{
+            const url = normalizeUrl(checkUrlInput.value) || 'about:blank';
+            window.open(url,'_blank');
+        });
     </script>
 </body>
 </html>
