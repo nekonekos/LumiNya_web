@@ -363,7 +363,7 @@
         <div class="glass-card">
             <div class="card-title">
                 <i class="fas fa-pencil-alt"></i>
-                <h2> 留言</h2>
+                <h2>📝 留言</h2>
             </div>
 
             <form id="contactForm">
@@ -423,16 +423,15 @@
     </div>
 
     <script>
-        // ==================== EmailJS 初始化 (请替换为您的信息) ====================
+        // ==================== EmailJS 初始化 (已填写) ====================
         (function() {
-            // 替换为您的 EmailJS Public Key (User ID)
             emailjs.init("wRa-SMKoETCdlO1oi"); 
         })();
 
-        // ==================== 配置ID (请替换为您的信息) ====================
+        // ==================== 配置ID (已填写) ====================
         const EMAILJS_CONFIG = {
-            serviceId: "service_nxxb1b8",  // 替换为您的 Service ID
-            templateId: "template_h30ihvt", // 替换为您的 Template ID
+            serviceId: "service_nxxb1b8",
+            templateId: "template_h30ihvt",
         };
 
         // ==================== 初始化富文本编辑器 ====================
@@ -475,15 +474,54 @@
             });
         }
 
+        // ==================== 增强版 IP 获取 (支持多个备用服务) ====================
         async function getClientIP() {
-            try {
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                return data.ip;
-            } catch (e) {
-                console.error('获取IP失败', e);
-                return null;
+            // IP 查询服务列表（按优先级排序，优先国内可用的服务）
+            const services = [
+                { url: 'https://myip.ipip.net/json', timeout: 4000 },        // ipip.net (国内)
+                { url: 'https://api-ipv4.ip.sb/geoip', timeout: 4000 },       // ip.sb (国内可用)
+                { url: 'https://ip.3322.net/', timeout: 4000 },               // 公云 (纯文本)
+                { url: 'https://api.ipify.org?format=json', timeout: 4000 },  // ipify (国际)
+                { url: 'https://ipapi.co/json/', timeout: 5000 },             // ipapi (国际)
+                { url: 'https://ip.seeip.org/json', timeout: 4000 },          // seeip (国际)
+                { url: 'https://httpbin.org/ip', timeout: 4000 }              // httpbin (国际)
+            ];
+
+            for (const service of services) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), service.timeout);
+
+                    const response = await fetch(service.url, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+
+                    if (!response.ok) continue;
+
+                    const text = await response.text();
+                    let ip = null;
+
+                    // 尝试解析 JSON
+                    try {
+                        const data = JSON.parse(text);
+                        // 各服务常用字段
+                        ip = data.ip || data.origin || data.address || data.ip_address || null;
+                        // ipip.net 返回 { data: { ip: ... } }
+                        if (!ip && data.data && data.data.ip) ip = data.data.ip;
+                    } catch (e) {
+                        // 不是 JSON，可能是纯文本（如 3322.net 直接返回 IP）
+                        if (/^(\d{1,3}\.){3}\d{1,3}$/.test(text.trim())) {
+                            ip = text.trim();
+                        }
+                    }
+
+                    if (ip) return ip;
+                } catch (e) {
+                    console.warn(`IP service ${service.url} failed:`, e);
+                    continue; // 尝试下一个
+                }
             }
+            // 所有服务都失败
+            return null;
         }
 
         function isValidPhone(phone) {
@@ -559,32 +597,31 @@
                 return;
             }
 
-            // 获取IP
+            // 获取IP（增强版，即使失败也不阻止发送）
             const ip = await getClientIP();
             if (!ip) {
-                showToast('❌ 无法获取IP地址，发送已禁止', false, 'actionToast');
-                submitBtn.disabled = false;
-                return;
+                console.warn('IP 获取失败，将标记为未知');
+                showToast('⚠️ 无法获取IP地址，将继续发送', false, 'actionToast');
+                // 注意：这里不return，继续执行
             }
 
-            // 检查EmailJS配置是否已修改
-            if (EMAILJS_CONFIG.serviceId === "" || 
-                EMAILJS_CONFIG.templateId === "") {
+            // 检查EmailJS配置是否已修改（这里已填写，但保留判断以防万一）
+            if (!EMAILJS_CONFIG.serviceId || !EMAILJS_CONFIG.templateId) {
                 showToast('❌ 请先配置EmailJS参数', false, 'actionToast');
                 console.log('待发送内容：', { title, contactType, contactValue, message, ip });
                 submitBtn.disabled = false;
                 return;
             }
 
-            // 准备模板参数 (这些变量名应与您在EmailJS后台定义的模板变量一致)
+            // 准备模板参数 (变量名应与EmailJS模板中的变量一致)
             const templateParams = {
-                to_name: "LumiNya",          // 接收人名称（可自定义）
-                from_name: contactValue,      // 访客的联系方式
-                title: title,                  // 留言标题
-                message: message,               // 留言正文 (HTML)
-                ip: ip,                         // 发送者IP
-                contact_type: contactType === 'phone' ? '手机号' : '邮箱', // 联系方式类型
-                reply_to: contactValue          // 回复地址（可选）
+                to_name: "LumiNya",                     // 接收人名称
+                from_name: contactValue,                 // 访客的联系方式
+                title: title,                             // 留言标题
+                message: message,                          // 留言正文 (HTML)
+                ip: ip || '未知',                           // 发送者IP（若失败则标记未知）
+                contact_type: contactType === 'phone' ? '手机号' : '邮箱',
+                reply_to: contactValue                     // 回复地址
             };
 
             try {
@@ -597,7 +634,7 @@
                 if (response.status === 200) {
                     showToast('✅ 留言发送成功！页面即将刷新', true, 'actionToast');
                     setTimeout(() => {
-                        location.reload();
+                        location.reload();  // 刷新清空表单
                     }, 1500);
                 } else {
                     showToast('❌ 发送失败，请稍后重试', false, 'actionToast');
