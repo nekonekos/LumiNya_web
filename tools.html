@@ -44,7 +44,7 @@
 
         <div class="glass-card">
             <h2 style="margin-bottom:0.6rem">IP 查询</h2>
-            <p style="margin-bottom:0.8rem;color:rgba(1,62,92,0.9)">输入 IPv4/IPv6 地址进行查询，或点击“检测我的 IP”获取当前公网信息。数据来自公共地址数据库 <a href="https://ip-api.com/" target="_blank" rel="noreferrer">ip-api.com</a>，通常可提供到街区/邮编级别准确度。</p>
+            <p style="margin-bottom:0.8rem;color:rgba(1,62,92,0.9)">输入 IPv4/IPv6 地址进行查询，或点击“检测我的 IP”获取当前公网信息。默认查询使用公共地址数据库 <a href="https://ip-api.com/" target="_blank" rel="noreferrer">ip-api.com</a>（街区级精度），如果该服务拒绝会自动退回到 <a href="https://ipapi.co/" target="_blank" rel="noreferrer">ipapi.co</a>。</p>
 
             <div class="tools-grid">
                 <div class="ip-form">
@@ -80,34 +80,60 @@
         }
 
         function renderData(data){
-             // ip-api 返回的 status 字段必须为 "success" 才算正常
-             if(!data || data.status !== 'success'){
-                 const reason = data && data.message ? data.message : '未返回有效数据';
-                 renderError(reason);
-                 return;
-             }
-             const html = `
-                 <div class="row">
-                     <div class="meta"><b>IP</b><span>${data.query||'-'}</span></div>
-                     <div class="meta"><b>城市</b><span>${data.city||'-'}</span></div>
-                     <div class="meta"><b>省/州</b><span>${data.regionName||data.region||'-'}</span></div>
-                     <div class="meta"><b>国家</b><span>${data.country||'-'}</span></div>
-                     <div class="meta"><b>邮编</b><span>${data.zip||'-'}</span></div>
-                 </div>
-                 <div class="row" style="margin-top:0.8rem">
-                     <div class="meta"><b>经纬度</b><span>${data.lat!=null? data.lat+','+data.lon : '-'}</span></div>
-                     <div class="meta"><b>ISP</b><span>${data.isp||'-'}</span></div>
-                     <div class="meta"><b>组织 (AS)</b><span>${data.as||'-'}</span></div>
-                     <div class="meta"><b>时区</b><span>${data.timezone||'-'}</span></div>
+            if(!data){
+                renderError('未返回有效数据');
+                return;
+            }
+            let html;
+            // 判断是否为 ip-api 返回格式
+            if(data.status === 'success'){
+                html = `
+                    <div class="row">
+                        <div class="meta"><b>IP</b><span>${data.query||'-'}</span></div>
+                        <div class="meta"><b>城市</b><span>${data.city||'-'}</span></div>
+                        <div class="meta"><b>省/州</b><span>${data.regionName||data.region||'-'}</span></div>
+                        <div class="meta"><b>国家</b><span>${data.country||'-'}</span></div>
+                        <div class="meta"><b>邮编</b><span>${data.zip||'-'}</span></div>
+                    </div>
+                    <div class="row" style="margin-top:0.8rem">
+                        <div class="meta"><b>经纬度</b><span>${data.lat!=null ? data.lat+','+data.lon : '-'}</span></div>
+                        <div class="meta"><b>ISP</b><span>${data.isp||'-'}</span></div>
+                        <div class="meta"><b>组织 (AS)</b><span>${data.as||'-'}</span></div>
+                        <div class="meta"><b>时区</b><span>${data.timezone||'-'}</span></div>
+                    </div>
+                `;
+            } else if(data.ip || data.city || data.country){
+                // 可能是 ipapi.co 或其他服务
+                html = `
+                    <div class="row">
+                        <div class="meta"><b>IP</b><span>${data.ip||data.address||'-'}</span></div>
+                        <div class="meta"><b>城市</b><span>${data.city||'-'}</span></div>
+                        <div class="meta"><b>省/州</b><span>${data.region||data.region_name||'-'}</span></div>
+                        <div class="meta"><b>国家</b><span>${data.country_name||data.country||'-'}</span></div>
+                    </div>
+                    <div class="row" style="margin-top:0.8rem">
+                        <div class="meta"><b>经纬度</b><span>${data.latitude||data.lat ? (data.latitude||data.lat)+', '+(data.longitude||data.lon) : '-'}</span></div>
+                        <div class="meta"><b>ISP/组织</b><span>${data.org||data.org_name||data.company||data.hostname||'-'}</span></div>
+                        <div class="meta"><b>时区</b><span>${data.timezone||data.utc_offset||'-'}</span></div>
+                    </div>
+                `;
+            } else {
+                const reason = data.message||data.error||'未返回有效数据';
+                renderError(reason);
+                return;
+            }
+
+            html += `
                 <div style="margin-top:0.9rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
                     <button id="copyBtn" class="btn secondary"><i class="fas fa-copy"></i> 复制 IP</button>
                     <button id="rawBtn" class="btn secondary"><i class="fas fa-file-code"></i> 查看 JSON</button>
                 </div>
             `;
+
             result.innerHTML = html;
 
             document.getElementById('copyBtn').addEventListener('click',()=>{
-                const ip = data.ip||data.address||'';
+                const ip = data.query || data.ip || data.address || '';
                 if(!ip) return;
                 navigator.clipboard?.writeText(ip).then(()=>{
                     alert('已复制: '+ip);
@@ -126,7 +152,16 @@
             const url = ip ? `${apiBase}${encodeURIComponent(ip)}` : `${apiBase}`;
             result.innerHTML = '<div style="color:#3a7290"><i class="fas fa-spinner fa-spin"></i> 查询中…</div>';
             try{
-                const res = await fetch(url,{cache:'no-store'});
+                let res = await fetch(url,{cache:'no-store'});
+                // ip-api 有时候会返回 403，尤其在跨域或超限时
+                if(res.status === 403) {
+                    console.warn('ip-api returned 403, falling back to ipapi.co');
+                    // 给用户提示
+                    result.innerHTML = '<div style="color:#a67c00"><i class="fas fa-exclamation-circle"></i> 主服务被拒绝，已尝试备用服务…</div>';
+                    // 尝试备用服务
+                    const altUrl = ip ? `https://ipapi.co/${encodeURIComponent(ip)}/json/` : 'https://ipapi.co/json/';
+                    res = await fetch(altUrl,{cache:'no-store'});
+                }
                 if(!res.ok) throw new Error('网络错误: '+res.status);
                 const data = await res.json();
                 renderData(data);
