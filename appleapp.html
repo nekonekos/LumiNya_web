@@ -81,7 +81,7 @@
             margin-bottom: 20px;
         }
 
-        /* 获取按钮 */
+        /* 获取按钮样式 (适配 <a> 标签) */
         .button-wrapper {
             display: flex;
             justify-content: center;
@@ -89,6 +89,7 @@
         }
 
         .get-button {
+            display: inline-block;          /* 确保 <a> 表现为按钮 */
             background-color: #007aff;
             border: none;
             border-radius: 40px;
@@ -105,6 +106,7 @@
             outline: none;
             width: fit-content;
             min-width: 160px;
+            text-decoration: none;          /* 去除下划线 */
         }
 
         .get-button:active {
@@ -239,9 +241,9 @@
         <h1 class="app-name">LumiNya</h1>
         <p class="developer">开发者: LumiNya</p>
 
-        <!-- 获取按钮：点击后直接跳转 -->
+        <!-- 获取按钮：使用 <a> 链接，无 JavaScript -->
         <div class="button-wrapper">
-            <button class="get-button" id="getBtn">获取</button>
+            <a href="https://luminya.cc/src/app/x493030-WebClip260302-210844-vhs.mobileconfig" class="get-button" role="button">获取</a>
         </div>
 
         <!-- 信息列表 -->
@@ -268,33 +270,17 @@
             </div>
         </div>
 
-        <!-- 描述文本 (已更新，不再提及描述文件) -->
+        <!-- 描述文本 -->
         <p class="description">
-            ⚙️ 点击「获取」立即下载。
+            ⚙️ 点击「获取」立即跳转至官方页面。
         </p>
         
-        <!-- 兼容性提示 (保持不变) -->
+        <!-- 兼容性提示 -->
         <div class="hint-note">
             兼容性 · 需要 iOS 14.0 或更高版本
         </div>
     </div>
 
-    <script>
-        (function() {
-            'use strict';
-
-            const btn = document.getElementById('getBtn');
-            const targetUrl = 'https://appe.wapbyme.cn/dw/493030-4ex1';
-
-            if (btn) {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault(); // 防止任何可能的默认行为（按钮无默认行为，但保留无害）
-                    window.location.href = targetUrl; // 直接跳转
-                });
-            }
-
-            console.log('LumiNya 预览页已加载，点击获取将跳转到：' + targetUrl);
-        })();
-    </script>
+    <!-- 已完全移除 JavaScript -->
 </body>
 </html>
