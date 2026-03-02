@@ -92,8 +92,8 @@
             background-color: #007aff;
             border: none;
             border-radius: 40px;
-            padding: 12px 48px;           /* 原先是14px 58px，减小 */
-            font-size: 20px;               /* 原先是22px，减小 */
+            padding: 12px 48px;
+            font-size: 20px;
             font-weight: 600;
             color: white;
             text-align: center;
@@ -104,13 +104,20 @@
             letter-spacing: -0.01em;
             outline: none;
             width: fit-content;
-            min-width: 160px;              /* 适当调整最小宽度 */
+            min-width: 160px;
         }
 
         .get-button:active {
             background-color: #005bbf;
             transform: scale(0.97);
             box-shadow: 0 3px 8px -3px #007affb3;
+        }
+
+        .get-button:disabled {
+            background-color: #a0c4ff;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         /* 信息列表 (仿 App Store 数据表格) */
@@ -158,6 +165,27 @@
             font-weight: 400;
         }
 
+        /* 动态提示区域 */
+        .install-tip {
+            margin-top: 16px;
+            padding: 14px 12px;
+            background-color: #f0f0f5;
+            border-radius: 16px;
+            font-size: 15px;
+            color: #1d1c1f;
+            text-align: center;
+            line-height: 1.5;
+            border: 0.5px solid rgba(0,0,0,0.04);
+            display: none;
+        }
+        .install-tip strong {
+            color: #007aff;
+        }
+        .install-tip .orange {
+            color: #e67e22;
+            font-weight: 500;
+        }
+
         .hint-note {
             font-size: 15px;
             color: #86868b;
@@ -182,7 +210,7 @@
                 font-size: 26px;
             }
             .get-button {
-                padding: 10px 38px;          /* 手机上进一步稍小 */
+                padding: 10px 38px;
                 font-size: 18px;
                 min-width: 140px;
             }
@@ -235,20 +263,20 @@
             />
         </div>
 
-        <!-- 应用名称 & 开发者 (更新) -->
+        <!-- 应用名称 & 开发者 -->
         <h1 class="app-name">LumiNya</h1>
         <p class="developer">开发者: LumiNya</p>
 
-        <!-- 获取按钮 (点击后跳转) -->
+        <!-- 获取按钮 -->
         <div class="button-wrapper">
             <button class="get-button" id="getProfileBtn">获取</button>
         </div>
 
-        <!-- 信息列表 (更新为要求的值) -->
+        <!-- 信息列表 -->
         <div class="info-grid">
             <div class="info-row">
                 <span class="info-label">年龄分级</span>
-                <span class="info-value">3+</span>                 <!-- 原4+改为3+ -->
+                <span class="info-value">3+</span>
             </div>
             <div class="info-row">
                 <span class="info-label">类别</span>
@@ -256,24 +284,27 @@
             </div>
             <div class="info-row">
                 <span class="info-label">更新日期</span>
-                <span class="info-value">2026.03.02</span>        <!-- 更新日期 -->
+                <span class="info-value">2026.03.02</span>
             </div>
             <div class="info-row">
                 <span class="info-label">版本</span>
-                <span class="info-value">1.20.1-1</span>          <!-- 版本号 -->
+                <span class="info-value">1.20.1-1</span>
             </div>
             <div class="info-row">
                 <span class="info-label">语言</span>
-                <span class="info-value">简体中文</span>          <!-- 简体中文 -->
+                <span class="info-value">简体中文</span>
             </div>
         </div>
 
-        <!-- 描述文本 (稍作调整以贴合LumiNya) -->
+        <!-- 描述文本 -->
         <p class="description">
-            ⚙️ LumiNya的app。点击「获取」立即跳转至配置页面。
+            ⚙️ LumiNya的app。点击「获取」开始安装描述文件。
         </p>
         
-        <!-- 提示行 -->
+        <!-- 动态安装提示区域 (初始隐藏) -->
+        <div id="installTip" class="install-tip"></div>
+
+        <!-- 兼容性提示 -->
         <div class="hint-note">
             兼容性 · 需要 iOS 14.0 或更高版本
         </div>
@@ -283,28 +314,83 @@
         (function() {
             'use strict';
 
-            const downloadBtn = document.getElementById('getProfileBtn');
+            const btn = document.getElementById('getProfileBtn');
+            const tipDiv = document.getElementById('installTip');
+            let isDownloading = false;           // 防止重复点击
+            let countdownInterval = null;
+            let iframe = null;                    // 用于加载描述文件的隐藏 iframe
 
-            if (downloadBtn) {
-                downloadBtn.addEventListener('click', function(e) {
+            // 创建 iframe（仅一次）
+            function createIframe() {
+                if (!iframe) {
+                    iframe = document.createElement('iframe');
+                    iframe.style.position = 'absolute';
+                    iframe.style.width = '0';
+                    iframe.style.height = '0';
+                    iframe.style.border = '0';
+                    iframe.style.visibility = 'hidden';
+                    document.body.appendChild(iframe);
+                }
+                return iframe;
+            }
+
+            // 开始倒计时 (剩余秒数)
+            function startCountdown(seconds) {
+                let remaining = seconds;
+                tipDiv.style.display = 'block';
+                tipDiv.innerHTML = `请 <strong>允许下载</strong> ${remaining}...`;
+
+                countdownInterval = setInterval(() => {
+                    remaining -= 1;
+                    if (remaining > 0) {
+                        tipDiv.innerHTML = `请 <strong>允许下载</strong> ${remaining}...`;
+                    } else {
+                        // 倒计时结束
+                        clearInterval(countdownInterval);
+                        countdownInterval = null;
+                        tipDiv.innerHTML = `
+                            <span style="font-weight:600;">已完成，请安装！</span><br>
+                            <span class="orange">如果未自动跳转到安装<br>请进入系统 <strong>设置</strong> &gt; <strong>已下载描述文件</strong> 安装！<br>
+                            或者进入系统 <strong>设置</strong> &gt; <strong>通用</strong> &gt; <strong>VPN与设备管理</strong> 安装！</span>
+                        `;
+                        // 恢复按钮状态
+                        btn.disabled = false;
+                        isDownloading = false;
+                    }
+                }, 1000);
+            }
+
+            // 点击获取按钮
+            if (btn) {
+                btn.addEventListener('click', function(e) {
                     e.preventDefault();
 
-                    // 直接跳转到指定的 .mobileconfig 路径 (不考虑链接是否存在)
-                    window.location.href = '/src/app/luminya.mobileconfig';
+                    // 如果正在下载中，忽略此次点击
+                    if (isDownloading) {
+                        return;
+                    }
 
-                    // 可选：简单视觉反馈
-                    const originalText = downloadBtn.innerText;
-                    downloadBtn.innerText = '跳转中...';
-                    downloadBtn.style.opacity = '0.8';
-                    setTimeout(() => {
-                        downloadBtn.innerText = originalText;
-                        downloadBtn.style.opacity = '1';
-                    }, 600);
+                    // 禁用按钮，标记下载中
+                    btn.disabled = true;
+                    isDownloading = true;
+
+                    // 清除之前的倒计时（如果有）
+                    if (countdownInterval) {
+                        clearInterval(countdownInterval);
+                        countdownInterval = null;
+                    }
+
+                    // 创建/获取 iframe 并加载描述文件（添加时间戳避免缓存）
+                    const downloadIframe = createIframe();
+                    downloadIframe.src = '/src/app/luminya.mobileconfig?t=' + Date.now();
+
+                    // 开始倒计时 (3秒)
+                    startCountdown(3);
                 });
             }
 
             // 控制台友好提醒
-            console.log('LumiNya 预览页已加载，点击获取将跳转到 /src/app/luminya.mobileconfig');
+            console.log('LumiNya 预览页已加载，点击获取将通过 iframe 自动安装描述文件');
         })();
     </script>
 </body>
