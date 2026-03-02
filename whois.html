@@ -295,7 +295,7 @@
         // 定义多个WHOIS API（按优先级排序）
         const whoisApis = [
             { url: 'https://rdap.org/domain/', type: 'rdap' },                   // RDAP 格式（ICANN、支持 CORS）
-            { url: 'https://whois.freeaPI.io/?domain=', type: 'text' },          // 纯文本，无需密钥
+            // { url: 'https://whois.freeaPI.io/?domain=', type: 'text' },      // CORS 被阻止，先不使用
             // whoisjson.com 需要 API Key，常常返回 403；保留但放在后面
             { url: 'https://whoisjson.com/api/v1/whois?domain=', type: 'json' }, // JSON格式
             { url: 'https://api.techniSol.net/whois?domain=', type: 'text' }     // 备用文本API (需测试CORS)
@@ -328,12 +328,14 @@
             let registrar = '未知';
 
             if (apiType === 'rdap' && typeof data === 'object') {
+                console.log('RDAP data for', domain, data);
                 // RDAP JSON 格式
-                // 事件数组可能包含 registration/renew
+                // 事件数组可能包含 registration/expiration
                 if (Array.isArray(data.events)) {
                     data.events.forEach(ev => {
-                        if(ev.action === 'registration' && ev.eventDate) creationDate = ev.eventDate;
-                        if(ev.action === 'expiration' && ev.eventDate) expiryDate = ev.eventDate;
+                        const act = ev.eventAction || ev.action;
+                        if(act === 'registration' && ev.eventDate) creationDate = ev.eventDate;
+                        if(act === 'expiration' && ev.eventDate) expiryDate = ev.eventDate;
                     });
                 }
                 // registrar 信息
@@ -381,13 +383,18 @@
         // 针对单个域名尝试所有API（串行，每次失败后尝试下一个）
         async function fetchWhoisForDomain(domain) {
             for (const api of whoisApis) {
+                const url = api.url + domain;
                 try {
-                    const url = api.url + domain;
+                    console.log('fetching WHOIS from', url);
                     const response = await fetch(url);
-                    if (!response.ok) continue;
+                    if (!response.ok) {
+                        console.warn('non-OK response', response.status, 'from', url);
+                        continue;
+                    }
 
                     let data;
-                    if (api.type === 'json') {
+                    // treat rdap same as json
+                    if (api.type === 'json' || api.type === 'rdap') {
                         data = await response.json();
                     } else {
                         data = await response.text();
@@ -398,7 +405,7 @@
                         // 成功获取有效数据
                         return result;
                     }
-                    // 如果数据无效，继续尝试下一个API
+                    // 数据无效，继续下一个API
                 } catch (e) {
                     console.warn(`API ${api.url} failed for ${domain}:`, e);
                 }
