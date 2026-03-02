@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>用户协议 · 隐私政策 | LumiNya</title>
+    <!-- Font Awesome 6 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* ========== 全局样式 (与个人主页完全一致) ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'PingFang SC', 'Helvetica Neue', 'Hiragino Sans', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #d9f0f7;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1.5rem 1rem;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('/img/bg.webp');
+            background-size: cover;
+            background-position: center 20%;
+            background-repeat: no-repeat;
+            filter: blur(12px) brightness(1.02);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .page-wrap {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+
+        /* 顶栏 (毛玻璃) */
+        .top-bar {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 60px;
+            padding: 1rem 2rem;
+            text-align: center;
+            font-weight: 650;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+            color: #014c79;
+            text-shadow: 2px 2px 6px rgba(255, 255, 255, 0.7);
+        }
+        .top-bar i {
+            margin: 0 10px;
+            color: #3d9fd3;
+        }
+
+        /* 通用毛玻璃卡片 */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.26);
+            backdrop-filter: blur(14px) saturate(150%);
+            -webkit-backdrop-filter: blur(14px) saturate(150%);
+            border-radius: 36px;
+            border: 1.5px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 20px 40px -12px rgba(0, 100, 140, 0.25), 0 4px 18px rgba(255, 255, 255, 0.5) inset;
+            padding: 2.5rem 2.5rem;
+            color: #01486b;
+        }
+
+        /* 文档标题 */
+        .doc-title {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .doc-title i {
+            font-size: 2.2rem;
+            color: #48b5e0;
+        }
+        .doc-title h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #003f63;
+            margin: 0;
+        }
+
+        /* 章节样式 */
+        .chapter {
+            margin-bottom: 2.5rem;
+        }
+        .chapter h2 {
+            font-size: 1.6rem;
+            color: #014c79;
+            margin-bottom: 1rem;
+            border-left: 6px solid #48b5e0;
+            padding-left: 1rem;
+        }
+        .chapter h3 {
+            font-size: 1.2rem;
+            color: #015e8c;
+            margin: 1.2rem 0 0.6rem;
+        }
+        .chapter p {
+            line-height: 1.8;
+            margin-bottom: 1rem;
+            color: #013e5c;
+        }
+        .chapter ul, .chapter ol {
+            margin-left: 1.8rem;
+            margin-bottom: 1.2rem;
+            color: #014267;
+        }
+        .chapter li {
+            margin-bottom: 0.4rem;
+            line-height: 1.6;
+        }
+        .highlight {
+            background: rgba(72, 181, 224, 0.1);
+            border-radius: 8px;
+            padding: 0.2rem 0.4rem;
+            font-weight: 500;
+            color: #014c79;
+        }
+
+        /* 脚注样式 */
+        .footer-note {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            color: #025a86;
+            border-top: 1px dashed rgba(2, 90, 134, 0.3);
+            padding-top: 1.5rem;
+            text-align: right;
+        }
+
+        /* 页脚 */
+        .footer {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            border-radius: 48px;
+            padding: 1rem 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            color: #025a86;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem 2.5rem;
+        }
+        .footer a {
+            color: #0f5f8a;
+            text-decoration: none;
+            border-bottom: 1px dotted #7cb8d4;
+        }
+        .footer i {
+            margin-right: 5px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 550px) {
+            .top-bar { font-size: 1.5rem; padding: 0.8rem 1rem; }
+            .glass-card { padding: 1.5rem; }
+            .doc-title h1 { font-size: 1.8rem; }
+            .chapter h2 { font-size: 1.4rem; }
+        }
+
+        .caption-mini {
+            font-size: 0.75rem; text-align: center; opacity: 0.7; margin-top: 0.5rem;
+            background: rgba(255,255,240,0.2); backdrop-filter: blur(4px); border-radius: 40px; padding: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrap">
+        <!-- 顶栏 -->
+        <div class="top-bar">
+            <i class="fas fa-cherry-blossom"></i> 用户协议 · 隐私政策 <i class="fas fa-fan"></i>
+        </div>
+
+        <!-- 主卡片：用户协议与隐私政策 -->
+        <div class="glass-card">
+            <div class="doc-title">
+                <i class="fas fa-file-contract"></i>
+                <h1>LumiNya 服务条款与隐私政策</h1>
+            </div>
+
+            <!-- 最后更新日期 -->
+            <p style="margin-bottom: 2rem; color: #015e94; font-style: italic;">
+                <i class="fas fa-clock"></i> 最后更新日期：2026年3月2日 · 生效日期：2026年3月2日
+            </p>
+
+            <!-- ================= 第一部分：用户协议 ================= -->
+            <div class="chapter">
+                <h2> 第一部分：用户协议</h2>
+                <p>欢迎使用 LumiNya 个人网站及相关服务（以下简称“本服务”）。本服务由 LumiNya（以下简称“我们”）提供。请您仔细阅读以下条款，<span class="highlight">使用本服务即表示您同意接受本协议的全部约定</span>。</p>
+                
+                <h3>1. 账号管理</h3>
+                <p>您在使用本服务时，可能需要注册账号。您应保证注册信息的真实、准确、完整，并对账号下的一切行为负责。若您发现账号被他人非法使用，请立即通知我们。因您保管不善导致账号被盗或数据丢失的，我们不承担责任[citation:4]。</p>
+
+                <h3>2. 用户行为规范</h3>
+                <p>您在使用本服务时，不得从事以下行为：</p>
+                <ul>
+                    <li>发布、传播违法信息或侵犯他人合法权益的内容[citation:3]；</li>
+                    <li>未经授权访问、篡改系统数据或干扰服务正常运行；</li>
+                    <li>利用本服务从事任何商业推广活动，除非获得我们书面许可；</li>
+                    <li>其他违反法律法规、公序良俗的行为。</li>
+                </ul>
+                <p>若您违反上述规定，我们有权采取暂停服务、终止账号、删除内容等措施，并保留追究法律责任的权利[citation:5]。</p>
+
+                <h3>3. 知识产权</h3>
+                <p>本网站所有内容（包括但不限于文字、软件、界面设计、图标、代码等）的知识产权归 LumiNya 或其许可方所有。未经我们书面同意，您不得复制、修改、传播、出售或用于商业目的[citation:2]。</p>
+
+                <h3>4. 服务变更与终止</h3>
+                <p>我们可能会根据需要对服务内容进行调整、暂停或终止。我们将尽力提前通知，但对于因服务变更导致的任何损失，我们不承担赔偿责任[citation:4]。</p>
+
+                <h3>5. 免责声明</h3>
+                <p>本服务按“现状”提供，不提供任何明示或默示的担保，包括但不限于适销性、特定用途适用性等。在法律允许的最大范围内，我们对因使用本服务造成的间接损失不承担责任[citation:7]。</p>
+            </div>
+
+            <!-- ================= 第二部分：隐私政策 ================= -->
+            <div class="chapter">
+                <h2> 第二部分：隐私政策</h2>
+                <p>我们高度重视您的个人信息保护。本隐私政策说明了我们如何收集、使用、存储和保护您的信息。请仔细阅读，<span class="highlight">使用本服务即表示您同意本隐私政策的全部条款</span>[citation:6][citation:1]。</p>
+
+                <h3>1. 信息收集</h3>
+                <p>我们遵循<span class="highlight">合法、正当、必要</span>原则，收集以下类型的信息[citation:1][citation:6]：</p>
+                <ul>
+                    <li><strong>您主动提供的信息：</strong>如通过联系页面提交的姓名、联系方式、留言内容等；</li>
+                    <li><strong>自动收集的信息：</strong>包括IP地址、浏览器类型、访问时间、设备信息等，用于网站流量统计和优化体验[citation:7]；</li>
+                    <li><strong>Cookie信息：</strong>我们可能使用Cookie来记录您的偏好，您可以通过浏览器设置拒绝Cookie，但可能影响部分功能[citation:7]。</li>
+                </ul>
+                <p>我们<span class="highlight">不会收集</span>您的敏感个人信息（如身份证号、银行卡号等），除非您主动提供并同意[citation:1]。</p>
+
+                <h3>2. 信息使用</h3>
+                <p>我们可能将您的信息用于以下目的[citation:6][citation:3]：</p>
+                <ul>
+                    <li>提供、维护和改进本服务；</li>
+                    <li>回复您的咨询、留言或请求；</li>
+                    <li>进行数据分析、用户画像以优化服务体验；</li>
+                    <li>遵守法律法规要求或应对法律程序。</li>
+                </ul>
+
+                <h3>3. 信息共享与披露</h3>
+                <p>我们<span class="highlight">不会出售、出租或非法共享</span>您的个人信息。仅在以下情形下，可能会共享或披露[citation:6][citation:1]：</p>
+                <ul>
+                    <li><strong>征得您明确同意：</strong>事先获得您的授权；</li>
+                    <li><strong>法定情形：</strong>根据法律法规、诉讼要求或行政/司法机关的强制要求；</li>
+                    <li><strong>服务提供商：</strong>我们可能委托第三方（如邮件服务商 EmailJS）处理信息，但这些第三方必须遵守保密义务，且不得用于其他目的[citation:7]。</li>
+                </ul>
+
+                <h3>4. 信息存储与保护</h3>
+                <p>您的个人信息将存储于中华人民共和国境外的服务器[citation:1]。我们采取符合业界标准的安全措施（如SSL加密、访问控制、安全审计等）防止信息泄露、篡改或丢失[citation:6][citation:7]。但请注意，互联网环境并非绝对安全，我们无法保证100%的安全性。</p>
+
+                <h3>5. 您的权利</h3>
+                <p>您对您的个人信息享有以下权利[citation:1][citation:6]：</p>
+                <ul>
+                    <li><strong>查阅、复制、更正、补充：</strong>可通过本政策底部的联系方式联系我们；</li>
+                    <li><strong>删除：</strong>在符合法定条件时，您可以请求删除您的信息；</li>
+                    <li><strong>撤回同意：</strong>如我们基于您的同意处理信息，您可随时撤回同意；</li>
+                    <li><strong>注销账号：</strong>如需注销账号，请联系我们处理[citation:1]。</li>
+                </ul>
+                <p>我们将在<span class="highlight">15个工作日内</span>响应您的请求[citation:1]。</p>
+
+                <h3>6. 未成年人保护</h3>
+                <p>如您是<span class="highlight">未满14周岁的未成年人</span>，您在使用本服务前应取得父母或其他监护人的同意。我们不会在明知的情况下收集未成年人的个人信息[citation:1]。</p>
+
+                <h3>7. 隐私政策更新</h3>
+                <p>我们可能会根据法律法规变化或服务调整更新本隐私政策。更新后的政策将在本页面公布，<span class="highlight">并取代此前版本</span>。若您继续使用本服务，视为同意更新后的条款[citation:6][citation:2]。</p>
+            </div>
+
+            <!-- 联系信息脚注 -->
+            <div class="footer-note">
+                <i class="fas fa-envelope"></i> 如您对本协议或隐私政策有任何疑问，请联系：<a href="mailto:contact@luminya.cc" style="color: #014c79;">contact@luminya.cc</a><br>
+                <i class="fas fa-gavel"></i> 本协议的成立、生效、履行、解释及纠纷解决，适用中华人民共和国法律[citation:6]。
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <div class="footer">
+            <span><i class="far fa-copyright"></i> 2026 LumiNya</span>
+            <span><i class="fas fa-tag"></i> 用户协议 · 隐私政策</span>
+            <span><a href="/"><i class="fas fa-dragon"></i> 返回首页</a></span>
+        </div>
+
+        <!-- 小提示 -->
+        <div class="caption-mini">
+            ⭐ 本文件为法律性文件，请仔细阅读 · 如有疑问请通过邮箱联系我们 ⭐
+        </div>
+    </div>
+</body>
+</html>
