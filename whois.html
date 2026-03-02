@@ -289,7 +289,8 @@
             { name: 'luminya.cc', desc: '个人网站 · 服务器主域', icon: 'fa-cube' },
             { name: 'mtf.pink', desc: '跨性别者 · 粉色寓所', icon: 'fa-heart' },
             { name: '0721.quest', desc: '0721 日语梗 · 冒险', icon: 'fa-dragon' },
-            { name: 'xingzhanyun.com', desc: '星栈云平台 · 技术', icon: 'fa-cloud' }
+            { name: 'xingzhanyun.com', desc: '星栈云平台 · 技术', icon: 'fa-cloud' },
+            { name: 'yizhia359.cn', desc: '测试域名示例', icon: 'fa-globe' }
         ];
 
         // 定义多个WHOIS API（按优先级排序）
@@ -313,6 +314,7 @@
                     <div class="domain-icon"><i class="fas ${domain.icon}"></i></div>
                     <div class="domain-name">${domain.name}</div>
                     <div class="domain-desc">${domain.desc}</div>
+                    <div style="margin-top:0.6rem"><a href="https://${domain.name}" target="_blank" rel="noreferrer" class="btn secondary" style="font-size:0.9rem;padding:0.4rem 0.8rem"><i class="fas fa-external-link-alt"></i> 访问</a></div>
                     <div class="whois-info" data-domain="${domain.name}">
                         <div class="loading-row"><i class="fas fa-spinner fa-pulse"></i> 查询WHOIS中...</div>
                     </div>
