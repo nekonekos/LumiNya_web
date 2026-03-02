@@ -72,6 +72,36 @@
             <div id="checkResult" class="result" style="margin-top:0.8rem">等待检测。</div>
         </div>
 
+        <div class="glass-card">
+            <h3 style="margin-bottom:0.6rem">MC 服务器检测</h3>
+            <p style="margin-bottom:0.6rem;color:rgba(1,62,92,0.85)">检测 Minecraft Java/Bedrock 服务器状态（使用 <a href="https://api.mcsrvstat.us/" target="_blank" rel="noreferrer">mcsrvstat API</a>）。推荐服务器： <a href="https://luminya.cc/lumiser" target="_blank" rel="noreferrer">luminya.cc/lumiser</a>（LumiSer 星光智服）。</p>
+
+            <div class="ip-form" style="align-items:flex-start">
+                <input id="mcHost" class="form-input" placeholder="服务器地址，例如 luminya.cc 或 play.example.com">
+                <input id="mcPort" class="form-input" placeholder="端口（可选，默认 25565）" style="max-width:160px">
+                <button id="mcCheckBtn" class="btn"><i class="fas fa-gamepad"></i> 检测</button>
+            </div>
+
+            <div id="mcResult" class="result" style="margin-top:0.8rem">等待检测。</div>
+        </div>
+
+        <div class="glass-card">
+            <h3 style="margin-bottom:0.6rem">Base64 编解码</h3>
+            <p style="margin-bottom:0.6rem;color:rgba(1,62,92,0.85)">支持 UTF-8 文本。选择“编码”或“解码”，并可启用 URL-safe（替换 +/ 为 -_）。</p>
+
+            <div style="display:flex;flex-direction:column;gap:0.6rem">
+                <textarea id="b64Input" class="form-input" style="min-height:100px;resize:vertical" placeholder="在此输入要编码或解码的文本"></textarea>
+                <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap">
+                    <label style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="b64mode" value="encode" checked> 编码</label>
+                    <label style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="b64mode" value="decode"> 解码</label>
+                    <label style="display:inline-flex;align-items:center;gap:6px;margin-left:8px"><input type="checkbox" id="b64UrlSafe"> URL-safe</label>
+                    <button id="b64Run" class="btn" style="margin-left:auto"><i class="fas fa-exchange-alt"></i> 执行</button>
+                </div>
+
+                <div id="b64Result" class="result" style="margin-top:0.6rem">等待操作。</div>
+            </div>
+        </div>
+
         <div class="footer">数据来源：<a href="https://ip-api.com/" target="_blank" rel="noreferrer">ip-api.com</a> （街区级）· <span style="margin-left:8px">页面由 LumiNya 提供</span></div>
     </div>
 
@@ -238,6 +268,88 @@
             const url = normalizeUrl(checkUrlInput.value) || 'about:blank';
             window.open(url,'_blank');
         });
+
+        // ---------- MC 服务器检测 (使用 api.mcsrvstat.us) ----------
+        const mcCheckBtn = document.getElementById('mcCheckBtn');
+        const mcHost = document.getElementById('mcHost');
+        const mcPort = document.getElementById('mcPort');
+        const mcResult = document.getElementById('mcResult');
+
+        async function checkMC(host, port){
+            host = (host||'').trim();
+            port = (port||'').trim();
+            if(!host){ mcResult.innerHTML = '<div style="color:#b94a48">请输入服务器地址。</div>'; return; }
+            mcResult.innerHTML = '<div style="color:#3a7290"><i class="fas fa-spinner fa-spin"></i> 检测中…</div>';
+            try{
+                const apiUrl = 'https://api.mcsrvstat.us/2/' + encodeURIComponent(host) + (port ? ':' + encodeURIComponent(port) : '');
+                const res = await fetch(apiUrl, { cache: 'no-store' });
+                if(!res.ok) throw new Error('网络错误: '+res.status);
+                const data = await res.json();
+                const online = data.online ? '在线' : '离线';
+                let html = `<div><b>状态：</b>${online}</div>`;
+                if(data.online){
+                    html += `<div><b>版本：</b>${data.version || '-'}</div>`;
+                    if(data.players) html += `<div><b>玩家：</b>${data.players.online || 0}/${data.players.max || '-'}</div>`;
+                    if(data.motd && data.motd.clean) html += `<div><b>MotD：</b>${data.motd.clean.join(' ')}</div>`;
+                    if(data.hostname) html += `<div><b>地址：</b>${data.hostname}</div>`;
+                    html += `<div style="margin-top:0.6rem"><a href="minecraft://${host}:${port || '25565'}">使用 Minecraft 尝试连接</a> · 推荐服务器： <a href="https://luminya.cc/lumiser" target="_blank" rel="noreferrer">luminya.cc/lumiser (LumiSer)</a></div>`;
+                } else {
+                    html += `<div style="color:#666;margin-top:0.4rem">可能离线或被防火墙阻止。</div>`;
+                }
+                mcResult.innerHTML = html;
+            }catch(err){
+                mcResult.innerHTML = `<div style="color:#b94a48">检测失败：${err.message}</div>`;
+            }
+        }
+
+        mcCheckBtn.addEventListener('click', ()=> checkMC(mcHost.value, mcPort.value));
+        mcHost.addEventListener('keydown', e=>{ if(e.key==='Enter') mcCheckBtn.click(); });
+        mcPort.addEventListener('keydown', e=>{ if(e.key==='Enter') mcCheckBtn.click(); });
+
+        // ---------- Base64 编解码工具 ----------
+        const b64Run = document.getElementById('b64Run');
+        const b64Input = document.getElementById('b64Input');
+        const b64Result = document.getElementById('b64Result');
+
+        function toBase64(str, urlsafe=false){
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(str);
+            let binary = '';
+            const chunk = 0x8000;
+            for(let i=0;i<bytes.length;i+=chunk){
+                binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i+chunk)));
+            }
+            let b64 = btoa(binary);
+            if(urlsafe) b64 = b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+            return b64;
+        }
+
+        function fromBase64(b64, urlsafe=false){
+            if(urlsafe){
+                b64 = b64.replace(/-/g,'+').replace(/_/g,'/');
+                while(b64.length % 4) b64 += '=';
+            }
+            const binary = atob(b64);
+            const bytes = new Uint8Array(binary.length);
+            for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+            const decoder = new TextDecoder();
+            return decoder.decode(bytes);
+        }
+
+        b64Run.addEventListener('click', ()=>{
+            const mode = document.querySelector('input[name="b64mode"]:checked')?.value || 'encode';
+            const urlsafe = document.getElementById('b64UrlSafe').checked;
+            try{
+                let out = '';
+                if(mode === 'encode') out = toBase64(b64Input.value, urlsafe);
+                else out = fromBase64(b64Input.value.trim(), urlsafe);
+                b64Result.innerHTML = `<pre style="white-space:pre-wrap;word-break:break-word">${out}</pre><div style="margin-top:0.6rem"><button id="b64Copy" class="btn secondary"><i class="fas fa-copy"></i> 复制结果</button></div>`;
+                document.getElementById('b64Copy').addEventListener('click', ()=>{ navigator.clipboard.writeText(out).then(()=>alert('已复制')).catch(()=>alert('复制失败')) });
+            }catch(err){
+                b64Result.innerHTML = `<div style="color:#b94a48">错误：${err.message}</div>`;
+            }
+        });
+
     </script>
 </body>
 </html>
