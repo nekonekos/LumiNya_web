@@ -314,7 +314,7 @@
                     <div class="domain-icon"><i class="fas ${domain.icon}"></i></div>
                     <div class="domain-name">${domain.name}</div>
                     <div class="domain-desc">${domain.desc}</div>
-                    <div style="margin-top:0.6rem"><a href="https://${domain.name}" target="_blank" rel="noreferrer" class="btn secondary" style="font-size:0.9rem;padding:0.4rem 0.8rem"><i class="fas fa-external-link-alt"></i> 访问</a></div>
+                    <div style="margin-top:0.6rem"><a href="https://${domain.name}" target="_blank" rel="noreferrer" class="link-btn" style="font-size:0.85rem;padding:0.3rem 1rem"><i class="fas fa-external-link-alt"></i> 访问</a></div>
                     <div class="whois-info" data-domain="${domain.name}">
                         <div class="loading-row"><i class="fas fa-spinner fa-pulse"></i> 查询WHOIS中...</div>
                     </div>
@@ -331,20 +331,29 @@
 
             if (apiType === 'rdap' && typeof data === 'object') {
                 console.log('RDAP data for', domain, data);
-                // RDAP JSON 格式
-                // 事件数组可能包含 registration/expiration
+                // RDAP JSON 格式解析
                 if (Array.isArray(data.events)) {
+                    // 先查找明确的 registration/expiration
+                    let earliest = '';
+                    let latest = '';
                     data.events.forEach(ev => {
-                        const act = ev.eventAction || ev.action;
-                        if(act === 'registration' && ev.eventDate) creationDate = ev.eventDate;
-                        if(act === 'expiration' && ev.eventDate) expiryDate = ev.eventDate;
+                        const act = (ev.eventAction || ev.action || '').toLowerCase();
+                        if(act.includes('registration') && ev.eventDate) creationDate = ev.eventDate;
+                        if(act.includes('expiration') && ev.eventDate) expiryDate = ev.eventDate;
+                        if(ev.eventDate){
+                            if(!earliest || ev.eventDate < earliest) earliest = ev.eventDate;
+                            if(!latest || ev.eventDate > latest) latest = ev.eventDate;
+                        }
                     });
+                    if(creationDate==='未知' && earliest) creationDate = earliest;
+                    if(expiryDate==='未知' && latest && latest !== creationDate) expiryDate = latest;
                 }
-                // registrar 信息
-                if(data.registrar && data.registrar.name) registrar = data.registrar.name;
-                else if(Array.isArray(data.entities)){
+                // registrar信息
+                if(data.registrar && data.registrar.name) {
+                    registrar = data.registrar.name;
+                } else if(Array.isArray(data.entities)){
                     data.entities.forEach(ent=>{
-                        if(ent.roles && ent.roles.includes('registrar') && ent.vcardArray){
+                        if(registrar==='未知' && ent.vcardArray){
                             const fn = ent.vcardArray[1].find(f=>f[0]==='fn');
                             if(fn) registrar = fn[3];
                         }
