@@ -1,246 +1,316 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>App Store 预览 · LumiNya</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        body {
-            background-color: #f5f5f7;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 16px;
-        }
-        .app-card {
-            background-color: #ffffff;
-            max-width: 400px;
-            width: 100%;
-            border-radius: 28px;
-            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.15), 0 5px 12px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-            padding: 32px 24px 28px 24px;
-            transition: transform 0.2s ease;
-            backdrop-filter: blur(10px);
-            border: 0.5px solid rgba(0, 0, 0, 0.04);
-        }
-        .icon-wrapper {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-        .app-icon {
-            width: 140px;
-            height: 140px;
-            border-radius: 31px;
-            box-shadow: 0 12px 25px -6px rgba(0, 0, 0, 0.25), 0 4px 8px rgba(0, 0, 0, 0.02);
-            object-fit: cover;
-            background-color: #f0f0f3;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            transition: transform 0.15s ease;
-        }
-        .app-icon:hover {
-            transform: scale(1.02);
-        }
-        .app-name {
-            font-size: 28px;
-            font-weight: 700;
-            line-height: 1.2;
-            letter-spacing: -0.02em;
-            text-align: center;
-            color: #1d1c1f;
-            margin-bottom: 6px;
-        }
-        .developer {
-            font-size: 17px;
-            font-weight: 400;
-            color: #86868b;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .button-wrapper {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 28px;
-        }
-        .get-button {
-            display: inline-block;
-            background-color: #007aff;
-            border: none;
-            border-radius: 40px;
-            padding: 12px 48px;
-            font-size: 20px;
-            font-weight: 600;
-            color: white;
-            text-align: center;
-            cursor: pointer;
-            box-shadow: 0 5px 15px -5px #007aff80;
-            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            border: 0.5px solid rgba(255, 255, 255, 0.2);
-            letter-spacing: -0.01em;
-            outline: none;
-            width: fit-content;
-            min-width: 160px;
-            text-decoration: none;
-        }
-        .get-button:active {
-            background-color: #005bbf;
-            transform: scale(0.97);
-            box-shadow: 0 3px 8px -3px #007affb3;
-        }
-        .info-grid {
-            background-color: #f8f8fc;
-            border-radius: 18px;
-            padding: 16px 18px;
-            margin-bottom: 22px;
-            border: 1px solid #f0f0f2;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 9px 0;
-            border-bottom: 1px solid #e9e9ed;
-        }
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        .info-label {
-            font-size: 16px;
-            font-weight: 400;
-            color: #6c6c74;
-        }
-        .info-value {
-            font-size: 16px;
-            font-weight: 500;
-            color: #1d1c1f;
-            text-align: right;
-        }
-        .description {
-            font-size: 16px;
-            line-height: 1.45;
-            color: #3a3a44;
-            background-color: #ffffff;
-            padding: 6px 8px;
-            margin-bottom: 6px;
-            font-weight: 400;
-        }
-        .hint-note {
-            font-size: 15px;
-            color: #86868b;
-            text-align: center;
-            margin-top: 12px;
-            border-top: 1px solid #e9e9ed;
-            padding-top: 18px;
-        }
-        @media (max-width: 420px) {
-            .app-card {
-                padding: 24px 18px 20px 18px;
-                border-radius: 24px;
-            }
-            .app-icon {
-                width: 120px;
-                height: 120px;
-                border-radius: 26px;
-            }
-            .app-name {
-                font-size: 26px;
-            }
-            .get-button {
-                padding: 10px 38px;
-                font-size: 18px;
-                min-width: 140px;
-            }
-        }
-        .app-store-badge {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            padding: 0 6px;
-            color: #007aff;
-            font-weight: 500;
-            font-size: 20px;
-            letter-spacing: -0.02em;
-        }
-        .badge-left {
-            font-size: 26px;
-            font-weight: 700;
-            color: #1d1c1f;
-        }
-        .badge-right {
-            font-size: 17px;
-            color: #007aff;
-            font-weight: 500;
-        }
-        hr {
-            border: none;
-            border-top: 1px solid #e9e9ed;
-            margin: 18px 0 12px 0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+<title>App Store 预览 · LumiNya</title>
+<style>
+* {
+margin:0;
+padding:0;
+box-sizing:border-box;
+-webkit-font-smoothing:antialiased;
+-moz-osx-font-smoothing:grayscale;
+}
+body {
+background-color:#f5f5f7;
+font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+min-height:100vh;
+margin:0;
+padding:16px;
+}
+.app-card {
+background-color:#ffffff;
+max-width:400px;
+width:100%;
+border-radius:28px;
+box-shadow:0 20px 35px -10px rgba(0,0,0,0.15), 0 5px 12px rgba(0,0,0,0.05);
+overflow:hidden;
+padding:32px 24px 28px 24px;
+transition:transform 0.2s ease;
+backdrop-filter:blur(10px);
+border:0.5px solid rgba(0,0,0,0.04);
+}
+.icon-wrapper {
+display:flex;
+justify-content:center;
+margin-bottom:20px;
+}
+.app-icon {
+width:140px;
+height:140px;
+border-radius:31px;
+box-shadow:0 12px 25px -6px rgba(0,0,0,0.25), 0 4px 8px rgba(0,0,0,0.02);
+object-fit:cover;
+background-color:#f0f0f3;
+border:1px solid rgba(255,255,255,0.3);
+transition:transform 0.15s ease;
+}
+.app-icon:hover {
+transform:scale(1.02);
+}
+.app-name {
+font-size:28px;
+font-weight:700;
+line-height:1.2;
+letter-spacing:-0.02em;
+text-align:center;
+color:#1d1c1f;
+margin-bottom:6px;
+}
+.developer {
+font-size:17px;
+font-weight:400;
+color:#86868b;
+text-align:center;
+margin-bottom:20px;
+}
+.button-wrapper {
+display:flex;
+justify-content:center;
+margin-bottom:28px;
+}
+.get-button {
+display:inline-block;
+background-color:#007aff;
+border:none;
+border-radius:40px;
+padding:12px 48px;
+font-size:20px;
+font-weight:600;
+color:white;
+text-align:center;
+cursor:pointer;
+box-shadow:0 5px 15px -5px #007aff80;
+transition:all 0.2s cubic-bezier(0.25,0.46,0.45,0.94);
+border:0.5px solid rgba(255,255,255,0.2);
+letter-spacing:-0.01em;
+outline:none;
+width:fit-content;
+min-width:160px;
+text-decoration:none;
+}
+.get-button:active {
+background-color:#005bbf;
+transform:scale(0.97);
+box-shadow:0 3px 8px -3px #007affb3;
+}
+.info-grid {
+background-color:#f8f8fc;
+border-radius:18px;
+padding:16px 18px;
+margin-bottom:22px;
+border:1px solid #f0f0f2;
+}
+.info-row {
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:9px 0;
+border-bottom:1px solid #e9e9ed;
+}
+.info-row:last-child {
+border-bottom:none;
+}
+.info-label {
+font-size:16px;
+font-weight:400;
+color:#6c6c74;
+}
+.info-value {
+font-size:16px;
+font-weight:500;
+color:#1d1c1f;
+text-align:right;
+}
+.description {
+font-size:16px;
+line-height:1.45;
+color:#3a3a44;
+background-color:#ffffff;
+padding:6px 8px;
+margin-bottom:6px;
+font-weight:400;
+}
+.hint-note {
+font-size:15px;
+color:#86868b;
+text-align:center;
+margin-top:12px;
+border-top:1px solid #e9e9ed;
+padding-top:18px;
+}
+@media (max-width:420px) {
+.app-card {
+padding:24px 18px 20px 18px;
+border-radius:24px;
+}
+.app-icon {
+width:120px;
+height:120px;
+border-radius:26px;
+}
+.app-name {
+font-size:26px;
+}
+.get-button {
+padding:10px 38px;
+font-size:18px;
+min-width:140px;
+}
+}
+.app-store-badge {
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-bottom:12px;
+padding:0 6px;
+color:#007aff;
+font-weight:500;
+font-size:20px;
+letter-spacing:-0.02em;
+}
+.badge-left {
+font-size:26px;
+font-weight:700;
+color:#1d1c1f;
+}
+.badge-right {
+font-size:17px;
+color:#007aff;
+font-weight:500;
+}
+hr {
+border:none;
+border-top:1px solid #e9e9ed;
+margin:18px 0 12px 0;
+}
+/* 苹果风格弹窗 */
+.modal-overlay {
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background-color:rgba(0,0,0,0.4);
+backdrop-filter:blur(10px);
+display:flex;
+align-items:center;
+justify-content:center;
+z-index:10000;
+visibility:hidden;
+opacity:0;
+transition:opacity 0.2s ease;
+}
+.modal-overlay.show {
+visibility:visible;
+opacity:1;
+}
+.modal-card {
+background-color:#ffffff;
+width:300px;
+border-radius:28px;
+box-shadow:0 30px 40px -15px rgba(0,0,0,0.3);
+padding:24px 20px;
+text-align:center;
+border:0.5px solid rgba(255,255,255,0.3);
+}
+.modal-icon {
+font-size:48px;
+margin-bottom:10px;
+}
+.modal-title {
+font-size:22px;
+font-weight:600;
+margin-bottom:12px;
+color:#1d1c1f;
+}
+.modal-message {
+font-size:16px;
+color:#3a3a44;
+line-height:1.5;
+margin-bottom:24px;
+}
+.modal-button {
+background-color:#007aff;
+border:none;
+border-radius:30px;
+padding:12px 24px;
+font-size:17px;
+font-weight:600;
+color:white;
+cursor:pointer;
+transition:background-color 0.1s;
+border:0.5px solid rgba(255,255,255,0.2);
+width:100%;
+}
+.modal-button:active {
+background-color:#005bbf;
+}
+</style>
 </head>
 <body>
-    <div class="app-card">
-        <div class="app-store-badge">
-            <span class="badge-left">App Store</span>
-            <span class="badge-right">应用程序</span>
-        </div>
-        <div class="icon-wrapper">
-            <img 
-                class="app-icon" 
-                src="img/logo.webp" 
-                alt="LumiNya 图标"
-                onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22140%22%20height%3D%22140%22%20viewBox%3D%220%200%20140%20140%22%3E%3Crect%20width%3D%22140%22%20height%3D%22140%22%20fill%3D%22%23e0e0e5%22%20rx%3D%2231%22%20ry%3D%2231%22%2F%3E%3Ctext%20x%3D%2270%22%20y%3D%2285%22%20font-size%3D%2224%22%20text-anchor%3D%22middle%22%20fill%3D%22%236f6f7a%22%20font-family%3D%22-apple-system%2C%20Helvetica%22%3ELumiNya%3C%2Ftext%3E%3C%2Fsvg%3E';"
-            />
-        </div>
-        <h1 class="app-name">LumiNya</h1>
-        <p class="developer">开发者: LumiNya</p>
-        <div class="button-wrapper">
-            <a href="https://luminya.cc/src/app/x493030-WebClip260302-210844-vhs.mobileconfig" class="get-button" role="button">获取</a>
-        </div>
-        <div class="info-grid">
-            <div class="info-row">
-                <span class="info-label">年龄分级</span>
-                <span class="info-value">3+</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">类别</span>
-                <span class="info-value">工具</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">更新日期</span>
-                <span class="info-value">2026.03.02</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">版本</span>
-                <span class="info-value">1.20.1-1</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">语言</span>
-                <span class="info-value">简体中文</span>
-            </div>
-        </div>
-        <p class="description">
-            ⚙️ 点击「获取」立即跳转至官方页面。
-        </p>
-        <div class="hint-note">
-            兼容性 · 需要 iOS 14.0 或更高版本
-        </div>
-    </div>
-
-    <!-- 已完全移除 JavaScript -->
+<div class="app-card">
+<div class="app-store-badge">
+<span class="badge-left">App Store</span>
+<span class="badge-right">应用程序</span>
+</div>
+<div class="icon-wrapper">
+<img class="app-icon" src="img/logo.webp" alt="LumiNya 图标" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22140%22%20height%3D%22140%22%20viewBox%3D%220%200%20140%20140%22%3E%3Crect%20width%3D%22140%22%20height%3D%22140%22%20fill%3D%22%23e0e0e5%22%20rx%3D%2231%22%20ry%3D%2231%22%2F%3E%3Ctext%20x%3D%2270%22%20y%3D%2285%22%20font-size%3D%2224%22%20text-anchor%3D%22middle%22%20fill%3D%22%236f6f7a%22%20font-family%3D%22-apple-system%2C%20Helvetica%22%3ELumiNya%3C%2Ftext%3E%3C%2Fsvg%3E';">
+</div>
+<h1 class="app-name">LumiNya</h1>
+<p class="developer">开发者: LumiNya</p>
+<div class="button-wrapper">
+<a href="#" id="getLink" class="get-button" role="button">获取</a>
+</div>
+<div class="info-grid">
+<div class="info-row"><span class="info-label">年龄分级</span><span class="info-value">3+</span></div>
+<div class="info-row"><span class="info-label">类别</span><span class="info-value">工具</span></div>
+<div class="info-row"><span class="info-label">更新日期</span><span class="info-value">2026.03.02</span></div>
+<div class="info-row"><span class="info-label">版本</span><span class="info-value">1.20.1-1</span></div>
+<div class="info-row"><span class="info-label">语言</span><span class="info-value">简体中文</span></div>
+</div>
+<p class="description">⚙️ 点击「获取」立即跳转至官方页面。</p>
+<div class="hint-note">兼容性 · 需要 iOS 14.0 或更高版本</div>
+</div>
+<!-- 苹果风格弹窗 -->
+<div class="modal-overlay" id="modalOverlay">
+<div class="modal-card">
+<div class="modal-icon">📲</div>
+<div class="modal-title">安装描述文件</div>
+<div class="modal-message">请点击窗口中“允许”，并在下载完成后进入设置-&gt;已下载描述文件-&gt;安装。若较长时间未下载请刷新界面后重试。</div>
+<button class="modal-button" id="modalCloseBtn">我知道了</button>
+</div>
+</div>
+<script>
+(function(){
+var link=document.getElementById('getLink');
+var modal=document.getElementById('modalOverlay');
+var closeBtn=document.getElementById('modalCloseBtn');
+var downloadUrl='https://luminya.cc/src/app/x493030-WebClip260302-210844-vhs.mobileconfig';
+link.addEventListener('click',function(e){
+e.preventDefault();
+modal.classList.add('show');
+var iframe=document.createElement('iframe');
+iframe.style.position='absolute';
+iframe.style.width='0';
+iframe.style.height='0';
+iframe.style.border='0';
+iframe.style.visibility='hidden';
+iframe.src=downloadUrl+'?t='+Date.now();
+document.body.appendChild(iframe);
+setTimeout(function(){
+document.body.removeChild(iframe);
+},5000);
+});
+closeBtn.addEventListener('click',function(){
+modal.classList.remove('show');
+});
+})();
+</script>
 </body>
 </html>
