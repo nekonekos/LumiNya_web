@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=yes">
+    <title>工具箱 · LumiNya</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI','PingFang SC','Helvetica Neue','Hiragino Sans','Microsoft YaHei',sans-serif}
+        body{min-height:100vh;background-color:#d9f0f7;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem 1rem}
+        body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background-image:url('/img/bg.webp');background-size:cover;background-position:center 20%;background-repeat:no-repeat;filter:blur(12px) brightness(1.02);z-index:-1;pointer-events:none}
+        .page-wrap{width:100%;max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:1.2rem}
+        .top-bar{background:rgba(255,255,255,0.3);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.7);border-radius:60px;padding:0.9rem 1.6rem;text-align:center;font-weight:650;font-size:1.6rem;letter-spacing:2px;color:#014c79}
+        .glass-card{background:rgba(255,255,255,0.26);backdrop-filter:blur(14px) saturate(150%);-webkit-backdrop-filter:blur(14px) saturate(150%);border-radius:28px;border:1.5px solid rgba(255,255,255,0.7);box-shadow:0 20px 40px -12px rgba(0,100,140,0.18);padding:1.4rem;color:#01486b}
+        .tools-grid{display:grid;grid-template-columns:1fr;gap:1rem}
+        .ip-form{display:flex;gap:0.6rem;align-items:center}
+        .form-input{flex:1;padding:0.7rem 1rem;border-radius:40px;border:1px solid rgba(255,255,255,0.7);background:rgba(255,255,255,0.4);font-size:1rem;color:#03354a}
+        .btn{padding:0.6rem 1rem;border-radius:40px;border:none;background:linear-gradient(180deg,#48b5e0,#2f9fd3);color:#fff;font-weight:700;cursor:pointer;display:inline-flex;gap:0.5rem;align-items:center}
+        .btn.secondary{background:rgba(255,255,255,0.6);color:#01486b;border:1px solid rgba(255,255,255,0.8)}
+        .result{margin-top:1rem;background:rgba(255,255,255,0.32);padding:1rem;border-radius:16px;border:1px solid rgba(255,255,255,0.7);color:#013e5c}
+        .row{display:flex;gap:1rem;flex-wrap:wrap}
+        .meta{flex:1;min-width:160px}
+        .meta b{display:block;font-weight:700;margin-bottom:0.25rem}
+        .footer{background:rgba(255,255,255,0.3);backdrop-filter:blur(8px);border-radius:48px;padding:0.9rem 1.2rem;text-align:center;border:1px solid rgba(255,255,255,0.7);color:#025a86;margin-top:0.6rem}
+        /* Mobile adjustments: stack controls, enlarge touch targets, simplify layout */
+        @media (max-width:640px){
+            .page-wrap{padding:0 0.6rem}
+            .top-bar{font-size:1.3rem;padding:0.8rem 1rem}
+            .glass-card{padding:1rem}
+            .ip-form{flex-direction:column;align-items:stretch}
+            .form-input{padding:0.9rem 1rem;border-radius:14px}
+            .ip-form .btn{width:100%;justify-content:center;padding:0.9rem 1rem;font-size:1rem;border-radius:14px}
+            .ip-form .btn + .btn{margin-top:0.5rem}
+            .result{padding:0.9rem}
+            .row{flex-direction:column}
+            .meta{min-width:unset}
+            .meta b{margin-bottom:0.35rem}
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrap">
+        <div class="top-bar"><i class="fas fa-tools"></i> 工具箱 · LumiNya</div>
+
+        <div class="glass-card">
+            <h2 style="margin-bottom:0.6rem">IP 查询</h2>
+            <p style="margin-bottom:0.8rem;color:rgba(1,62,92,0.9)">输入 IPv4/IPv6 地址进行查询，或点击“检测我的 IP”获取当前公网信息。数据来自公用 API（例如 ipapi.co）。</p>
+
+            <div class="tools-grid">
+                <div class="ip-form">
+                    <input id="ipInput" class="form-input" placeholder="留空以查询当前 IP，或输入目标 IP（例如 8.8.8.8）">
+                    <button id="lookupBtn" class="btn"><i class="fas fa-search"></i> 查询</button>
+                    <button id="detectBtn" class="btn secondary"><i class="fas fa-location-arrow"></i> 检测我的 IP</button>
+                </div>
+
+                <div id="result" class="result" aria-live="polite">
+                    <div style="opacity:0.85;margin-bottom:0.6rem">等待查询 — 输入 IP 或使用“检测我的 IP”。</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card" style="text-align:center;font-size:0.95rem">
+            <div>更多工具计划中：端口扫描（只限合法授权）、域名解析、子网计算器等。</div>
+        </div>
+
+        <div class="footer">数据来源：<a href="https://ipapi.co/" target="_blank" rel="noreferrer">ipapi.co</a> · <span style="margin-left:8px">页面由 LumiNya 提供</span></div>
+    </div>
+
+    <script>
+        const lookupBtn = document.getElementById('lookupBtn');
+        const detectBtn = document.getElementById('detectBtn');
+        const ipInput = document.getElementById('ipInput');
+        const result = document.getElementById('result');
+
+        const apiBase = 'https://ipapi.co/';
+
+        function renderError(msg){
+            result.innerHTML = `<div style="color:#b94a48"><i class="fas fa-exclamation-triangle"></i> ${msg}</div>`;
+        }
+
+        function renderData(data){
+            if(!data || data.error){
+                renderError(data && data.reason ? data.reason : '未返回有效数据');
+                return;
+            }
+            const html = `
+                <div class="row">
+                    <div class="meta"><b>IP</b><span>${data.ip || data.address || '-'}</span></div>
+                    <div class="meta"><b>城市</b><span>${data.city||'-'}</span></div>
+                    <div class="meta"><b>省/州</b><span>${data.region||data.region_name||'-'}</span></div>
+                    <div class="meta"><b>国家</b><span>${data.country_name||data.country||'-'}</span></div>
+                </div>
+                <div class="row" style="margin-top:0.8rem">
+                    <div class="meta"><b>经纬度</b><span>${data.latitude||data.lat? (data.latitude||data.lat)+', '+(data.longitude||data.lon) : '-'}</span></div>
+                    <div class="meta"><b>ISP/组织</b><span>${data.org||data.org_name||data.company||data.hostname||'-'}</span></div>
+                    <div class="meta"><b>时区</b><span>${data.timezone||data.utc_offset||'-'}</span></div>
+                </div>
+                <div style="margin-top:0.9rem;display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+                    <button id="copyBtn" class="btn secondary"><i class="fas fa-copy"></i> 复制 IP</button>
+                    <button id="rawBtn" class="btn secondary"><i class="fas fa-file-code"></i> 查看 JSON</button>
+                </div>
+            `;
+            result.innerHTML = html;
+
+            document.getElementById('copyBtn').addEventListener('click',()=>{
+                const ip = data.ip||data.address||'';
+                if(!ip) return;
+                navigator.clipboard?.writeText(ip).then(()=>{
+                    alert('已复制: '+ip);
+                }).catch(()=>{alert('复制失败，请手动复制。')});
+            });
+
+            document.getElementById('rawBtn').addEventListener('click',()=>{
+                const win = window.open('about:blank','_blank');
+                win.document.write('<pre>'+JSON.stringify(data,null,2)+'</pre>');
+                win.document.title = 'IP JSON';
+            });
+        }
+
+        async function fetchIP(ip){
+            const url = ip ? `${apiBase}${encodeURIComponent(ip)}/json/` : `${apiBase}json/`;
+            result.innerHTML = '<div style="color:#3a7290"><i class="fas fa-spinner fa-spin"></i> 查询中…</div>';
+            try{
+                const res = await fetch(url,{cache:'no-store'});
+                if(!res.ok) throw new Error('网络错误: '+res.status);
+                const data = await res.json();
+                renderData(data);
+            }catch(err){
+                renderError(err.message || '查询失败');
+            }
+        }
+
+        lookupBtn.addEventListener('click',()=>{
+            const ip = ipInput.value.trim();
+            fetchIP(ip);
+        });
+
+        ipInput.addEventListener('keydown',(e)=>{if(e.key==='Enter') lookupBtn.click();});
+
+        detectBtn.addEventListener('click',()=>{ipInput.value='';fetchIP();});
+    </script>
+</body>
+</html>
