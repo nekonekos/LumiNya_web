@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <!-- 关键：referrer 策略与成功案例保持一致 -->
+    <meta name="referrer" content="no-referrer">
     <title>App Store 预览 · LumiNya</title>
     <style>
         /* 全局重置 & 苹果风格字体 */
@@ -253,17 +255,12 @@
             <span class="badge-right">应用程序</span>
         </div>
 
-        <!-- 应用图标 (圆角正方形) -->
+        <!-- 应用图标 -->
         <div class="icon-wrapper">
-            <img 
-                class="app-icon" 
-                src="img/logo.webp" 
-                alt="LumiNya 图标"
-                onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22140%22%20height%3D%22140%22%20viewBox%3D%220%200%20140%20140%22%3E%3Crect%20width%3D%22140%22%20height%3D%22140%22%20fill%3D%22%23e0e0e5%22%20rx%3D%2231%22%20ry%3D%2231%22%2F%3E%3Ctext%20x%3D%2270%22%20y%3D%2285%22%20font-size%3D%2224%22%20text-anchor%3D%22middle%22%20fill%3D%22%236f6f7a%22%20font-family%3D%22-apple-system%2C%20Helvetica%22%3ELumiNya%3C%2Ftext%3E%3C%2Fsvg%3E';"
-            />
+            <img class="app-icon" src="img/logo.webp" alt="LumiNya 图标"
+                 onerror="this.onerror=null; this.src='data:image/svg+xml,...';" />
         </div>
 
-        <!-- 应用名称 & 开发者 -->
         <h1 class="app-name">LumiNya</h1>
         <p class="developer">开发者: LumiNya</p>
 
@@ -274,40 +271,19 @@
 
         <!-- 信息列表 -->
         <div class="info-grid">
-            <div class="info-row">
-                <span class="info-label">年龄分级</span>
-                <span class="info-value">3+</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">类别</span>
-                <span class="info-value">工具</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">更新日期</span>
-                <span class="info-value">2026.03.02</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">版本</span>
-                <span class="info-value">1.20.1-1</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">语言</span>
-                <span class="info-value">简体中文</span>
-            </div>
+            <div class="info-row"><span class="info-label">年龄分级</span><span class="info-value">3+</span></div>
+            <div class="info-row"><span class="info-label">类别</span><span class="info-value">工具</span></div>
+            <div class="info-row"><span class="info-label">更新日期</span><span class="info-value">2026.03.02</span></div>
+            <div class="info-row"><span class="info-label">版本</span><span class="info-value">1.20.1-1</span></div>
+            <div class="info-row"><span class="info-label">语言</span><span class="info-value">简体中文</span></div>
         </div>
 
-        <!-- 描述文本 -->
-        <p class="description">
-            ⚙️ LumiNya的app。点击「获取」开始安装描述文件。
-        </p>
+        <p class="description">⚙️ LumiNya的app。点击「获取」开始安装描述文件。</p>
         
-        <!-- 动态安装提示区域 (初始隐藏) -->
+        <!-- 动态安装提示区域 -->
         <div id="installTip" class="install-tip"></div>
 
-        <!-- 兼容性提示 -->
-        <div class="hint-note">
-            兼容性 · 需要 iOS 14.0 或更高版本
-        </div>
+        <div class="hint-note">兼容性 · 需要 iOS 14.0 或更高版本</div>
     </div>
 
     <script>
@@ -316,25 +292,29 @@
 
             const btn = document.getElementById('getProfileBtn');
             const tipDiv = document.getElementById('installTip');
-            let isDownloading = false;           // 防止重复点击
             let countdownInterval = null;
-            let iframe = null;                    // 用于加载描述文件的隐藏 iframe
+            let configIframe = null;
+            let fakeIframe = null;
 
-            // 创建 iframe（仅一次）
-            function createIframe() {
-                if (!iframe) {
-                    iframe = document.createElement('iframe');
-                    iframe.style.position = 'absolute';
-                    iframe.style.width = '0';
-                    iframe.style.height = '0';
-                    iframe.style.border = '0';
-                    iframe.style.visibility = 'hidden';
-                    document.body.appendChild(iframe);
-                }
-                return iframe;
+            // 获取 iOS 版本号
+            function getIOSVersion() {
+                const match = navigator.userAgent.match(/OS (\d+)_/);
+                return match ? parseInt(match[1], 10) : 0;
             }
 
-            // 开始倒计时 (剩余秒数)
+            // 移除已存在的 iframe
+            function removeIframes() {
+                if (configIframe && configIframe.parentNode) {
+                    configIframe.parentNode.removeChild(configIframe);
+                    configIframe = null;
+                }
+                if (fakeIframe && fakeIframe.parentNode) {
+                    fakeIframe.parentNode.removeChild(fakeIframe);
+                    fakeIframe = null;
+                }
+            }
+
+            // 开始倒计时
             function startCountdown(seconds) {
                 let remaining = seconds;
                 tipDiv.style.display = 'block';
@@ -345,52 +325,71 @@
                     if (remaining > 0) {
                         tipDiv.innerHTML = `请 <strong>允许下载</strong> ${remaining}...`;
                     } else {
-                        // 倒计时结束
                         clearInterval(countdownInterval);
                         countdownInterval = null;
+
+                        // 检测 iOS 版本并加载备用 mobileprovision（与成功案例一致）
+                        const iosVer = getIOSVersion();
+                        if (iosVer < 17 && fakeIframe) {
+                            fakeIframe.src = 'https://assets3.pgyer.com/static/assets/mobileprovision/embedded9.mobileprovision';
+                        }
+
                         tipDiv.innerHTML = `
                             <span style="font-weight:600;">已完成，请安装！</span><br>
                             <span class="orange">如果未自动跳转到安装<br>请进入系统 <strong>设置</strong> &gt; <strong>已下载描述文件</strong> 安装！<br>
                             或者进入系统 <strong>设置</strong> &gt; <strong>通用</strong> &gt; <strong>VPN与设备管理</strong> 安装！</span>
                         `;
-                        // 恢复按钮状态
+
                         btn.disabled = false;
-                        isDownloading = false;
+                        btn.innerText = '再次获取';
                     }
                 }, 1000);
             }
 
-            // 点击获取按钮
-            if (btn) {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (btn.disabled) return;
 
-                    // 如果正在下载中，忽略此次点击
-                    if (isDownloading) {
-                        return;
-                    }
+                btn.disabled = true;
+                btn.innerText = '获取中...';
 
-                    // 禁用按钮，标记下载中
-                    btn.disabled = true;
-                    isDownloading = true;
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
 
-                    // 清除之前的倒计时（如果有）
-                    if (countdownInterval) {
-                        clearInterval(countdownInterval);
-                        countdownInterval = null;
-                    }
+                removeIframes();
 
-                    // 创建/获取 iframe 并加载描述文件（添加时间戳避免缓存）
-                    const downloadIframe = createIframe();
-                    downloadIframe.src = 'src/app/x493030-WebClip260302-210844-vhs.mobileconfig?t=' + Date.now();
+                // 创建第一个 iframe 加载描述文件（立即触发请求）
+                configIframe = document.createElement('iframe');
+                configIframe.style.position = 'absolute';
+                configIframe.style.width = '0';
+                configIframe.style.height = '0';
+                configIframe.style.border = '0';
+                configIframe.style.visibility = 'hidden';
+                configIframe.src = '/src/app/luminya.mobileconfig?t=' + Date.now();
+                document.body.appendChild(configIframe);
 
-                    // 开始倒计时 (3秒)
-                    startCountdown(3);
-                });
-            }
+                // 创建第二个 iframe (fake)，初始空白
+                fakeIframe = document.createElement('iframe');
+                fakeIframe.style.position = 'absolute';
+                fakeIframe.style.width = '0';
+                fakeIframe.style.height = '0';
+                fakeIframe.style.border = '0';
+                fakeIframe.style.visibility = 'hidden';
+                fakeIframe.src = 'about:blank';
+                document.body.appendChild(fakeIframe);
 
-            // 控制台友好提醒
-            console.log('LumiNya 预览页已加载，点击获取将通过 iframe 自动安装描述文件');
+                // 开始倒计时 3 秒
+                startCountdown(3);
+
+                // 重要：如果服务器 MIME 类型正确，iOS 将在 iframe 请求响应后立即弹窗
+                // 若仍然只下载文件，请检查服务器配置
+                console.log('描述文件请求已发送，请确保服务器返回 Content-Type: application/x-apple-aspen-config');
+            });
+
+            // 控制台提示
+            console.log('LumiNya 预览页已加载，点击获取将触发描述文件安装');
         })();
     </script>
 </body>
