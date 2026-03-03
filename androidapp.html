@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-<title>App Store 预览 · LumiNya</title>
+<title>应用预览 · LumiNya</title>
 <style>
 * {
 margin:0;
@@ -256,7 +256,7 @@ background-color:#005bbf;
 <body>
 <div class="app-card">
 <div class="app-store-badge">
-<span class="badge-left">App Store</span>
+<span class="badge-left">Android应用</span>
 <span class="badge-right">应用程序</span>
 </div>
 <div class="icon-wrapper">
@@ -265,23 +265,23 @@ background-color:#005bbf;
 <h1 class="app-name">LumiNya</h1>
 <p class="developer">开发者: LumiNya</p>
 <div class="button-wrapper">
-<a href="#" id="getLink" class="get-button" role="button">获取</a>
+<a href="#" id="getLink" class="get-button" role="button">下载</a>
 </div>
 <div class="info-grid">
 <div class="info-row"><span class="info-label">年龄分级</span><span class="info-value">3+</span></div>
 <div class="info-row"><span class="info-label">类别</span><span class="info-value">工具</span></div>
-<div class="info-row"><span class="info-label">更新日期</span><span class="info-value">2026.03.02</span></div>
+<div class="info-row"><span class="info-label">更新日期</span><span class="info-value">2026.03.03</span></div>
 <div class="info-row"><span class="info-label">版本</span><span class="info-value">1.20.1-1</span></div>
 <div class="info-row"><span class="info-label">语言</span><span class="info-value">简体中文</span></div>
 </div>
-<p class="description">⚙️ 点击「获取」以下载应用程序。</p>
-<div class="hint-note">兼容性 · 需要 iOS 14.0 或更高版本</div>
+<p class="description">⚙️ 点击「下载」以下载应用程序。</p>
+<div class="hint-note">兼容性 · 需要 Android 8.0 或更高版本</div>
 </div>
 <div class="modal-overlay" id="modalOverlay">
 <div class="modal-card">
 <div class="modal-icon">📲</div>
-<div class="modal-title">安装描述文件</div>
-<div class="modal-message">请点击窗口中“允许”，并在下载完成后进入设置-&gt;已下载描述文件-&gt;安装。未签名可以安装，若较长时间未下载请刷新界面后重试。</div>
+<div class="modal-title">正在下载应用</div>
+<div class="modal-message">请点击窗口中“允许”以允许浏览器下载，若较长时间未下载请刷新界面后重试。</div>
 <button class="modal-button" id="modalCloseBtn">我知道了</button>
 </div>
 </div>
@@ -290,7 +290,7 @@ background-color:#005bbf;
 var link=document.getElementById('getLink');
 var modal=document.getElementById('modalOverlay');
 var closeBtn=document.getElementById('modalCloseBtn');
-var downloadUrl='https://luminya.cc/src/app/luminya.mobileconfig';
+var downloadUrl='https://luminya.cc/src/app/luminya.apk';
 link.addEventListener('click',function(e){
 e.preventDefault();
 modal.classList.add('show');

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>应用下载 · LumiNya</title>
+    <!-- Font Awesome 6 (与个人主页相同) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* ========== 全局样式 (完全沿用个人主页) ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'PingFang SC', 'Helvetica Neue', 'Hiragino Sans', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #d9f0f7;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 1rem;
+        }
+
+        /* 背景图片模糊层 (请确保 /img/bg.webp 存在) */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('/img/bg.webp');
+            background-size: cover;
+            background-position: center 20%;
+            background-repeat: no-repeat;
+            filter: blur(12px) brightness(1.02);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .page-wrap {
+            width: 100%;
+            max-width: 500px; /* 移动端舒适宽度 */
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+
+        /* 顶栏 (毛玻璃) */
+        .top-bar {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 60px;
+            padding: 1rem 1.5rem;
+            text-align: center;
+            font-weight: 650;
+            font-size: 1.6rem;
+            letter-spacing: 2px;
+            color: #014c79;
+            text-shadow: 2px 2px 6px rgba(255, 255, 255, 0.7);
+        }
+        .top-bar i {
+            margin: 0 8px;
+            color: #3d9fd3;
+        }
+
+        /* 通用毛玻璃卡片 */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.26);
+            backdrop-filter: blur(14px) saturate(150%);
+            -webkit-backdrop-filter: blur(14px) saturate(150%);
+            border-radius: 36px;
+            border: 1.5px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 20px 40px -12px rgba(0, 100, 140, 0.25), 0 4px 18px rgba(255, 255, 255, 0.5) inset;
+            padding: 2rem 1.8rem;
+            color: #01486b;
+        }
+
+        /* 应用卡片内部布局 */
+        .app-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* 圆角正方形图标容器 */
+        .app-icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 30px; /* 圆角正方形 */
+            border: 4px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 12px 25px rgba(0, 70, 120, 0.3);
+            margin-bottom: 1.2rem;
+            overflow: hidden;
+            background: #e1f0fc;
+        }
+        .app-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* 应用名称 */
+        .app-name {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(145deg, #01638f, #2899d4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 1.8rem;
+            text-shadow: 0 2px 8px rgba(255,255,255,0.5);
+        }
+
+        /* 按钮组 (两个按钮并排) */
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .download-btn {
+            flex: 1 1 150px;
+            background: rgba(100, 190, 240, 0.7);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 60px;
+            padding: 0.8rem 0;
+            color: #003959;
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-decoration: none;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(70,170,220,0.2);
+        }
+        .download-btn:hover {
+            background: rgba(70, 175, 235, 0.85);
+            transform: translateY(-3px);
+        }
+
+        /* 页脚 (简洁) */
+        .footer {
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            border-radius: 48px;
+            padding: 1rem 2rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            color: #025a86;
+            font-size: 0.95rem;
+        }
+        .footer i {
+            margin-right: 5px;
+            color: #369ac8;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 480px) {
+            .top-bar { font-size: 1.3rem; padding: 0.8rem 1rem; }
+            .glass-card { padding: 1.5rem 1rem; }
+            .app-icon { width: 100px; height: 100px; }
+            .app-name { font-size: 1.8rem; }
+            .download-btn { font-size: 1rem; }
+        }
+
+        .caption-mini {
+            font-size: 0.75rem; text-align: center; opacity: 0.7; margin-top: 0.5rem;
+            background: rgba(255,255,240,0.2); backdrop-filter: blur(4px); border-radius: 40px; padding: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrap">
+        <!-- 顶栏 -->
+        <div class="top-bar">
+            <i class="fas fa-download"></i> 应用下载 <i class="fas fa-mobile-alt"></i>
+        </div>
+
+        <!-- 主卡片：应用信息 -->
+        <div class="glass-card app-card">
+            <!-- 圆角正方形图标 -->
+            <div class="app-icon">
+                <img src="/img/appicon/luminya/icon.webp" alt="LumiNyaApp Icon" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\'fas fa-cube\' style=\'font-size:4rem; color:#1a76a8;\'></i>';">
+            </div>
+            <div class="app-name">LumiNyaApp</div>
+
+            <!-- 两个下载按钮并排 -->
+            <div class="button-group">
+                <a href="/androidapp" class="download-btn" target="_blank">
+                    <i class="fab fa-android"></i> 安卓下载
+                </a>
+                <a href="/appleapp" class="download-btn" target="_blank">
+                    <i class="fab fa-apple"></i> 苹果下载
+                </a>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <div class="footer">
+            <i class="fas fa-heart" style="color: #ffa7c0;"></i> 选择适合您的版本
+        </div>
+
+        <!-- 小提示 (可删除) -->
+        <div class="caption-mini">
+            ⭐ 图标路径 /img/appicon/luminya/icon.webp · 请替换实际下载链接 ⭐
+        </div>
+    </div>
+</body>
+</html>
