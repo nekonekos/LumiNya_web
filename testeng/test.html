@@ -222,6 +222,26 @@
             font-size: 13px;
             margin-top: 10px;
         }
+        /* Mobile tweaks: improve spacing, font sizes and button layouts */
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { margin: 0 8px; border-radius: 10px; }
+            .header { padding: 14px; }
+            .header h1 { font-size: 18px; }
+            .header p { font-size: 12px; }
+            .login-section, .quiz-section, .wrong-section, .admin-section {
+                padding: 18px 12px;
+            }
+            .question { font-size: 18px; min-height: 50px; padding: 6px; }
+            .options { gap: 10px; }
+            .option { font-size: 15px; padding: 12px; }
+            .btn-group { gap: 8px; }
+            .btn-group button { flex: 1 1 100%; width: 100%; padding: 12px; }
+            button { font-size: 15px; padding: 12px; }
+            .user-info { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .progress { font-size: 14px; gap: 6px; }
+            .celebration { font-size: 36px; }
+        }
     </style>
 </head>
 <body>
