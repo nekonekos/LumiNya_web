@@ -1,0 +1,262 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025年中考成绩查询</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background-color: #ffffff;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        /* 电脑端容器，固定手机尺寸卡片 */
+        .phone-card {
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            overflow: hidden;
+        }
+        .top-bar-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+        }
+        .close-btn {
+            font-size: 24px;
+            color: #333;
+            font-weight: 300;
+        }
+        .translate-btn {
+            background: #f5f5f5;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 15px;
+            color: #333;
+        }
+        .more-dot {
+            font-size: 22px;
+            color: #333;
+        }
+        .header-title {
+            background-color: #409efe;
+            color: #ffffff;
+            text-align: center;
+            padding: 18px 10px;
+            font-size: 20px;
+            font-weight: 500;
+        }
+        .notice-bar {
+            background-color: #c1d8f0;
+            color: #459aee;
+            text-align: center;
+            padding: 14px 12px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        /* 修正信息栏字号、排版 */
+        .info-row {
+            display: flex;
+            align-items: center;
+            padding: 14px 20px;
+            border-bottom: 1px solid #eeeeee;
+            font-size: 19px;
+            white-space: nowrap;
+        }
+        .info-label {
+            color: #222222;
+            letter-spacing: 5px;
+            margin-right: 12px;
+        }
+        .info-value {
+            color: #333333;
+        }
+        .table-head {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 16px 20px 10px;
+            font-size: 18px;
+            font-weight: 500;
+            color: #409efe;
+        }
+        .table-head > div {
+            text-align: center;
+        }
+        .table-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 14px 20px;
+            font-size: 17px;
+            color: #333;
+            border-bottom: 1px solid #eeeeee; /* 科目之间分割横线 */
+        }
+        .table-row > div {
+            text-align: center; /* 科目、分数各自格子居中 */
+        }
+        .table-row.bg-light {
+            background-color: #f8f9fa;
+        }
+        .total-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 16px 20px;
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+            border-bottom: 1px solid #eeeeee;
+        }
+        .total-row > div {
+            text-align: center;
+        }
+        .back-btn {
+            width: calc(100% - 40px);
+            margin: 20px;
+            background-color: #409efe;
+            color: white;
+            border: none;
+            border-radius: 4px; /* 小圆角，偏方正 */
+            padding: 16px;
+            font-size: 18px;
+        }
+        .source-text {
+            text-align: center;
+            padding: 20px 10px 30px;
+            font-size: 16px;
+            color: #555;
+        }
+        .bottom-indicator {
+            height: 3px;
+            width: 120px;
+            background: #333;
+            border-radius: 2px;
+            margin: 0 auto 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-card">
+
+        <!-- 主标题蓝色栏 -->
+        <div class="header-title">2025年中考成绩查询</div>
+
+        <!-- 提示浅蓝栏 -->
+        <div class="notice-bar">
+            注：平台所查的分数仅供参考，中考成绩以下发的成绩单为准！
+        </div>
+
+        <!-- 报名信息行 -->
+        <div class="info-row">
+            <span class="info-label">报 名 号：</span>
+            <span id="regNo" class="info-value">N/A</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">准考证号：</span>
+            <span class="info-value">109888888</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">姓 名：</span>
+            <span id="realName" class="info-value" contenteditable="true" spellcheck="false">点击修改</span>
+        </div>
+
+        <!-- 表格表头 -->
+        <div class="table-head">
+            <div>科目</div>
+            <div>成绩</div>
+        </div>
+
+        <!-- 科目成绩行 每行底部带分割横线 -->
+        <div class="table-row bg-light">
+            <div>语文</div>
+            <div id="chinese">92</div>
+        </div>
+        <div class="table-row">
+            <div>数学</div>
+            <div id="math">108</div>
+        </div>
+        <div class="table-row">
+            <div>外语</div>
+            <div id="english">112</div>
+        </div>
+        <div class="table-row">
+            <div>物理、化学（合卷）</div>
+            <div id="phychem">111</div>
+        </div>
+        <div class="table-row">
+            <div>道德与法治、历史（合卷）</div>
+            <div id="polhis">104</div>
+        </div>
+        <div class="table-row">
+            <div>体育与健康</div>
+            <div id="sport">50</div>
+        </div>
+        <div class="table-row">
+            <div>理化生实验操作</div>
+            <div id="lab">30</div>
+        </div>
+
+        <!-- 总分 -->
+        <div class="total-row">
+            <div>总分</div>
+            <div id="totalScore">607</div>
+        </div>
+
+        <!-- 返回按钮 -->
+        <button class="back-btn">返回查询成绩</button>
+
+        <!-- 底部来源文字 -->
+        <div class="source-text">数据来源由武汉市招生考试办公室提供</div>
+    </div>
+        <script>
+            (function(){
+                // populate regNo from login page if available
+                try{
+                    var reg = localStorage.getItem('regNo');
+                    if(reg){ document.getElementById('regNo').textContent = reg; }
+                }catch(e){}
+
+                // make name editable but keep visual unchanged
+                var nameEl = document.getElementById('realName');
+                if(nameEl){
+                    nameEl.style.outline = 'none';
+                    nameEl.addEventListener('focus', function(){ this.style.caretColor = '' });
+                    nameEl.addEventListener('blur', function(){ /* keep text as-is */ });
+                }
+
+                function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+                // generate random scores per ranges requested
+                var chinese = randInt(85,110);
+                var math = randInt(75,116);
+                var english = randInt(85,119);
+                var phychem = randInt(90,110);
+                var polhis = randInt(80,116);
+
+                // update DOM
+                document.getElementById('chinese').textContent = chinese;
+                document.getElementById('math').textContent = math;
+                document.getElementById('english').textContent = english;
+                document.getElementById('phychem').textContent = phychem;
+                document.getElementById('polhis').textContent = polhis;
+
+                // keep existing sport and lab values (numeric)
+                var sport = parseInt(document.getElementById('sport').textContent,10) || 0;
+                var lab = parseInt(document.getElementById('lab').textContent,10) || 0;
+
+                var total = chinese + math + english + phychem + polhis + sport + lab;
+                document.getElementById('totalScore').textContent = total;
+            })();
+        </script>
+</body>
+</html>
