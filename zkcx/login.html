@@ -25,6 +25,10 @@
         .footer-text{font-size:14px;color:#333}
         .error{color:#d9534f;font-size:13px;margin-top:6px}
         .field-group{display:flex;flex-direction:column}
+        .toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-8px);background:rgba(0,0,0,0.8);color:#fff;padding:10px 14px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .22s,transform .22s}
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        /* Watermark container (background will tile the text) */
+        .watermark{position:fixed;inset:0;display:block;z-index:9999;pointer-events:none;user-select:none;white-space:nowrap}
     </style>
 </head>
 <body>
@@ -75,6 +79,10 @@
     <div class="footer-bar">
         <div class="footer-text">湖北省高中阶段学校招生管理信息系统</div>
     </div>
+
+    <div id="toast" class="toast" aria-live="polite" role="status">用户须知\n这不是官方系统\n这不是官方系统\n这不是官方系统\n所有操作和现实无关\n知晓以上内容后方可继续使用</div>
+
+    <div id="watermark" class="watermark"></div>
 
     <script>
         (function(){
@@ -139,6 +147,38 @@
 
             // generate initial captcha on load
             refreshCaptcha();
+
+            // show a small toast on first load
+            function showToast(msg,ms){
+                try{
+                    var t = document.getElementById('toast');
+                    if(!t) return;
+                    t.textContent = msg;
+                    setTimeout(function(){ t.classList.add('show'); }, 80);
+                    setTimeout(function(){ t.classList.remove('show'); }, ms || 3000);
+                }catch(e){}
+            }
+            showToast('用户须知！  这不是官方系统！这不是官方系统！这不是官方系统！  所有操作和现实无关！本站点不会存储你的个人信息！密码随便填写！  知晓以上内容后方可继续使用！  本弹窗将在12秒后消失', 12000);
+
+            // add tiled watermark (copy of result page)
+            try{
+                var wm = document.getElementById('watermark');
+                if(wm){
+                    var svgW = 180, svgH = 160, fontSize = 16;
+                    var fill = '%23888888';
+                    var textOpacity = 0.18;
+                    var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='"+svgW+"' height='"+svgH+"'>"+
+                              "<rect width='100%' height='100%' fill='transparent'/>"+
+                              "<text x='"+(svgW/2)+"' y='"+(svgH/2)+"' font-family='sans-serif' font-size='"+fontSize+"' fill='"+fill+"' fill-opacity='"+textOpacity+"' text-anchor='middle' dominant-baseline='middle' transform='rotate(-30 "+(svgW/2)+" "+(svgH/2)+")'>非官方页面仅供娱乐</text>"+
+                              "</svg>";
+                    var data = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+                    wm.style.backgroundImage = 'url("'+data+'")';
+                    wm.style.backgroundRepeat = 'repeat';
+                    wm.style.backgroundSize = '180px 160px';
+                    wm.style.backgroundPosition = '0 0';
+                    wm.textContent = '';
+                }
+            }catch(e){}
         })();
     </script>
 </body>

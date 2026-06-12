@@ -143,13 +143,15 @@
             border-radius: 2px;
             margin: 0 auto 10px;
         }
+        /* Fullscreen watermark container (background will tile the text) */
+        .watermark{position:fixed;inset:0;display:block;z-index:9999;pointer-events:none;user-select:none;white-space:nowrap}
     </style>
 </head>
 <body>
     <div class="phone-card">
 
         <!-- 主标题蓝色栏 -->
-        <div class="header-title">2025年中考成绩查询</div>
+        <div class="header-title">2026年中考成绩查询</div>
 
         <!-- 提示浅蓝栏 -->
         <div class="notice-bar">
@@ -218,6 +220,7 @@
         <!-- 底部来源文字 -->
         <div class="source-text">数据来源由武汉市招生考试办公室提供</div>
     </div>
+    <div id="watermark" class="watermark">仅供娱乐</div>
         <script>
             (function(){
                 // populate regNo from login page if available
@@ -256,6 +259,26 @@
 
                 var total = chinese + math + english + phychem + polhis + sport + lab;
                 document.getElementById('totalScore').textContent = total;
+
+                // create a repeating SVG watermark as background for the watermark element
+                try{
+                    var wm = document.getElementById('watermark');
+                    if(wm){
+                        var svgW = 180, svgH = 160, fontSize = 16;
+                        var fill = '%23888888'; // grey
+                        var textOpacity = 0.18;
+                        var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='"+svgW+"' height='"+svgH+"'>"+
+                                  "<rect width='100%' height='100%' fill='transparent'/>"+
+                                  "<text x='"+(svgW/2)+"' y='"+(svgH/2)+"' font-family='sans-serif' font-size='"+fontSize+"' fill='"+fill+"' fill-opacity='"+textOpacity+"' text-anchor='middle' dominant-baseline='middle' transform='rotate(-30 "+(svgW/2)+" "+(svgH/2)+")'>非官方页面仅供娱乐</text>"+
+                                  "</svg>";
+                        var data = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+                        wm.style.backgroundImage = 'url("'+data+'")';
+                        wm.style.backgroundRepeat = 'repeat';
+                        wm.style.backgroundSize = '180px 160px';
+                        wm.style.backgroundPosition = '0 0';
+                        wm.textContent = '';
+                    }
+                }catch(e){}
             })();
         </script>
 </body>
