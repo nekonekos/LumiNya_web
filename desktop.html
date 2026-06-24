@@ -30,7 +30,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(145deg, #eef1f5 0%, #dce1e9 100%);
+            background: url('/img/bg.webp') center/cover no-repeat;
             z-index: 0;
         }
         .desktop-wallpaper::after {
@@ -1133,6 +1133,7 @@
                 if (el) {
                     el.style.zIndex = highestZIndex;
                     windowState[winId].zIndex = highestZIndex;
+                    saveWindowState();
                 }
             }
 
@@ -1152,6 +1153,7 @@
                 windowState[winId].open = true;
                 bringToFront(winId);
                 constrainWindow(el);
+                saveWindowState();
             }
 
             function closeWindow(winId, animate = true) {
@@ -1164,11 +1166,13 @@
                         el.style.display = 'none';
                         el.classList.remove('active', 'closing');
                         windowState[winId].open = false;
+                        saveWindowState();
                     }, 200);
                 } else {
                     el.style.display = 'none';
                     el.classList.remove('active', 'closing');
                     windowState[winId].open = false;
+                    saveWindowState();
                 }
             }
 
@@ -1270,6 +1274,7 @@
                     if (isResizing) {
                         isResizing = false;
                         el.style.cursor = '';
+                        saveWindowState();
                     }
                 }
 
@@ -1338,6 +1343,7 @@
                     if (isDragging) {
                         isDragging = false;
                         el.style.cursor = '';
+                        saveWindowState();
                     }
                 }
 
@@ -1407,7 +1413,63 @@
             updateTime();
             setInterval(updateTime, 30000);
 
-            // ---------- 窗口位置初始化 ----------
+            const STORAGE_KEY = 'desktopWindowState';
+
+            function saveWindowState() {
+                const state = {};
+                for (const [id, el] of Object.entries(windowElements)) {
+                    state[id] = {
+                        open: windowState[id].open,
+                        zIndex: windowState[id].zIndex,
+                        left: el.style.left || '',
+                        top: el.style.top || '',
+                        width: el.style.width || '',
+                        height: el.style.height || '',
+                    };
+                }
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                } catch (e) {
+                    console.warn('保存桌面状态失败', e);
+                }
+            }
+
+            function loadWindowState() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (!raw) return false;
+                    const savedState = JSON.parse(raw);
+                    let maxZ = highestZIndex;
+                    for (const [id, el] of Object.entries(windowElements)) {
+                        const saved = savedState[id];
+                        if (!saved) continue;
+                        if (saved.left) el.style.left = saved.left;
+                        if (saved.top) el.style.top = saved.top;
+                        if (saved.width) el.style.width = saved.width;
+                        if (saved.height) el.style.height = saved.height;
+                        if (saved.open) {
+                            el.style.display = 'block';
+                            el.classList.add('active');
+                            windowState[id].open = true;
+                        } else {
+                            el.style.display = 'none';
+                            el.classList.remove('active', 'closing');
+                            windowState[id].open = false;
+                        }
+                        if (saved.zIndex) {
+                            el.style.zIndex = saved.zIndex;
+                            windowState[id].zIndex = saved.zIndex;
+                            maxZ = Math.max(maxZ, saved.zIndex);
+                        }
+                    }
+                    highestZIndex = maxZ;
+                    return true;
+                } catch (e) {
+                    console.warn('读取桌面状态失败', e);
+                    return false;
+                }
+            }
+
             function initWindowPositions() {
                 const offsets = [
                     { left: 60, top: 52 },
@@ -1425,7 +1487,10 @@
                     idx++;
                 }
             }
-            initWindowPositions();
+
+            if (!loadWindowState()) {
+                initWindowPositions();
+            }
 
             // ---------- 窗口自适应 ----------
             function onResize() {
@@ -1465,9 +1530,12 @@
                 closeAllWindows();
             });
 
-            // ---------- 启动时打开访达 ----------
+            // ---------- 启动时打开访达（仅在无保存状态时） ----------
             setTimeout(() => {
-                openWindow('finder');
+                const hasSavedWindows = Object.values(windowState).some(state => state.open);
+                if (!hasSavedWindows) {
+                    openWindow('finder');
+                }
             }, 400);
         })();
     </script>
