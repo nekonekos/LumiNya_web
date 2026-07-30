@@ -961,8 +961,8 @@ footer:hover {
 
 .footer-nav h5,
 .footer-contact h5 {
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: 0.86rem;
+    font-weight: bold;
     color: var(--text-dark);
     margin-bottom: 0.8rem;
     letter-spacing: 0.02em;
