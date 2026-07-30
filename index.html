@@ -1,449 +1,550 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>LumiNya ✨ 小娜的个人主页</title>
-    <!-- Font Awesome 6 图标库 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        /* 全局样式 —— 完全保留之前的毛玻璃、浅蓝白配色、响应式设计 */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', 'PingFang SC', 'Helvetica Neue', 'Hiragino Sans', 'Microsoft YaHei', sans-serif;
-        }
-
-        body {
-            min-height: 100vh;
-            background-color: #d9f0f7;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem 1rem;
-        }
-
-        /* 背景图片模糊层 */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('/img/bg.webp');
-            background-size: cover;
-            background-position: center 20%;
-            background-repeat: no-repeat;
-            filter: blur(12px) brightness(1.02);
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        .page-wrap {
-            width: 100%;
-            max-width: 820px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        /* 顶栏 (毛玻璃) */
-        .top-bar {
-            background: rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            border-radius: 60px;
-            padding: 1rem 2rem;
-            text-align: center;
-            box-shadow: 0 8px 20px rgba(0, 60, 100, 0.15);
-            font-weight: 650;
-            font-size: 1.8rem;
-            letter-spacing: 2px;
-            background: rgba(255, 255, 255, 0.25);
-            color: #014c79;
-            text-shadow: 2px 2px 6px rgba(255, 255, 255, 0.7);
-        }
-
-        .top-bar i {
-            margin: 0 10px;
-            color: #3d9fd3;
-        }
-
-        /* 通用毛玻璃卡片 */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.26);
-            backdrop-filter: blur(14px) saturate(150%);
-            -webkit-backdrop-filter: blur(14px) saturate(150%);
-            border-radius: 36px;
-            border: 1.5px solid rgba(255, 255, 255, 0.7);
-            box-shadow: 0 20px 40px -12px rgba(0, 100, 140, 0.25), 0 4px 18px rgba(255, 255, 255, 0.5) inset;
-            padding: 2rem 2rem;
-            color: #01486b;
-        }
-
-        /* 主卡片内布局 */
-        .profile-main {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-
-        /* 头像容器：圆形，用于放置真实图片 */
-        .avatar-placeholder {
-            width: 140px;
-            height: 140px;
-            border-radius: 50%;
-            border: 4px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 12px 25px rgba(0, 70, 120, 0.3);
-            margin-bottom: 1.4rem;
-            overflow: hidden;           /* 保证图片圆形裁剪 */
-            background: #e1f0fc;        /* 加载时的背景色 */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* 头像图片：强制填满容器，保持比例裁剪 */
-        .avatar-placeholder img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        /* 网名 */
-        .nickname {
-            font-size: 2.6rem;
-            font-weight: 700;
-            line-height: 1.2;
-            background: linear-gradient(145deg, #01638f, #2899d4);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin-bottom: 0.2rem;
-            text-shadow: 0 2px 10px #ffffffb0;
-        }
-
-        .hello-tag {
-            font-size: 1.3rem;
-            background: rgba(255,255,240,0.4);
-            backdrop-filter: blur(4px);
-            padding: 0.4rem 1.8rem;
-            border-radius: 60px;
-            color: #015e8c;
-            border: 1px solid rgba(255,255,255,0.7);
-            margin: 0.6rem 0 0.8rem;
-        }
-
-        /* 详细自我介绍 */
-        .bio-detailed {
-            background: rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(4px);
-            padding: 1.2rem 1.8rem;
-            border-radius: 40px;
-            color: #013e5c;
-            border: 1px solid rgba(255,255,255,0.7);
-            font-size: 1rem;
-            line-height: 1.7;
-            text-align: left;
-            margin-top: 0.5rem;
-        }
-
-        .bio-detailed i {
-            color: #0284c7;
-            margin-right: 6px;
-        }
-
-        /* 链接网格 */
-        .links-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 1.2rem;
-            margin-top: 0.8rem;
-        }
-
-        /* 单个链接项卡片 */
-        .link-item {
-            background: rgba(255, 255, 255, 0.22);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            border-radius: 28px;
-            padding: 1.2rem 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            box-shadow: 0 6px 16px -6px rgba(0,100,130,0.2);
-            transition: 0.15s;
-            flex-wrap: wrap;
-        }
-
-        .link-item:hover {
-            background: rgba(255, 255, 255, 0.35);
-            transform: translateY(-3px);
-        }
-
-        /* 左侧正方形 icon 容器 */
-        .link-icon-square {
-            width: 64px;
-            height: 64px;
-            flex-shrink: 0;
-            background: rgba(190, 228, 255, 0.65);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.4rem;
-            color: #1a76a8;
-            border: 1px solid rgba(255,255,255,0.8);
-            backdrop-filter: blur(5px);
-            box-shadow: 0 4px 8px rgba(255,255,255,0.6) inset;
-        }
-
-        .link-info {
-            flex: 1;
-            min-width: 150px;
-        }
-
-        .link-title {
-            font-size: 1.35rem;
-            font-weight: 650;
-            color: #004466;
-            margin-bottom: 0.2rem;
-        }
-
-        .link-sub {
-            font-size: 0.9rem;
-            color: #01527a;
-            opacity: 0.9;
-            margin-bottom: 0.7rem;
-            line-height: 1.4;
-        }
-
-        /* 浅蓝色按钮 */
-        .link-btn {
-            display: inline-block;
-            background: rgba(100, 190, 240, 0.7);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            border-radius: 40px;
-            padding: 0.35rem 1.2rem;
-            color: #003959;
-            font-weight: 600;
-            font-size: 0.9rem;
-            text-decoration: none;
-            transition: 0.2s;
-            box-shadow: 0 2px 6px #bee0ff;
-        }
-
-        .link-btn i {
-            margin-left: 6px;
-            font-size: 0.8rem;
-        }
-
-        .link-btn:hover {
-            background: rgba(70, 175, 235, 0.85);
-            color: #001f33;
-        }
-
-        /* Footer */
-        .footer {
-            background: rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(8px);
-            border-radius: 48px;
-            padding: 1rem 2rem;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            color: #025a86;
-            font-size: 1rem;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: center;
-            gap: 1.5rem 2.5rem;
-            margin-top: 0.8rem;
-        }
-
-        .footer a {
-            color: #0f5f8a;
-            text-decoration: none;
-            font-weight: 500;
-            border-bottom: 1px dotted #7cb8d4;
-        }
-
-        .footer i {
-            margin-right: 5px;
-            color: #369ac8;
-        }
-
-        /* 响应式调整 */
-        @media (max-width: 550px) {
-            .top-bar { font-size: 1.5rem; padding: 0.8rem 1rem; }
-            .nickname { font-size: 2.2rem; }
-            .glass-card { padding: 1.5rem; }
-            .avatar-placeholder { width: 120px; height: 120px; }
-        }
-
-        @media (max-width: 400px) {
-            .link-item { flex-direction: column; align-items: flex-start; }
-            .link-icon-square { margin-bottom: 0.3rem; }
-            .footer { flex-direction: column; gap: 0.7rem; }
-        }
-
-        .caption-mini {
-            font-size: 0.75rem; text-align: center; opacity: 0.7; margin-top: 0.5rem;
-            background: rgba(255,255,240,0.2); backdrop-filter: blur(4px); border-radius: 40px; padding: 0.3rem;
-        }
-    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LumiNya · 个人网站</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/main.css" />
 </head>
 <body>
-    <div class="page-wrap">
-        <!-- 顶栏 -->
-        <div class="top-bar">
-            <i class="fas fa-cherry-blossom"></i> LumiNya ✨ 小娜的个人小站 <i class="fas fa-fan"></i>
-        </div>
 
-        <!-- 主卡片：头像已替换为本地 /logo.webp -->
-        <div class="glass-card profile-main">
-            <div class="avatar-placeholder">
-                <!-- 头像路径改为 /logo.webp，并保留加载失败时的备用显示 -->
-                <img 
-                    src="/img/logo.webp" 
-                    alt="LumiNya 头像"
-                    onerror="this.onerror=null; this.parentElement.innerHTML='<span style=\'font-size:3rem;\'>✨</span><span style=\'font-size:0.8rem; color:#036;\'>加载失败</span>';"
-                    style="width:100%; height:100%; object-fit:cover;"
-                >
-            </div>
-            <div class="nickname">LumiNya</div>
-            <div class="hello-tag">
-                <i class="fas fa-hand-peace"></i> 你好~ 这里是 卢米娜 / 小娜 <i class="fas fa-star"></i>
-            </div>
-            <div class="bio-detailed">
-                <i class="fas fa-quote-left"></i> 一个普通的初中生，爱好有很多：写代码、听音乐、玩游戏… 很高兴能在这里与你相遇。<br>
-                <i class="fas fa-dragon"></i> 曾用名 OceanInDreams，现在叫 LumiNya。喜欢和善良的人交朋友。<br>
-                <i class="fas fa-tag"></i> 初中生 | 编程爱好者 | 域名收藏家 · 课余时间折腾网站和各种有趣的想法。
-            </div>
-        </div>
+    <!-- 装饰性模糊图形 -->
+    <div class="blob blob--1"></div>
+    <div class="blob blob--2"></div>
+    <div class="blob blob--3"></div>
 
-        <!-- 第二卡片：链接按钮区 (内容完全保留) -->
-        <div class="glass-card" style="padding: 2rem 1.8rem;">
-            <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.8rem; padding-left: 0.5rem; flex-wrap: wrap;">
-                <i class="fas fa-compass" style="color: #48b5e0; font-size: 1.8rem;"></i>
-                <span style="font-weight: 700; font-size: 1.6rem; color: #003f63; letter-spacing: 1px;">✨ 小娜的次元入口 ✨</span>
+    <div class="container">
+        <!-- ===== Header ===== -->
+        <header>
+            <a href="#" class="logo">Lumi<span>Nya</span></a>
+            <div class="nav-wrapper">
+                <ul class="nav-links">
+                    <li><a href="#about">关于</a></li>
+                    <li><a href="#work">作品</a></li>
+                    <li><a href="#services">服务</a></li>
+                    <li><a href="#contact-info">联系</a></li>
+                </ul>
+                <button class="theme-toggle" id="themeToggle" aria-label="切换深浅色">
+                    <span class="icon-sun">☀️</span>
+                    <span class="icon-moon">🌙</span>
+                </button>
             </div>
-            <div class="links-grid">
-                <!-- 测试项目 -->
-                <!--div class="link-item">
-                    <div class="link-icon-square"><i class="fas fa-code"></i></div>
-                    <div class="link-info">
-                        <div class="link-title">测试项目</div>
-                        <div class="link-sub">兴趣驱动，学习成长。课余用代码实现创意</div>
-                        <a href="#" class="link-btn" target="_blank">看一看 <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div-->
-                <!-- 小工具 / 应用 -->
-                <div class="link-item">
-                    <div class="link-icon-square"><i class="fas fa-cube"></i></div>
-                    <div class="link-info">
-                        <div class="link-title">小工具 / 应用</div>
-                        <div class="link-sub">便于使用的小工具</div>
-                        <a href="/tools.html" class="link-btn" target="_blank">传送 <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                <!-- 前端学习 -->
-                <div class="link-item">
-                    <div class="link-icon-square"><i class="fas fa-graduation-cap"></i></div>
-                    <div class="link-info">
-                        <div class="link-title">前端学习</div>
-                        <div class="link-sub">HTML、CSS、JavaScript，搭建个人网站ing</div>
-                        <a href="/history.html" class="link-btn" target="_blank">历程 <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                <!-- 个人博客 -->
-                <div class="link-item">
-                    <div class="link-icon-square"><i class="fas fa-pencil-alt"></i></div>
-                    <div class="link-info">
-                        <div class="link-title">个人博客</div>
-                        <div class="link-sub">记录成长，分享学习与初中生活见闻</div>
-                        <a href="https://blog.luminya.cc" class="link-btn" target="_blank">阅读 <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                <!-- 媒体 · 服务 -->
-                <div class="link-item">
-                    <div class="link-icon-square"><i class="fas fa-headset"></i></div>
-                    <div class="link-info">
-                        <div class="link-title">LumiSer服务器</div>
-                        <div class="link-sub">一个原版生存服务器，提供稳定、纯净的游戏体验</div>
-                        <a href="/lumiser.html" class="link-btn" target="_blank">查看 <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                <!-- 网站主题 -->
-                <div class="link-item">
-                    <div class="link-icon-square"><i class="fas fa-paint-brush"></i></div>
-                    <div class="link-info">
-                        <div class="link-title">网站主题</div>
-                        <div class="link-sub">学习前端时的实践作品，记录过程</div>
-                        <a href="https://github.com/nekonekos/LumiNya_web" class="link-btn" target="_blank">开源 <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                <!-- 学习项目 -->
-                <div class="link-item">
-                    <div class="link-icon-square"><i class="fas fa-star"></i></div>
-                    <div class="link-info">
-                        <div class="link-title">APP获取</div>
-                        <div class="link-sub">下载LumiNya的App</div>
-                        <a href="/app.html" class="link-btn" target="_blank">获取 <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                <!-- 兴趣收藏 · 表情 -->
-                <!--div class="link-item">
-                    <div class="link-icon-square"><i class="fas fa-smile"></i></div>
-                    <div class="link-info">
-                        <div class="link-title">兴趣收藏 · 表情</div>
-                        <div class="link-sub">收藏的有趣表情包，个性表达</div>
-                        <a href="#" class="link-btn" target="_blank">看看 <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div-->
-                <!-- 联系方式 -->
-                <div class="link-item">
-                    <div class="link-icon-square"><i class="fas fa-users"></i></div>
-                    <div class="link-info">
-                        <div class="link-title">联系方式</div>
-                        <div class="link-sub">通过各种方式与我联系</div>
-                        <a href="/contact.html" class="link-btn" target="_blank">查看 <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                <!-- 域名收藏家 -->
-                <div class="link-item">
-                    <div class="link-icon-square"><i class="fas fa-globe"></i></div>
-                    <div class="link-info">
-                        <div class="link-title">域名收藏家</div>
-                        <div class="link-sub">收集各种有趣的域名，比如 luminya.cc</div>
-                        <a href="/whois.html" class="link-btn" target="_blank">小展示 <i class="fas fa-arrow-right"></i></a>
-                    </div>
+        </header>
+
+        <!-- ===== Hero ===== -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1>你好，LumiNya</h1>
+                <p class="subhead">全栈开发者 · 开源贡献者</p>
+                <p class="bio">
+                    热衷于构建高性能、优雅的Web应用。代码即诗，持续交付可靠的产品与开源工具。
+                </p>
+                <div class="btn-group">
+                    <a href="#work" class="btn btn--primary">查看作品</a>
+                    <a href="#contact-info" class="btn btn--outline">联系我</a>
                 </div>
             </div>
-            <div style="text-align: right; margin-top: 2rem; font-size: 0.9rem; color: #015e94; opacity: 0.9;">
-                <i class="fas fa-heart" style="color: #ffa7c0;"></i> 在课余时间折腾一些有趣的东西
+
+            <div class="hero-visual">
+                <div class="profile-circle">
+                    <span class="avatar">L</span>
+                    <span class="name">LumiNya</span>
+                    <span class="role">独立开发者 · 5年</span>
+                </div>
+                <div class="status-widget">
+                    <span class="indicator"></span>
+                    <span class="status-text">Open to work · 自由接项目中</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 关于我 ===== -->
+        <div id="about" class="section-wrapper">
+            <div class="section-header">
+                <h2 class="section-title">关于我</h2>
+                <p class="section-subtitle">一些简短的背景介绍</p>
+            </div>
+            <div class="section-divider">
+                <span class="line"></span>
+                <span class="dot"></span>
+                <span class="line"></span>
+            </div>
+            <div class="section-content">
+                <p class="about-text">
+                    我是 LumiNya，全栈开发者，拥有5年Web与后端开发经验。参与过30+项目，在GitHub上维护了8个开源仓库。
+                    我坚信 <span class="highlight">代码的价值在于解决问题，而不只是技术炫技</span>。
+                    目前专注于API架构设计、前端性能优化以及开源工具的打磨。
+                </p>
             </div>
         </div>
 
-        <!-- footer -->
-        <div class="footer">
-            <span><i class="far fa-copyright"></i> 2026 LumiNya · 个人网站</span>
-            <span><i class="fas fa-tag"></i> 曾用名 OceanInDreams</span>
-            <span><a href="mailto:contact@luminya.cc"><i class="fas fa-envelope"></i> 遇见小娜</a></span>
-            <span><a href="/privacy.html"><i class="fas fa-dragon"></i> 用户协议&隐私政策</a></span>
+        <!-- ===== 专长 ===== -->
+        <div class="section-wrapper">
+            <div class="section-header">
+                <h2 class="section-title">专长领域</h2>
+                <p class="section-subtitle">核心能力与知识边界</p>
+            </div>
+            <div class="section-divider">
+                <span class="line"></span>
+                <span class="dot"></span>
+                <span class="line"></span>
+            </div>
+            <div class="section-content">
+                <div class="skills-grid">
+                    <div class="skill-item">
+                        <span class="icon">⚙️</span>
+                        <div class="name">后端架构</div>
+                    </div>
+                    <div class="skill-item">
+                        <span class="icon">🎨</span>
+                        <div class="name">前端工程</div>
+                    </div>
+                    <div class="skill-item">
+                        <span class="icon">🗄️</span>
+                        <div class="name">数据库设计</div>
+                    </div>
+                    <div class="skill-item">
+                        <span class="icon">🛠️</span>
+                        <div class="name">DevOps</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- 占位提示 -->
-        <div class="caption-mini">
-            ⭐ Everything about LumiNya. ⭐
+        <!-- ===== 服务 ===== -->
+        <div id="services" class="section-wrapper">
+            <div class="section-header">
+                <h2 class="section-title">服务内容</h2>
+                <p class="section-subtitle">我能为你做什么</p>
+            </div>
+            <div class="section-divider">
+                <span class="line"></span>
+                <span class="dot"></span>
+                <span class="line"></span>
+            </div>
+            <div class="section-content">
+                <div class="services-grid">
+                    <div class="service-item">
+                        <span class="service-icon">🌐</span>
+                        <div class="service-name">Web应用开发</div>
+                        <div class="service-desc">前后端分离架构，React/Vue + Node/Go 全栈方案</div>
+                    </div>
+                    <div class="service-item">
+                        <span class="service-icon">🔌</span>
+                        <div class="service-name">API设计与集成</div>
+                        <div class="service-desc">RESTful/GraphQL 接口，第三方服务集成</div>
+                    </div>
+                    <div class="service-item">
+                        <span class="service-icon">⚡</span>
+                        <div class="service-name">性能优化</div>
+                        <div class="service-desc">前端加载优化、后端并发调优，全链路性能提升</div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <!-- ===== 数据 ===== -->
+        <div class="section-wrapper">
+            <div class="section-header">
+                <h2 class="section-title">数据一览</h2>
+                <p class="section-subtitle">一些数字与事实</p>
+            </div>
+            <div class="section-divider">
+                <span class="line"></span>
+                <span class="dot"></span>
+                <span class="line"></span>
+            </div>
+            <div class="section-content">
+                <div class="metrics-grid" id="metricsGrid">
+                    <div class="metric-item">
+                        <div class="number" data-count="5">0</div>
+                        <div class="label">年经验</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="number" data-count="30">0</div>
+                        <div class="label">完成项目</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="number" data-count="8">0</div>
+                        <div class="label">开源仓库</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="number" data-count="96">0</div>
+                        <div class="label">代码质量分</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 作品 ===== -->
+        <div id="work" class="section-wrapper">
+            <div class="section-header">
+                <h2 class="section-title">精选作品</h2>
+                <p class="section-subtitle">最近完成的一些项目</p>
+            </div>
+            <div class="section-divider">
+                <span class="line"></span>
+                <span class="dot"></span>
+                <span class="line"></span>
+            </div>
+            <div class="section-content">
+                <div class="work-list">
+                    <div class="work-card">
+                        <div class="thumb">🖥️</div>
+                        <div class="info">
+                            <h4>LunaPanel · 管理后台</h4>
+                            <div class="desc">开箱即用的后台管理模板，基于React + Ant Design，内置权限与暗色模式。</div>
+                            <div class="tags">
+                                <span>前端工程</span>
+                                <span>React</span>
+                                <span>2025</span>
+                            </div>
+                        </div>
+                        <div class="action">
+                            <a href="#" class="project-link">
+                                查看项目 <span class="arrow">→</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="work-card">
+                        <div class="thumb thumb--green">📦</div>
+                        <div class="info">
+                            <h4>CodeVault · 代码笔记</h4>
+                            <div class="desc">面向开发者的Markdown笔记工具，支持代码高亮、标签管理与同步。</div>
+                            <div class="tags">
+                                <span>全栈开发</span>
+                                <span>Vue</span>
+                                <span>2025</span>
+                            </div>
+                        </div>
+                        <div class="action">
+                            <a href="#" class="project-link">
+                                查看项目 <span class="arrow">→</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="work-card">
+                        <div class="thumb thumb--coral">⚙️</div>
+                        <div class="info">
+                            <h4>Rustlog · 微服务日志</h4>
+                            <div class="desc">高性能分布式日志聚合服务，使用Rust编写，支持实时过滤与报警。</div>
+                            <div class="tags">
+                                <span>后端架构</span>
+                                <span>Rust</span>
+                                <span>2024</span>
+                            </div>
+                        </div>
+                        <div class="action">
+                            <a href="#" class="project-link">
+                                查看项目 <span class="arrow">→</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 动态 ===== -->
+        <div id="posts" class="section-wrapper">
+            <div class="section-header">
+                <h2 class="section-title">近期动态</h2>
+                <p class="section-subtitle">技术分享与思考</p>
+            </div>
+            <div class="section-divider">
+                <span class="line"></span>
+                <span class="dot"></span>
+                <span class="line"></span>
+            </div>
+            <div class="section-content">
+                <div class="posts-grid">
+                    <div class="post-item">
+                        <div class="post-date">2026.07.18</div>
+                        <div class="post-title">深入理解React Server Components</div>
+                        <div class="post-excerpt">从原理到实践，解析RSC如何优化渲染性能</div>
+                        <a href="#" class="post-link">阅读全文</a>
+                    </div>
+                    <div class="post-item">
+                        <div class="post-date">2026.07.05</div>
+                        <div class="post-title">Rust异步编程入门指南</div>
+                        <div class="post-excerpt">掌握Future与async/await，构建高并发服务</div>
+                        <a href="#" class="post-link">阅读全文</a>
+                    </div>
+                    <div class="post-item">
+                        <div class="post-date">2026.06.20</div>
+                        <div class="post-title">设计模式在前端中的应用</div>
+                        <div class="post-excerpt">用观察者、策略模式提升代码可维护性</div>
+                        <a href="#" class="post-link">阅读全文</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 工具 ===== -->
+        <div class="section-wrapper">
+            <div class="section-header">
+                <h2 class="section-title">常用工具</h2>
+                <p class="section-subtitle">日常开发 &amp; 效率工具</p>
+            </div>
+            <div class="section-divider">
+                <span class="line"></span>
+                <span class="dot"></span>
+                <span class="line"></span>
+            </div>
+            <div class="section-content">
+                <div class="tools-wrap">
+                    <div class="tool-item">
+                        <span class="tool-icon">⌨️</span>
+                        <span class="tool-name">VS Code</span>
+                    </div>
+                    <div class="tool-item">
+                        <span class="tool-icon">🌿</span>
+                        <span class="tool-name">Git</span>
+                    </div>
+                    <div class="tool-item">
+                        <span class="tool-icon">🐳</span>
+                        <span class="tool-name">Docker</span>
+                    </div>
+                    <div class="tool-item">
+                        <span class="tool-icon">🦀</span>
+                        <span class="tool-name">Rust</span>
+                    </div>
+                    <div class="tool-item">
+                        <span class="tool-icon">⚛️</span>
+                        <span class="tool-name">React</span>
+                    </div>
+                    <div class="tool-item">
+                        <span class="tool-icon">🟩</span>
+                        <span class="tool-name">Node.js</span>
+                    </div>
+                    <div class="tool-item">
+                        <span class="tool-icon">🐘</span>
+                        <span class="tool-name">PostgreSQL</span>
+                    </div>
+                    <div class="tool-item">
+                        <span class="tool-icon">🧪</span>
+                        <span class="tool-name">Vitest</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 联系方式（新增板块） ===== -->
+        <div id="contact-info" class="section-wrapper">
+            <div class="section-header">
+                <h2 class="section-title">联系方式</h2>
+                <p class="section-subtitle">欢迎随时与我取得联系</p>
+            </div>
+            <div class="section-divider">
+                <span class="line"></span>
+                <span class="dot"></span>
+                <span class="line"></span>
+            </div>
+            <div class="section-content">
+                <div class="contact-grid">
+                    <a href="mailto:hello@luminya.dev" class="contact-card">
+                        <span class="contact-icon">✉️</span>
+                        <span class="contact-label">邮箱</span>
+                        <span class="contact-value">hello@luminya.dev</span>
+                    </a>
+                    <a href="#" class="contact-card">
+                        <span class="contact-icon">💬</span>
+                        <span class="contact-label">微信</span>
+                        <span class="contact-value">LumiNya_Dev</span>
+                    </a>
+                    <a href="#" class="contact-card">
+                        <span class="contact-icon">🐙</span>
+                        <span class="contact-label">GitHub</span>
+                        <span class="contact-value">github.com/LumiNya</span>
+                    </a>
+                    <a href="#" class="contact-card">
+                        <span class="contact-icon">📍</span>
+                        <span class="contact-label">所在地</span>
+                        <span class="contact-value">中国 · 深圳</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Footer ===== -->
+        <footer id="contact">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="brand">Lumi<span>Nya</span></div>
+                    <div class="brand-desc">用代码创造有价值的工具。专注于全栈开发、开源贡献与技术分享。</div>
+                </div>
+
+                <div class="footer-nav">
+                    <h5>导航</h5>
+                    <ul>
+                        <li><a href="#">首页</a></li>
+                        <li><a href="#work">作品</a></li>
+                        <li><a href="#services">服务</a></li>
+                        <li><a href="#posts">动态</a></li>
+                        <li><a href="#contact-info">联系</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-contact">
+                    <h5>联系方式</h5>
+                    <div class="contact-links">
+                        <a href="mailto:hello@luminya.dev">
+                            <span class="link-icon">✉</span> hello@luminya.dev
+                        </a>
+                        <a href="#">
+                            <span class="link-icon">💬</span> 微信 · LumiNya_Dev
+                        </a>
+                        <a href="#">
+                            <span class="link-icon">📞</span> +86 159-0000-0000
+                        </a>
+                        <a href="#">
+                            <span class="link-icon">📍</span> 中国 · 深圳
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-social">
+                <a href="#">🐙 GitHub</a>
+                <a href="#">📦 Stack Overflow</a>
+                <a href="#">📝 掘金</a>
+                <a href="#">📖 知乎</a>
+                <a href="#">📡 RSS</a>
+                <a href="#">📧 邮件通讯</a>
+                <a href="#">💼 LinkedIn</a>
+                <a href="#">🐦 Twitter</a>
+            </div>
+
+            <div class="footer-bottom">
+                <span class="copy">© 2026 LumiNya · 用代码构建未来</span>
+                <div class="legal">
+                    <a href="#">隐私政策</a>
+                    <a href="#">使用条款</a>
+                    <a href="#">RSS 订阅</a>
+                </div>
+            </div>
+        </footer>
     </div>
+
+    <script>
+        (function() {
+            // ===== 深浅主题切换 =====
+            const toggleBtn = document.getElementById('themeToggle');
+            const root = document.documentElement;
+            const STORAGE_KEY = 'theme-preference';
+
+            function getPreferredTheme() {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored === 'dark' || stored === 'light') return stored;
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            function setTheme(theme) {
+                if (theme === 'dark') {
+                    root.setAttribute('data-theme', 'dark');
+                } else {
+                    root.removeAttribute('data-theme');
+                }
+                localStorage.setItem(STORAGE_KEY, theme);
+            }
+
+            function toggleTheme() {
+                const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                const next = current === 'dark' ? 'light' : 'dark';
+                setTheme(next);
+            }
+
+            function initTheme() {
+                const theme = getPreferredTheme();
+                setTheme(theme);
+            }
+
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            function handleSystemChange(e) {
+                if (!localStorage.getItem(STORAGE_KEY)) {
+                    const newTheme = e.matches ? 'dark' : 'light';
+                    setTheme(newTheme);
+                }
+            }
+            mediaQuery.addEventListener('change', handleSystemChange);
+            toggleBtn.addEventListener('click', toggleTheme);
+            initTheme();
+
+            // ===== 滚动触发：淡入上浮 =====
+            const sections = document.querySelectorAll('.section-wrapper');
+            if (sections.length > 0) {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                        }
+                    });
+                }, {
+                    threshold: 0.10,
+                    rootMargin: '0px 0px -20px 0px'
+                });
+                sections.forEach(section => observer.observe(section));
+            }
+
+            // ===== 数字计数动画 =====
+            const metricNumbers = document.querySelectorAll('.metric-item .number');
+            let counted = false;
+
+            function animateNumbers() {
+                if (counted) return;
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            counted = true;
+                            const targets = document.querySelectorAll('.metric-item .number');
+                            targets.forEach(el => {
+                                const target = parseInt(el.getAttribute('data-count'), 10);
+                                if (isNaN(target)) return;
+                                const duration = 1000;
+                                const startTime = performance.now();
+
+                                function update(currentTime) {
+                                    const progress = Math.min((currentTime - startTime) / duration, 1);
+                                    const eased = 1 - Math.pow(1 - progress, 3);
+                                    const currentVal = Math.round(eased * target);
+                                    el.textContent = target === 96 ? currentVal + '%' : currentVal + '+';
+                                    if (progress < 1) {
+                                        requestAnimationFrame(update);
+                                    } else {
+                                        el.textContent = target === 96 ? target + '%' : target + '+';
+                                    }
+                                }
+                                requestAnimationFrame(update);
+                            });
+                            observer.disconnect();
+                        }
+                    });
+                }, { threshold: 0.4 });
+                const grid = document.getElementById('metricsGrid');
+                if (grid) observer.observe(grid);
+            }
+
+            // 延迟触发
+            setTimeout(animateNumbers, 300);
+
+            function checkMetricsVisibility() {
+                const grid = document.getElementById('metricsGrid');
+                if (!grid || counted) return;
+                const rect = grid.getBoundingClientRect();
+                if (rect.top < window.innerHeight * 0.8) {
+                    counted = false;
+                    animateNumbers();
+                }
+            }
+            window.addEventListener('load', checkMetricsVisibility);
+            window.addEventListener('scroll', checkMetricsVisibility, { passive: true });
+
+        })();
+    </script>
+
 </body>
 </html>
