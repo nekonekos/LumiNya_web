@@ -1,569 +1,558 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
-  <title>LumiNya · 智能伙伴</title>
-  <link rel="stylesheet" href="/css/main.css" />
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html, body {
-      height: 100%;
-      overflow: hidden;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg-gradient);
-    }
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    #app {
-      width: 100%;
-      height: 100%;
-      max-width: 1000px;
-      display: flex;
-      background: var(--bg-soft);
-      backdrop-filter: blur(20px);
-      box-shadow: 0 0 60px rgba(0,0,0,0.1);
-      overflow: hidden;
-      position: relative;
-    }
-    @media (min-width: 768px) {
-      body { padding: 2rem; }
-      #app { border-radius: 24px; height: 90vh; }
-    }
-    @media (max-width: 767px) {
-      #app { border-radius: 0; box-shadow: none; }
-    }
-
-    /* 联系人列表 */
-    .contact-list {
-      width: 100%; height: 100%;
-      display: flex; flex-direction: column;
-      background: rgba(255,255,255,0.2);
-      backdrop-filter: blur(20px);
-      border-right: 1px solid var(--border-light);
-      transition: transform 0.3s;
-      position: absolute; top:0; left:0; z-index:5;
-    }
-    @media (min-width: 768px) {
-      .contact-list {
-        position: relative; width: 320px; min-width: 320px;
-        transform: none !important; border-right: 1px solid var(--border-light);
-      }
-    }
-    .contact-list.hidden-mobile { transform: translateX(-100%); }
-    .contact-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1rem; border-bottom: 1px solid var(--border-light);
-      background: rgba(255,255,255,0.3); backdrop-filter: blur(16px);
-    }
-    .contact-header h2 {
-      font-size: 1.4rem; font-weight: 700;
-      background: var(--hero-gradient);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .add-btn-wrap { position: relative; }
-    .add-btn {
-      background: var(--btn-gradient); border: none; color: #fff;
-      width: 36px; height: 36px; border-radius: 50%;
-      font-size: 1.5rem; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: transform 0.2s;
-    }
-    .add-btn:active { transform: scale(0.9); }
-
-    /* 添加面板（浮层） */
-    .add-panel {
-      position: absolute; top: 110%; right: 0; width: 280px;
-      background: var(--widget-bg); backdrop-filter: blur(20px);
-      border: 1px solid var(--border-light); border-radius: 20px;
-      padding: 1rem; box-shadow: 0 12px 28px rgba(0,0,0,0.2);
-      z-index: 50; display: none;
-    }
-    .add-panel.open { display: block; }
-    .add-panel .panel-option {
-      display: block; width: 100%; text-align: left;
-      padding: 0.8rem 1rem; margin-bottom: 0.3rem;
-      background: transparent; border: none; border-radius: 12px;
-      color: var(--text-dark); font-size: 1rem; cursor: pointer;
-      transition: background 0.2s;
-    }
-    .add-panel .panel-option:hover { background: rgba(107,159,212,0.15); }
-    .add-panel .panel-back { margin-bottom: 0.8rem; }
-
-    /* 预设列表，自定义表单在面板内 */
-    .preset-list-item {
-      display: flex; align-items: center; gap: 0.8rem;
-      padding: 0.7rem 0.5rem; border-radius: 12px; cursor: pointer;
-      transition: background 0.2s;
-    }
-    .preset-list-item:hover { background: rgba(107,159,212,0.15); }
-    .preset-list-item .avatar { font-size: 1.5rem; }
-    .preset-list-item .info { flex:1; }
-    .preset-list-item .name { font-weight:600; }
-    .preset-list-item .desc { font-size:0.8rem; color:var(--text-medium); }
-
-    .input-group { margin-bottom: 1rem; }
-    .input-group input, .input-group textarea {
-      width: 100%; padding: 0.6rem; border-radius: 12px;
-      border: 1px solid var(--border-light); background: var(--bg-soft);
-      color: var(--text-dark); margin-bottom: 0.5rem;
-    }
-
-    /* 联系人项 */
-    .contact-items {
-      flex:1; overflow-y:auto; padding:0.5rem;
-    }
-    .contact-item {
-      display: flex; align-items: center; gap:0.8rem; padding:0.8rem;
-      border-radius:16px; margin-bottom:0.3rem; cursor:pointer;
-      transition: background 0.2s; color: var(--text-dark);
-    }
-    .contact-item:hover, .contact-item.active { background: rgba(107,159,212,0.15); }
-    .contact-avatar {
-      width:48px; height:48px; border-radius:50%; background: var(--btn-gradient);
-      display:flex; align-items:center; justify-content:center;
-      font-size:1.4rem; color:#fff; flex-shrink:0;
-    }
-    .contact-info { flex:1; overflow:hidden; }
-    .contact-name { font-weight:600; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .contact-last-msg { font-size:0.8rem; color:var(--text-medium); margin-top:0.1rem; }
-
-    /* 聊天窗口 */
-    .chat-window {
-      width:100%; height:100%; display:flex; flex-direction:column;
-      background:transparent; position:absolute; top:0; left:0;
-      transform: translateX(100%); transition: transform 0.3s; z-index:10;
-    }
-    @media (min-width:768px) {
-      .chat-window { position:relative; flex:1; transform:none !important; }
-    }
-    .chat-window.active-mobile { transform: translateX(0); }
-    .chat-header {
-      display:flex; align-items:center; gap:0.8rem; padding:0.8rem 1rem;
-      border-bottom:1px solid var(--border-light);
-      background:rgba(255,255,255,0.3); backdrop-filter:blur(16px);
-    }
-    .back-btn { display:none; }
-    @media (max-width:767px) { .back-btn { display:block; } }
-    .chat-messages {
-      flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:0.8rem;
-      background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 20%);
-    }
-    .msg {
-      max-width:75%; padding:0.7rem 1rem; border-radius:18px;
-      word-break:break-word; line-height:1.5; font-size:0.95rem;
-      animation: fadeIn 0.2s ease;
-    }
-    .msg.user {
-      align-self:flex-end; background:var(--btn-gradient); color:#fff;
-      border-bottom-right-radius:4px;
-    }
-    .msg.assistant {
-      align-self:flex-start; background:var(--widget-bg);
-      backdrop-filter:blur(6px); color:var(--text-dark);
-      border-bottom-left-radius:4px; border:1px solid var(--border-light);
-    }
-    .chat-input-area {
-      display:flex; gap:0.5rem; padding:0.8rem 1rem;
-      background:rgba(255,255,255,0.3); backdrop-filter:blur(16px);
-      border-top:1px solid var(--border-light);
-    }
-    .chat-input-area input {
-      flex:1; background:var(--widget-bg); backdrop-filter:blur(6px);
-      border:1px solid var(--border-light); border-radius:20px;
-      padding:0.6rem 1rem; font-size:0.95rem; color:var(--text-dark); outline:none;
-    }
-    .send-btn {
-      background:var(--btn-gradient); border:none; color:#fff;
-      border-radius:50%; width:40px; height:40px; font-size:1.2rem;
-      cursor:pointer; display:flex; align-items:center; justify-content:center;
-    }
-
-    /* 右键菜单 */
-    .context-menu {
-      position:fixed; background:var(--widget-bg); backdrop-filter:blur(20px);
-      border:1px solid var(--border-light); border-radius:16px;
-      padding:0.4rem 0; z-index:999; min-width:120px;
-      box-shadow:0 12px 28px rgba(0,0,0,0.2); display:none;
-    }
-    .context-menu .menu-item {
-      padding:0.5rem 1.2rem; cursor:pointer; font-size:0.9rem; color:var(--text-dark);
-    }
-    .context-menu .menu-item:hover { background:rgba(107,159,212,0.15); }
-
-    .empty-hint {
-      text-align:center; color:var(--text-medium); margin-top:3rem; padding:2rem;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>LumiNya · 陪伴</title>
+  <link rel="stylesheet" href="/css/chat.css">
+  <!-- 主题切换用 data-theme 属性控制 -->
 </head>
 <body>
-<div id="app">
-  <!-- 联系人列表 -->
-  <div class="contact-list" id="contactList">
-    <div class="contact-header">
-      <h2>智能伙伴</h2>
-      <div class="add-btn-wrap">
-        <button class="add-btn" id="showAddPanelBtn">+</button>
-        <div class="add-panel" id="addPanel"></div>
+  <div id="app">
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="avatar" id="userAvatarBtn" title="设置">😊</div>
+        <div class="user-info">
+          <div class="user-name">LumiNya</div>
+          <div class="user-status">在线</div>
+        </div>
+        <button class="settings-btn" id="settingsBtn" aria-label="设置">⚙️</button>
       </div>
-    </div>
-    <div class="contact-items" id="contactItems"></div>
+
+      <div class="agent-list" id="agentList">
+        <!-- 动态生成智能体列表，无智能体时显示空状态 -->
+        <div class="empty-hint" id="emptyHint">
+          ✨ 还没有伙伴<br>
+          <strong>点击下方 + 添加第一个</strong>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="add-agent-btn" id="addAgentBtn">
+          <span>+</span> 新伙伴
+        </button>
+      </div>
+    </aside>
+
+    <!-- 聊天主区域 -->
+    <section class="chat-area" id="chatArea">
+      <header class="chat-header">
+        <button class="back-btn" id="backBtn">←</button>
+        <div class="chat-title" id="chatTitle">选择一个伙伴开始聊天</div>
+      </header>
+
+      <div class="chat-messages" id="chatMessages">
+        <!-- 消息气泡动态插入 -->
+      </div>
+
+      <div class="input-area">
+        <input type="text" id="messageInput" placeholder="说点什么..." autocomplete="off" disabled>
+        <button class="send-btn" id="sendBtn" disabled>➤</button>
+      </div>
+    </section>
   </div>
 
-  <!-- 聊天窗口 -->
-  <div class="chat-window" id="chatWindow">
-    <div class="chat-header">
-      <button class="back-btn" id="backBtn">←</button>
-      <div class="avatar-small contact-avatar" id="chatAvatar" style="width:36px;height:36px;font-size:1rem;"></div>
-      <div class="chat-title" id="chatTitle"></div>
-    </div>
-    <div class="chat-messages" id="chatMessages"></div>
-    <div class="chat-input-area">
-      <input type="text" id="messageInput" placeholder="说点什么..." autocomplete="off" />
-      <button class="send-btn" id="sendBtn">➤</button>
+  <!-- 浮层面板：添加智能体 -->
+  <div class="floating-panel" id="addPanel" style="position:absolute; top:100%; right:0;">
+    <!-- 动态内容，由 JS 填充 -->
+  </div>
+
+  <!-- 右键菜单 -->
+  <div class="context-menu" id="contextMenu"></div>
+
+  <!-- 设置面板 -->
+  <div class="settings-overlay" id="settingsOverlay" style="display:none;">
+    <div class="settings-dialog">
+      <h2>设置</h2>
+      <div class="form-group">
+        <label>昵称</label>
+        <input type="text" id="nicknameInput" placeholder="你的名字">
+      </div>
+      <div class="form-group">
+        <label>DeepSeek API Key</label>
+        <input type="password" id="apiKeyInput" placeholder="sk-...">
+      </div>
+      <div id="keyStatus" style="font-size:0.8rem; margin-top:0.2rem;"></div>
+      <button class="btn primary" id="testKeyBtn">测试 Key</button>
+      <div style="display:flex; gap:0.8rem; margin-top:0.5rem;">
+        <button class="btn secondary" id="exportBtn">导出数据</button>
+        <button class="btn secondary" id="clearBtn">清除所有数据</button>
+      </div>
+      <button class="btn secondary" id="closeSettingsBtn">关闭</button>
     </div>
   </div>
-</div>
 
-<!-- 右键菜单 -->
-<div class="context-menu" id="contextMenu"></div>
+  <script>
+    (function() {
+      // ==================== 常量与状态 ====================
+      const DEEPSEEK_API = 'https://api.deepseek.com/v1/chat/completions';
+      let agents = [];
+      let messages = {};            // { agentId: [ {role, content, time} ] }
+      let currentAgentId = null;
+      let userApiKey = localStorage.getItem('luminya_apikey') || '';
+      let userNickname = localStorage.getItem('luminya_nickname') || 'LumiNya';
 
-<script>
-  (function() {
-    const DEEPSEEK_API = 'https://api.deepseek.com/v1/chat/completions';
-    let agents = [];
-    let messages = {};
-    let currentAgentId = null;
-    let userApiKey = localStorage.getItem('luminya_apikey') || '';
+      // ==================== DOM 引用 ====================
+      const sidebar = document.getElementById('sidebar');
+      const agentList = document.getElementById('agentList');
+      const emptyHint = document.getElementById('emptyHint');
+      const addAgentBtn = document.getElementById('addAgentBtn');
+      const addPanel = document.getElementById('addPanel');
+      const chatArea = document.getElementById('chatArea');
+      const chatTitle = document.getElementById('chatTitle');
+      const chatMessages = document.getElementById('chatMessages');
+      const messageInput = document.getElementById('messageInput');
+      const sendBtn = document.getElementById('sendBtn');
+      const backBtn = document.getElementById('backBtn');
+      const settingsBtn = document.getElementById('settingsBtn');
+      const userAvatarBtn = document.getElementById('userAvatarBtn');
+      const settingsOverlay = document.getElementById('settingsOverlay');
+      const contextMenu = document.getElementById('contextMenu');
 
-    // DOM
-    const contactItems = document.getElementById('contactItems');
-    const chatWindow = document.getElementById('chatWindow');
-    const chatMessages = document.getElementById('chatMessages');
-    const chatTitle = document.getElementById('chatTitle');
-    const chatAvatar = document.getElementById('chatAvatar');
-    const messageInput = document.getElementById('messageInput');
-    const addPanel = document.getElementById('addPanel');
-
-    // 加载数据
-    function loadAgents() {
-      agents = JSON.parse(localStorage.getItem('luminya_agents') || '[]');
-    }
-    function saveAgents() {
-      localStorage.setItem('luminya_agents', JSON.stringify(agents));
-    }
-    function loadMessages() {
-      messages = JSON.parse(localStorage.getItem('luminya_messages') || '{}');
-    }
-    function saveMessages() {
-      localStorage.setItem('luminya_messages', JSON.stringify(messages));
-    }
-    function getAgentMessages(agentId) {
-      return messages[agentId] || [];
-    }
-
-    // 渲染联系人列表
-    function renderContactList() {
-      contactItems.innerHTML = '';
-      if (agents.length === 0) {
-        contactItems.innerHTML = '<div class="empty-hint">✨ 还没有智能伙伴<br>点击右上角 <b>+</b> 添加吧</div>';
-        return;
+      // ==================== 数据持久化 ====================
+      function loadAgents() {
+        try {
+          agents = JSON.parse(localStorage.getItem('luminya_agents')) || [];
+        } catch(e) { agents = []; }
       }
-      agents.forEach(agent => {
+      function saveAgents() {
+        localStorage.setItem('luminya_agents', JSON.stringify(agents));
+      }
+      function loadMessages() {
+        try {
+          messages = JSON.parse(localStorage.getItem('luminya_messages')) || {};
+        } catch(e) { messages = {}; }
+      }
+      function saveMessages() {
+        localStorage.setItem('luminya_messages', JSON.stringify(messages));
+      }
+      function getAgentMessages(agentId) {
+        return messages[agentId] || [];
+      }
+      function updateAgentLastMsg(agentId, msg) {
+        if (!agents.length) return;
+        const agent = agents.find(a => a.id === agentId);
+        if (agent) {
+          agent.lastMsg = msg?.substring(0, 30) || '';
+          agent.lastTime = Date.now();
+          saveAgents();
+        }
+      }
+
+      // ==================== UI 渲染 ====================
+      function renderAgentList() {
+        agentList.innerHTML = '';
+        if (agents.length === 0) {
+          agentList.innerHTML = `<div class="empty-hint">✨ 还没有伙伴<br><strong>点击下方 + 添加第一个</strong></div>`;
+          return;
+        }
+        agents.sort((a,b) => (b.lastTime||0) - (a.lastTime||0)).forEach(agent => {
+          const div = document.createElement('div');
+          div.className = 'agent-item' + (agent.id === currentAgentId ? ' active' : '');
+          div.innerHTML = `
+            <div class="agent-avatar">${agent.avatar || '🤖'}</div>
+            <div class="agent-info">
+              <div class="agent-name">${agent.name}</div>
+              <div class="agent-preview">${agent.lastMsg || '开始聊天吧'}</div>
+            </div>
+          `;
+          div.addEventListener('click', () => switchChat(agent.id));
+          agentList.appendChild(div);
+        });
+      }
+
+      function renderChatMessages() {
+        chatMessages.innerHTML = '';
+        if (!currentAgentId) return;
+        const msgs = getAgentMessages(currentAgentId);
+        msgs.forEach(msg => appendMsgBubble(msg.role, msg.content));
+        scrollToBottom();
+      }
+
+      function appendMsgBubble(role, content) {
         const div = document.createElement('div');
-        div.className = 'contact-item' + (agent.id === currentAgentId ? ' active' : '');
-        div.innerHTML = `
-          <div class="contact-avatar">${agent.avatar || '🤖'}</div>
-          <div class="contact-info">
-            <div class="contact-name">${agent.name}</div>
-            <div class="contact-last-msg">${getLastMsgPreview(agent.id)}</div>
+        div.className = `msg ${role}`;
+        div.textContent = content;
+        chatMessages.appendChild(div);
+        scrollToBottom();
+      }
+
+      function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function switchChat(agentId) {
+        currentAgentId = agentId;
+        const agent = agents.find(a => a.id === agentId);
+        if (!agent) return;
+        chatTitle.textContent = agent.name;
+        messageInput.disabled = false;
+        sendBtn.disabled = false;
+        messageInput.placeholder = `和 ${agent.name} 说点什么...`;
+        renderChatMessages();
+        // 移动端切换
+        if (window.innerWidth < 768) {
+          sidebar.classList.add('hidden-mobile');
+          chatArea.classList.add('active-mobile');
+        }
+        renderAgentList();
+      }
+
+      function closeChat() {
+        currentAgentId = null;
+        chatTitle.textContent = '选择一个伙伴开始聊天';
+        messageInput.disabled = true;
+        sendBtn.disabled = true;
+        messageInput.value = '';
+        chatMessages.innerHTML = '';
+        if (window.innerWidth < 768) {
+          sidebar.classList.remove('hidden-mobile');
+          chatArea.classList.remove('active-mobile');
+        }
+        renderAgentList();
+      }
+
+      // ==================== 智能体管理 ====================
+      function addAgent(name, prompt, avatar = '🤖') {
+        const id = Date.now().toString(36) + Math.random().toString(36).substr(2);
+        const agent = { id, name, avatar, prompt, createdAt: Date.now(), lastTime: Date.now(), lastMsg: '' };
+        agents.push(agent);
+        saveAgents();
+        renderAgentList();
+        return id;
+      }
+
+      function deleteAgent(agentId) {
+        agents = agents.filter(a => a.id !== agentId);
+        delete messages[agentId];
+        saveAgents();
+        saveMessages();
+        if (currentAgentId === agentId) closeChat();
+        renderAgentList();
+      }
+
+      // ==================== 浮层面板逻辑 ====================
+      let panelMode = 'main'; // 'main', 'preset', 'custom'
+      function openAddPanel() {
+        const rect = addAgentBtn.getBoundingClientRect();
+        addPanel.style.position = 'fixed';
+        addPanel.style.top = (rect.top - 8) + 'px';
+        addPanel.style.left = (rect.right - 280) + 'px'; // 假设面板宽度280
+        addPanel.classList.add('open');
+        showMainPanel();
+      }
+      function closeAddPanel() {
+        addPanel.classList.remove('open');
+        panelMode = 'main';
+      }
+      function showMainPanel() {
+        panelMode = 'main';
+        addPanel.innerHTML = `
+          <button class="panel-option" id="presetOptionBtn"><span class="emoji">🎭</span> 从预设添加</button>
+          <button class="panel-option" id="customOptionBtn"><span class="emoji">✏️</span> 自定义创建</button>
+        `;
+        document.getElementById('presetOptionBtn')?.addEventListener('click', showPresetPanel);
+        document.getElementById('customOptionBtn')?.addEventListener('click', showCustomPanel);
+      }
+      async function showPresetPanel() {
+        panelMode = 'preset';
+        addPanel.innerHTML = '<button class="back-link" id="backFromPresetBtn">← 返回</button><div style="max-height:200px; overflow-y:auto;" id="presetListDiv">加载中...</div>';
+        document.getElementById('backFromPresetBtn')?.addEventListener('click', showMainPanel);
+        try {
+          const resp = await fetch('/chat_files/prompt.json');
+          if (!resp.ok) throw new Error('无法加载预设');
+          const data = await resp.json();
+          const container = document.getElementById('presetListDiv');
+          container.innerHTML = '';
+          Object.entries(data).forEach(([key, preset]) => {
+            const item = document.createElement('div');
+            item.className = 'agent-item';
+            item.innerHTML = `
+              <div class="agent-avatar">${preset.avatar || '🤖'}</div>
+              <div class="agent-info">
+                <div class="agent-name">${preset.name}</div>
+                <div class="agent-preview">${preset.prompt.substring(0, 30)}...</div>
+              </div>
+            `;
+            item.addEventListener('click', () => {
+              addAgent(preset.name, preset.prompt, preset.avatar || '🤖');
+              closeAddPanel();
+            });
+            container.appendChild(item);
+          });
+        } catch(e) {
+          addPanel.innerHTML = '<div style="padding:1rem; color:var(--text-secondary);">预设加载失败，请刷新或使用自定义创建</div>';
+        }
+      }
+      function showCustomPanel() {
+        panelMode = 'custom';
+        addPanel.innerHTML = `
+          <button class="back-link" id="backFromCustomBtn">← 返回</button>
+          <div class="create-form">
+            <input type="text" id="customName" placeholder="伙伴名称">
+            <textarea id="customPrompt" placeholder="角色设定 (System Prompt)"></textarea>
+            <button class="submit-btn" id="saveCustomBtn">创建</button>
           </div>
         `;
-        div.addEventListener('click', () => openChat(agent.id));
-        contactItems.appendChild(div);
-      });
-    }
-
-    function getLastMsgPreview(agentId) {
-      const msgs = getAgentMessages(agentId);
-      return msgs.length ? msgs[msgs.length-1].content.substring(0, 20) : '开始聊天吧';
-    }
-
-    // 打开聊天
-    function openChat(agentId) {
-      currentAgentId = agentId;
-      const agent = agents.find(a => a.id === agentId);
-      if (!agent) return;
-      chatTitle.textContent = agent.name;
-      chatAvatar.textContent = agent.avatar || '🤖';
-      renderChatMessages();
-      chatWindow.classList.add('active-mobile');
-      if (window.innerWidth < 768) {
-        document.getElementById('contactList').classList.add('hidden-mobile');
-      }
-    }
-
-    function closeChat() {
-      currentAgentId = null;
-      chatWindow.classList.remove('active-mobile');
-      if (window.innerWidth < 768) {
-        document.getElementById('contactList').classList.remove('hidden-mobile');
-      }
-    }
-
-    function renderChatMessages() {
-      chatMessages.innerHTML = '';
-      if (!currentAgentId) return;
-      const msgs = getAgentMessages(currentAgentId);
-      msgs.forEach(msg => appendMessageBubble(msg.role, msg.content));
-      scrollToBottom();
-    }
-
-    function appendMessageBubble(role, content) {
-      const div = document.createElement('div');
-      div.className = `msg ${role}`;
-      div.textContent = content;
-      chatMessages.appendChild(div);
-      scrollToBottom();
-    }
-
-    function scrollToBottom() {
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    // 发送消息
-    async function sendMessage() {
-      if (!currentAgentId) return;
-      const text = messageInput.value.trim();
-      if (!text) return;
-      if (!userApiKey) { alert('请先设置 API Key（在浏览器控制台执行 localStorage.setItem("luminya_apikey","sk-...") )'); return; }
-      const agent = agents.find(a => a.id === currentAgentId);
-      if (!agent) return;
-      if (!messages[currentAgentId]) messages[currentAgentId] = [];
-      messages[currentAgentId].push({ role: 'user', content: text, time: Date.now() });
-      saveMessages();
-      appendMessageBubble('user', text);
-      messageInput.value = '';
-
-      const recent = getAgentMessages(currentAgentId).slice(-20);
-      const apiMessages = [
-        { role: 'system', content: agent.prompt || '你是一个有用的助手' },
-        ...recent.map(m => ({ role: m.role, content: m.content }))
-      ];
-      try {
-        const response = await fetch(DEEPSEEK_API, {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${userApiKey}` },
-          body: JSON.stringify({ model: 'deepseek-chat', messages: apiMessages, stream: true })
+        document.getElementById('backFromCustomBtn')?.addEventListener('click', showMainPanel);
+        document.getElementById('saveCustomBtn')?.addEventListener('click', () => {
+          const name = document.getElementById('customName').value.trim();
+          const prompt = document.getElementById('customPrompt').value.trim();
+          if (!name || !prompt) return;
+          addAgent(name, prompt);
+          closeAddPanel();
         });
-        if (!response.ok) throw new Error(await response.text());
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        const assistantMsg = { role: 'assistant', content: '', time: Date.now() };
-        messages[currentAgentId].push(assistantMsg);
-        const assistantDiv = document.createElement('div');
-        assistantDiv.className = 'msg assistant';
-        chatMessages.appendChild(assistantDiv);
+      }
+      // 点击外部关闭
+      document.addEventListener('click', (e) => {
+        if (addPanel.classList.contains('open') && !addPanel.contains(e.target) && e.target !== addAgentBtn) {
+          closeAddPanel();
+        }
+      });
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop();
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6).trim();
-              if (data === '[DONE]') { saveMessages(); return; }
-              try {
-                const parsed = JSON.parse(data);
-                const chunk = parsed.choices?.[0]?.delta?.content;
-                if (chunk) {
-                  assistantMsg.content += chunk;
-                  assistantDiv.textContent = assistantMsg.content;
-                  scrollToBottom();
+      // ==================== 对话逻辑 ====================
+      async function sendMessage() {
+        if (!currentAgentId || !userApiKey) {
+          if (!userApiKey) alert('请先在设置中配置 API Key');
+          return;
+        }
+        const text = messageInput.value.trim();
+        if (!text) return;
+        const agent = agents.find(a => a.id === currentAgentId);
+        if (!agent) return;
+
+        // 添加用户消息
+        if (!messages[currentAgentId]) messages[currentAgentId] = [];
+        const userMsg = { role: 'user', content: text, time: Date.now() };
+        messages[currentAgentId].push(userMsg);
+        saveMessages();
+        updateAgentLastMsg(currentAgentId, text);
+        appendMsgBubble('user', text);
+        messageInput.value = '';
+
+        // 构建请求
+        const systemPrompt = agent.prompt;
+        const recentMsgs = getAgentMessages(currentAgentId).slice(-20);
+        const apiMessages = [
+          { role: 'system', content: systemPrompt },
+          ...recentMsgs.map(m => ({ role: m.role, content: m.content }))
+        ];
+
+        try {
+          const response = await fetch(DEEPSEEK_API, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${userApiKey}`
+            },
+            body: JSON.stringify({ model: 'deepseek-chat', messages: apiMessages, stream: true })
+          });
+          if (!response.ok) {
+            const errBody = await response.text();
+            throw new Error(`API 错误 ${response.status}: ${errBody}`);
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          const assistantMsg = { role: 'assistant', content: '', time: Date.now() };
+          messages[currentAgentId].push(assistantMsg);
+          const bubble = document.createElement('div');
+          bubble.className = 'msg assistant';
+          chatMessages.appendChild(bubble);
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') {
+                  saveMessages();
+                  updateAgentLastMsg(currentAgentId, assistantMsg.content);
+                  return;
                 }
-              } catch(e) {}
+                try {
+                  const parsed = JSON.parse(data);
+                  const chunk = parsed.choices?.[0]?.delta?.content;
+                  if (chunk) {
+                    assistantMsg.content += chunk;
+                    bubble.textContent = assistantMsg.content;
+                    scrollToBottom();
+                  }
+                } catch(e) {}
+              }
             }
           }
+          saveMessages();
+          updateAgentLastMsg(currentAgentId, assistantMsg.content);
+        } catch(err) {
+          alert('发送失败：' + err.message);
+          messages[currentAgentId].pop();
+          saveMessages();
+          renderChatMessages();
+          updateAgentLastMsg(currentAgentId, text); // 保留用户消息但移除空 AI
         }
-        saveMessages();
-      } catch(err) {
-        alert('发送失败: ' + err.message);
-        messages[currentAgentId].pop();
-        saveMessages();
-        renderChatMessages();
       }
-    }
 
-    // 添加面板管理
-    const addPanelBtn = document.getElementById('showAddPanelBtn');
-    let panelOpen = false;
-
-    function toggleAddPanel() {
-      if (panelOpen) {
-        closeAddPanel();
-      } else {
-        openAddPanelMain();
+      // ==================== 设置面板 ====================
+      function openSettings() {
+        document.getElementById('nicknameInput').value = userNickname;
+        document.getElementById('apiKeyInput').value = userApiKey;
+        document.getElementById('keyStatus').textContent = '';
+        settingsOverlay.style.display = 'flex';
       }
-    }
-
-    function openAddPanelMain() {
-      addPanel.innerHTML = `
-        <button class="panel-option" id="showPresetPanelBtn">🎭 从预设添加</button>
-        <button class="panel-option" id="showCustomFormBtn">✏️ 自定义创建</button>
-      `;
-      addPanel.classList.add('open');
-      panelOpen = true;
-      document.getElementById('showPresetPanelBtn')?.addEventListener('click', showPresetPanel);
-      document.getElementById('showCustomFormBtn')?.addEventListener('click', showCustomForm);
-    }
-
-    function closeAddPanel() {
-      addPanel.classList.remove('open');
-      panelOpen = false;
-    }
-
-    async function showPresetPanel() {
-      let PERSONAS = null;
-      try {
-        const resp = await fetch('/prompt.json');
-        if (!resp.ok) throw new Error();
-        PERSONAS = await resp.json();
-      } catch(e) {
-        alert('预设加载失败，请刷新或使用自定义创建');
-        return;
+      function closeSettings() {
+        settingsOverlay.style.display = 'none';
+        // 保存昵称
+        userNickname = document.getElementById('nicknameInput').value.trim() || 'LumiNya';
+        localStorage.setItem('luminya_nickname', userNickname);
+        // 保存 API Key
+        const newKey = document.getElementById('apiKeyInput').value.trim();
+        if (newKey !== userApiKey) {
+          userApiKey = newKey;
+          localStorage.setItem('luminya_apikey', userApiKey);
+        }
       }
-      addPanel.innerHTML = '<button class="panel-option panel-back" id="backToMainPanel">← 返回</button>';
-      const listDiv = document.createElement('div');
-      Object.entries(PERSONAS).forEach(([key, val]) => {
-        const item = document.createElement('div');
-        item.className = 'preset-list-item';
-        item.innerHTML = `
-          <span class="avatar">${val.avatar || '🤖'}</span>
-          <div class="info"><div class="name">${val.name}</div><div class="desc">${val.prompt.substring(0,30)}...</div></div>
+      async function testApiKey() {
+        const key = document.getElementById('apiKeyInput').value.trim();
+        const statusEl = document.getElementById('keyStatus');
+        if (!key) {
+          statusEl.textContent = '请输入 Key';
+          statusEl.style.color = 'var(--text-secondary)';
+          return;
+        }
+        statusEl.textContent = '正在测试...';
+        try {
+          const res = await fetch('https://api.deepseek.com/models', { headers: { 'Authorization': `Bearer ${key}` } });
+          if (res.ok) {
+            statusEl.textContent = '✓ 密钥有效';
+            statusEl.style.color = '#4caf50';
+          } else {
+            throw new Error();
+          }
+        } catch(e) {
+          statusEl.textContent = '✗ 密钥无效或网络错误';
+          statusEl.style.color = '#e0556a';
+        }
+      }
+
+      // ==================== 右键菜单 ====================
+      let contextMsgIndex = -1;
+      function showContextMenu(e, msgIndex) {
+        e.preventDefault();
+        contextMsgIndex = msgIndex;
+        contextMenu.innerHTML = `
+          <div class="menu-item" data-action="copy">复制</div>
+          <div class="menu-item" data-action="delete">删除</div>
+          <div class="menu-item" data-action="quote">引用</div>
         `;
-        item.addEventListener('click', () => {
-          addAgent(val.name, val.prompt, val.avatar || '🤖');
-          closeAddPanel();
-          renderContactList();
-        });
-        listDiv.appendChild(item);
-      });
-      addPanel.appendChild(listDiv);
-      document.getElementById('backToMainPanel')?.addEventListener('click', openAddPanelMain);
-    }
-
-    function showCustomForm() {
-      addPanel.innerHTML = `
-        <button class="panel-option panel-back" id="backToMainPanel">← 返回</button>
-        <div class="input-group">
-          <input type="text" id="agentName" placeholder="名称" />
-          <textarea id="agentPrompt" placeholder="角色设定 (System Prompt)"></textarea>
-          <button class="btn btn-primary" id="saveCustomBtn" style="width:100%;">保存</button>
-        </div>
-      `;
-      document.getElementById('backToMainPanel')?.addEventListener('click', openAddPanelMain);
-      document.getElementById('saveCustomBtn')?.addEventListener('click', () => {
-        const name = document.getElementById('agentName').value.trim();
-        const prompt = document.getElementById('agentPrompt').value.trim();
-        if (!name || !prompt) return;
-        addAgent(name, prompt);
-        closeAddPanel();
-        renderContactList();
-      });
-    }
-
-    function addAgent(name, prompt, avatar = '🤖') {
-      const id = Date.now().toString(36) + Math.random().toString(36).substr(2);
-      agents.push({ id, name, avatar, prompt, createdAt: Date.now() });
-      saveAgents();
-    }
-
-    // 事件绑定
-    addPanelBtn.addEventListener('click', toggleAddPanel);
-    document.addEventListener('click', (e) => {
-      if (panelOpen && !addPanel.contains(e.target) && e.target !== addPanelBtn) {
-        closeAddPanel();
+        contextMenu.style.display = 'block';
+        contextMenu.style.left = Math.min(e.clientX, window.innerWidth - 150) + 'px';
+        contextMenu.style.top = Math.min(e.clientY, window.innerHeight - 120) + 'px';
       }
-    });
-
-    document.getElementById('sendBtn').addEventListener('click', sendMessage);
-    messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-    document.getElementById('backBtn').addEventListener('click', closeChat);
-
-    // 右键菜单
-    const contextMenu = document.getElementById('contextMenu');
-    let contextMsgIndex = -1;
-    function showContextMenu(e, index) {
-      e.preventDefault();
-      contextMsgIndex = index;
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      contextMenu.innerHTML = `
-        <div class="menu-item" data-action="copy">复制</div>
-        <div class="menu-item" data-action="delete">删除（本地）</div>
-        <div class="menu-item" data-action="quote">引用</div>
-      `;
-      contextMenu.style.display = 'block';
-      contextMenu.style.left = Math.min(clientX, window.innerWidth - 150) + 'px';
-      contextMenu.style.top = Math.min(clientY, window.innerHeight - 150) + 'px';
-    }
-    chatMessages.addEventListener('contextmenu', (e) => {
-      const msgDiv = e.target.closest('.msg');
-      if (!msgDiv || !currentAgentId) return;
-      const all = [...chatMessages.querySelectorAll('.msg')];
-      const idx = all.indexOf(msgDiv);
-      if (idx === -1) return;
-      showContextMenu(e, idx);
-    });
-    contextMenu.addEventListener('click', (e) => {
-      const action = e.target.dataset.action;
-      if (!action || !currentAgentId) return;
-      const msgs = getAgentMessages(currentAgentId);
-      if (action === 'copy') {
-        navigator.clipboard.writeText(msgs[contextMsgIndex]?.content || '');
-      } else if (action === 'delete') {
-        msgs.splice(contextMsgIndex, 1);
-        messages[currentAgentId] = msgs;
-        saveMessages();
-        renderChatMessages();
-      } else if (action === 'quote') {
-        const text = msgs[contextMsgIndex]?.content || '';
-        messageInput.value = `「${text.substring(0,40)}」 `;
-        messageInput.focus();
+      function hideContextMenu() {
+        contextMenu.style.display = 'none';
       }
-      contextMenu.style.display = 'none';
-    });
-    document.addEventListener('click', () => contextMenu.style.display = 'none');
-    let longPressTimer;
-    chatMessages.addEventListener('touchstart', (e) => {
-      const msgDiv = e.target.closest('.msg');
-      if (!msgDiv) return;
-      longPressTimer = setTimeout(() => {
-        const all = [...chatMessages.querySelectorAll('.msg')];
-        const idx = all.indexOf(msgDiv);
-        if (idx === -1) return;
-        showContextMenu(e, idx);
-      }, 500);
-    });
-    chatMessages.addEventListener('touchend', () => clearTimeout(longPressTimer));
-    chatMessages.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+      chatMessages.addEventListener('contextmenu', (e) => {
+        const msgDiv = e.target.closest('.msg');
+        if (!msgDiv || !currentAgentId) return;
+        const allMsgs = [...chatMessages.querySelectorAll('.msg')];
+        const index = allMsgs.indexOf(msgDiv);
+        if (index === -1) return;
+        showContextMenu(e, index);
+      });
+      contextMenu.addEventListener('click', (e) => {
+        const action = e.target.dataset.action;
+        if (!action || !currentAgentId) return;
+        const msgs = getAgentMessages(currentAgentId);
+        if (action === 'copy') {
+          navigator.clipboard.writeText(msgs[contextMsgIndex]?.content || '');
+        } else if (action === 'delete') {
+          msgs.splice(contextMsgIndex, 1);
+          messages[currentAgentId] = msgs;
+          saveMessages();
+          renderChatMessages();
+          if (msgs.length > 0) {
+            updateAgentLastMsg(currentAgentId, msgs[msgs.length-1].content);
+          } else {
+            updateAgentLastMsg(currentAgentId, '');
+          }
+        } else if (action === 'quote') {
+          const quoted = msgs[contextMsgIndex]?.content || '';
+          messageInput.value = `「${quoted.substring(0, 40)}」 `;
+          messageInput.focus();
+        }
+        hideContextMenu();
+      });
+      document.addEventListener('click', hideContextMenu);
+      // 移动端长按
+      let longPressTimer;
+      chatMessages.addEventListener('touchstart', (e) => {
+        const msgDiv = e.target.closest('.msg');
+        if (!msgDiv) return;
+        longPressTimer = setTimeout(() => {
+          const allMsgs = [...chatMessages.querySelectorAll('.msg')];
+          const index = allMsgs.indexOf(msgDiv);
+          if (index === -1) return;
+          showContextMenu({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY, preventDefault: ()=>{} }, index);
+        }, 500);
+      });
+      chatMessages.addEventListener('touchend', () => clearTimeout(longPressTimer));
+      chatMessages.addEventListener('touchmove', () => clearTimeout(longPressTimer));
 
-    // 初始化
-    loadAgents();
-    loadMessages();
-    renderContactList();
+      // ==================== 事件绑定 ====================
+      sendBtn.addEventListener('click', sendMessage);
+      messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+      backBtn.addEventListener('click', closeChat);
+      addAgentBtn.addEventListener('click', openAddPanel);
+      settingsBtn.addEventListener('click', openSettings);
+      userAvatarBtn.addEventListener('click', openSettings);
 
-    if (!userApiKey) {
-      console.warn('未设置 API Key，请在控制台执行: localStorage.setItem("luminya_apikey","sk-...")');
-    }
-  })();
-</script>
+      document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
+      document.getElementById('testKeyBtn').addEventListener('click', testApiKey);
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        if (confirm('确定要清除所有伙伴和对话记录吗？此操作不可撤销。')) {
+          localStorage.clear();
+          agents = [];
+          messages = {};
+          currentAgentId = null;
+          renderAgentList();
+          closeChat();
+          closeSettings();
+        }
+      });
+      document.getElementById('exportBtn').addEventListener('click', () => {
+        const data = { agents, messages, version: 1 };
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'luminya_backup.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // 点击设置遮罩关闭（仅当点击在遮罩本身，非对话框）
+      settingsOverlay.addEventListener('click', (e) => {
+        if (e.target === settingsOverlay) closeSettings();
+      });
+
+      // ==================== 初始化 ====================
+      loadAgents();
+      loadMessages();
+      renderAgentList();
+      // 默认不打开任何聊天，移动端显示侧边栏
+      if (window.innerWidth >= 768) {
+        // PC端可以默认显示空白聊天区域
+      }
+      // 昵称显示
+      document.querySelector('.user-name').textContent = userNickname;
+    })();
+  </script>
 </body>
 </html>
