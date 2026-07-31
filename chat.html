@@ -9,7 +9,10 @@
     /* 居中遮罩弹窗样式（补充，不会与 chat.css 冲突） */
     .modal-overlay {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background: rgba(0,0,0,0.3);
       backdrop-filter: blur(4px);
       display: flex;
@@ -97,6 +100,16 @@
     }
     .btn-primary { background: var(--accent); color: #fff; }
     .btn-secondary { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-subtle); }
+
+    /* 移动端修复：隐藏聊天区时禁止事件穿透 */
+    @media (max-width: 767px) {
+      .chat-area {
+        pointer-events: none; /* 默认不接收事件，避免阻挡侧边栏点击 */
+      }
+      .chat-area.active-mobile {
+        pointer-events: auto; /* 激活时恢复交互 */
+      }
+    }
   </style>
 </head>
 <body>
@@ -276,11 +289,19 @@
       function renderChatMessages() {
         chatMessages.innerHTML = '';
         if (!currentAgentId) return;
-        getAgentMessages(currentAgentId).forEach(m => appendMsgBubble(m.role, m.content));
+        const msgs = getAgentMessages(currentAgentId);
+        msgs.forEach((m, idx) => {
+          const div = document.createElement('div');
+          div.className = `msg ${m.role}`;
+          div.textContent = m.content;
+          div.dataset.index = idx; // 为右键菜单提供准确索引
+          chatMessages.appendChild(div);
+        });
         scrollToBottom();
       }
 
       function appendMsgBubble(role, content) {
+        // 此函数仅用于发送时临时添加，但会在重新渲染时被覆盖，故保留但不依赖索引
         const div = document.createElement('div');
         div.className = `msg ${role}`;
         div.textContent = content;
@@ -385,10 +406,8 @@
         const agent = agents.find(a=>a.id===currentAgentId);
         if (!agent) return;
 
-        // 初始化消息记录
         if (!messages[currentAgentId]) messages[currentAgentId] = [];
 
-        // 添加用户消息
         messages[currentAgentId].push({ role:'user', content:text, time:Date.now() });
         saveMessages();
         updateAgentPreview(currentAgentId, text);
@@ -402,7 +421,6 @@
           ...recent.map(m=>({ role:m.role, content:m.content }))
         ];
 
-        // 准备助手消息占位
         const assistantMsg = { role:'assistant', content:'', time:Date.now() };
         messages[currentAgentId].push(assistantMsg);
         const bubble = document.createElement('div');
@@ -449,9 +467,7 @@
               }
             }
           }
-          // 确保即使没有收到 [DONE] 也保存（若内容为空则删除此条）
           if (!assistantMsg.content) {
-            // 若没有内容，移除占位消息，避免空回复
             messages[currentAgentId].pop();
             bubble.remove();
           } else {
@@ -459,14 +475,11 @@
             updateAgentPreview(currentAgentId, assistantMsg.content);
           }
         } catch (err) {
-          // 出错时移除占位消息，回滚
           messages[currentAgentId].pop();
           bubble.remove();
           alert('发送失败: ' + err.message);
         } finally {
-          // 重新渲染以确保一致性
           renderChatMessages();
-          // 若消息列表为空则更新预览为空
           const msgs = getAgentMessages(currentAgentId);
           const last = msgs[msgs.length-1];
           updateAgentPreview(currentAgentId, last?.role === 'assistant' ? last.content : '');
@@ -518,33 +531,29 @@
         }
       }
 
-      // ----- 清除所有数据（修复）-----
+      // ----- 清除所有数据 -----
       function clearAllData() {
         if (!confirm('确定清除所有数据？此操作不可恢复！')) return;
         localStorage.clear();
-        // 重置内存变量
         agents = [];
         messages = {};
         currentAgentId = null;
         userApiKey = '';
         userNickname = 'LumiNya';
-        // 更新设置面板输入框
         document.getElementById('nicknameInput').value = userNickname;
         document.getElementById('apiKeyInput').value = '';
         document.querySelector('.user-name').textContent = userNickname;
-        // 重置界面
         renderAgentList();
         closeChat();
         closeSettings();
-        // 清空所有消息显示
         chatMessages.innerHTML = '';
         chatTitle.textContent = '选择一个伙伴开始聊天';
         messageInput.disabled = true;
         sendBtn.disabled = true;
       }
 
-      // ----- 右键菜单（修复索引问题：使用 data 属性）-----
-      let ctxMsgId = null; // 用消息唯一索引（实际用时间戳或id，简化用数组索引但绑定data-index）
+      // ----- 右键菜单 -----
+      let ctxMsgId = null;
 
       function showCtx(e, index) {
         e.preventDefault();
@@ -590,7 +599,6 @@
         ctxMsgId = null;
       });
 
-      // 移动端长按支持（添加 data-index 属性）
       let pressTimer = null;
       chatMessages.addEventListener('touchstart', e => {
         const msg = e.target.closest('.msg');
@@ -604,67 +612,6 @@
       }, { passive: true });
       chatMessages.addEventListener('touchend', () => clearTimeout(pressTimer));
       chatMessages.addEventListener('touchmove', () => clearTimeout(pressTimer));
-
-      // 修改 appendMsgBubble 以添加 data-index
-      const originalAppend = appendMsgBubble;
-      appendMsgBubble = function(role, content) {
-        const div = document.createElement('div');
-        div.className = `msg ${role}`;
-        div.textContent = content;
-        // 索引在渲染时统一设置
-        chatMessages.appendChild(div);
-        scrollToBottom();
-      };
-
-      // 重写 renderChatMessages 以添加 data-index
-      const originalRender = renderChatMessages;
-      renderChatMessages = function() {
-        chatMessages.innerHTML = '';
-        if (!currentAgentId) return;
-        const msgs = getAgentMessages(currentAgentId);
-        msgs.forEach((m, idx) => {
-          const div = document.createElement('div');
-          div.className = `msg ${m.role}`;
-          div.textContent = m.content;
-          div.dataset.index = idx;
-          chatMessages.appendChild(div);
-        });
-        scrollToBottom();
-      };
-      // 重新绑定 switchChat 中的调用
-      const origSwitch = switchChat;
-      switchChat = function(id) {
-        currentAgentId = id;
-        const agent = agents.find(a => a.id === id);
-        if (!agent) return;
-        chatTitle.textContent = agent.name;
-        messageInput.disabled = false;
-        sendBtn.disabled = false;
-        renderChatMessages();
-        if (window.innerWidth < 768) {
-          sidebar.classList.add('hidden-mobile');
-          chatArea.classList.add('active-mobile');
-        }
-        renderAgentList();
-      };
-
-      // 修正 closeChat 也使用新 render
-      const origClose = closeChat;
-      closeChat = function() {
-        currentAgentId = null;
-        chatTitle.textContent = '选择一个伙伴开始聊天';
-        messageInput.disabled = true;
-        sendBtn.disabled = true;
-        chatMessages.innerHTML = '';
-        if (window.innerWidth < 768) {
-          sidebar.classList.remove('hidden-mobile');
-          chatArea.classList.remove('active-mobile');
-        }
-        renderAgentList();
-      };
-
-      // 修正 sendMessage 中的 appendMsgBubble 调用
-      // 因为 appendMsgBubble 已重新定义，无需修改
 
       // ----- 事件绑定 -----
       addAgentBtn.addEventListener('click', openAddModal);
@@ -692,8 +639,6 @@
       loadMessages();
       renderAgentList();
       document.querySelector('.user-name').textContent = userNickname;
-      // 若有 API Key 则启用输入？但等待用户选择伙伴
-      // 默认禁用输入
       messageInput.disabled = true;
       sendBtn.disabled = true;
     })();
