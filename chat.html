@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
+  <title>LumiNya · 陪伴聊天</title>
+
+  <!-- 复用现有样式 -->
+  <link rel="stylesheet" href="/css/main.css" />
+
+  <!-- PWA 支持（添加到主屏幕，无 Service Worker） -->
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22LumiNya%20%E9%99%AA%E4%BC%B4%22%2C%22short_name%22%3A%22%E5%B0%8F%E5%A8%9C%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f6faff%22%2C%22theme_color%22%3A%22%236B9FD4%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%20100'%253E%253Ccircle%20cx%3D'50'%20cy%3D'50'%20r%3D'48'%20fill%3D'%25236B9FD4'%2F%253E%253Ctext%20x%3D'50'%20y%3D'65'%20font-size%3D'50'%20text-anchor%3D'middle'%20fill%3D'white'%253E%25E2%259C%25A8%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22100x100%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="小娜陪伴" />
+
+  <!-- 聊天界面补充样式 -->
+  <style>
+    /* 页面布局调整为全屏聊天 */
+    body {
+      padding: 0 !important;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-width: 100%;
+      background: var(--bg-gradient);
+    }
+
+    /* 顶部导航 */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.8rem 1.2rem;
+      background: var(--bg-soft);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-light);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .app-header .logo {
+      font-size: 1.4rem;
+      font-weight: 700;
+      background: var(--hero-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header-actions {
+      display: flex;
+      gap: 0.8rem;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      padding: 0.3rem;
+      color: var(--text-medium);
+      transition: color 0.2s;
+    }
+    .icon-btn:hover {
+      color: var(--primary-blue);
+    }
+
+    /* 聊天区域 */
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 0.8rem 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      background: transparent;
+    }
+
+    /* 消息气泡 */
+    .msg {
+      max-width: 85%;
+      padding: 0.75rem 1rem;
+      border-radius: 20px;
+      word-break: break-word;
+      line-height: 1.5;
+      font-size: 0.95rem;
+      animation: fadeInUp 0.3s ease;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--btn-gradient);
+      color: #fff;
+      border-bottom-right-radius: 6px;
+    }
+    .msg.assistant {
+      align-self: flex-start;
+      background: var(--widget-bg);
+      backdrop-filter: blur(6px);
+      color: var(--text-dark);
+      border-bottom-left-radius: 6px;
+      border: 1px solid var(--border-light);
+    }
+
+    /* 输入区域 */
+    .input-area {
+      display: flex;
+      gap: 0.6rem;
+      padding: 0.8rem 1rem 1rem;
+      background: var(--bg-soft);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-light);
+      flex-shrink: 0;
+    }
+    .input-area input {
+      flex: 1;
+      background: var(--widget-bg);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border-light);
+      border-radius: 28px;
+      padding: 0.7rem 1.2rem;
+      font-size: 0.95rem;
+      color: var(--text-dark);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-area input:focus {
+      border-color: var(--primary-blue);
+    }
+    .send-btn {
+      background: var(--btn-gradient);
+      border: none;
+      color: #fff;
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+    }
+    .send-btn:active {
+      transform: scale(0.9);
+    }
+
+    /* 人格选择遮罩 */
+    .persona-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .persona-card {
+      background: var(--widget-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-light);
+      border-radius: 28px;
+      padding: 2rem 1.5rem;
+      width: 90%;
+      max-width: 360px;
+      text-align: center;
+    }
+    .persona-card h2 {
+      margin-bottom: 1.5rem;
+      color: var(--text-dark);
+    }
+    .persona-option {
+      background: var(--bg-soft);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 1rem;
+      margin-bottom: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-dark);
+    }
+    .persona-option:hover,
+    .persona-option.selected {
+      border-color: var(--primary-blue);
+      background: rgba(255,255,255,0.4);
+    }
+
+    /* 设置面板 */
+    .settings-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 85%;
+      max-width: 360px;
+      height: 100%;
+      background: var(--bg-soft);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid var(--border-light);
+      z-index: 200;
+      padding: 1.5rem;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      overflow-y: auto;
+      color: var(--text-dark);
+    }
+    .settings-panel.open {
+      transform: translateX(0);
+    }
+    .settings-panel h3 {
+      margin-bottom: 1.2rem;
+    }
+    .settings-row {
+      margin-bottom: 1.2rem;
+    }
+    .settings-row label {
+      display: block;
+      margin-bottom: 0.3rem;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .settings-row input {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
+      background: var(--widget-bg);
+      color: var(--text-dark);
+    }
+    .danger-btn {
+      background: #e0556a;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    .close-settings {
+      position: absolute;
+      top: 0.8rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-medium);
+    }
+
+    /* 存储统计 */
+    .storage-info {
+      font-size: 0.8rem;
+      color: var(--text-light);
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 顶部导航 -->
+    <header class="app-header">
+      <span class="logo">LumiNya</span>
+      <div class="header-actions">
+        <button id="settingsBtn" class="icon-btn" title="设置">⚙️</button>
+      </div>
+    </header>
+
+    <!-- 聊天消息区 -->
+    <div id="chatArea" class="chat-area"></div>
+
+    <!-- 输入区域 -->
+    <div class="input-area">
+      <input type="text" id="messageInput" placeholder="说点什么..." autocomplete="off" />
+      <button id="sendBtn" class="send-btn">➤</button>
+    </div>
+  </div>
+
+  <!-- 人格选择遮罩（初始隐藏） -->
+  <div id="personaOverlay" class="persona-overlay" style="display: none;">
+    <div class="persona-card">
+      <h2>选择陪伴人格</h2>
+      <div id="personaOptions"></div>
+      <button id="confirmPersonaBtn" class="btn btn--primary" style="margin-top: 1.2rem; width: 100%;" disabled>确认选择</button>
+      <p style="font-size: 0.75rem; margin-top: 0.8rem; color: var(--text-light);">选定后不可更改，如需更换请清除浏览器数据</p>
+    </div>
+  </div>
+
+  <!-- 设置面板 -->
+  <div id="settingsPanel" class="settings-panel">
+    <button id="closeSettingsBtn" class="close-settings">✕</button>
+    <h3>设置</h3>
+    <div class="settings-row">
+      <label>当前人格</label>
+      <p id="currentPersonaDisplay" style="font-weight: 600;"></p>
+    </div>
+    <div class="settings-row">
+      <label>你的 DeepSeek API Key</label>
+      <input type="password" id="apiKeyInput" placeholder="sk-..." />
+      <p style="font-size: 0.7rem; color: var(--text-light);">密钥仅保存在本地，不会上传</p>
+    </div>
+    <div class="settings-row">
+      <label>对话记录</label>
+      <p id="messageCount" style="margin-bottom: 0.3rem;"></p>
+      <div class="storage-info" id="storageUsed"></div>
+      <button id="clearChatBtn" class="danger-btn">清除所有对话</button>
+      <button id="resetAllBtn" class="danger-btn" style="margin-top: 0.5rem;">重置应用（重新选择人格）</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ==================== 常量与工具 ====================
+      const DEEPSEEK_API = 'https://api.deepseek.com/v1/chat/completions';
+      const MAX_MESSAGES = 200;            // 最多存储消息条数
+      const CONTEXT_COUNT = 20;            // 每次请求携带最近轮次
+
+      // 人格预设
+      const PERSONAS = {
+        girlfriend: {
+          name: '温柔女友',
+          prompt: '你是小娜，用户的女朋友。你温柔、体贴、有点小撒娇，会主动关心他的日常、情绪，偶尔说一些可爱的情话。回复简洁自然，像真人发消息一样，不要长篇大论，适当时用表情符号。'
+        },
+        sister: {
+          name: '知心姐姐',
+          prompt: '你是小娜，一个善解人意的姐姐。你会耐心倾听用户的烦恼，给予温暖的鼓励和建议，语气成熟但亲切。回复尽量有温度，但保持适当的距离感。'
+        },
+        friend: {
+          name: '亲密好友',
+          prompt: '你是小娜，用户最要好的死党。你可以开玩笑、吐槽、分享有趣的事，语气活泼轻松。像哥们一样聊天，但又能察觉到对方的情绪变化。'
+        }
+      };
+
+      // ==================== localStorage 管理 ====================
+      function loadConfig() {
+        const raw = localStorage.getItem('luminya_config');
+        if (raw) {
+          try { return JSON.parse(raw); } catch(e) {}
+        }
+        return null;
+      }
+
+      function saveConfig(config) {
+        localStorage.setItem('luminya_config', JSON.stringify(config));
+      }
+
+      function loadMessages() {
+        const raw = localStorage.getItem('luminya_messages');
+        if (raw) {
+          try { return JSON.parse(raw); } catch(e) {}
+        }
+        return [];
+      }
+
+      function saveMessages(messages) {
+        // 只保留最近 MAX_MESSAGES 条
+        const trimmed = messages.slice(-MAX_MESSAGES);
+        localStorage.setItem('luminya_messages', JSON.stringify(trimmed));
+      }
+
+      function updateStorageUI() {
+        const msgCount = loadMessages().length;
+        document.getElementById('messageCount').textContent = `共 ${msgCount} 条消息`;
+        
+        let totalBytes = 0;
+        for (let key in localStorage) {
+          if (localStorage.hasOwnProperty(key)) {
+            totalBytes += localStorage[key].length + key.length;
+          }
+        }
+        const kb = (totalBytes / 1024).toFixed(1);
+        document.getElementById('storageUsed').textContent = `已使用 ${kb} KB / 约 5 MB 可用`;
+      }
+
+      // ==================== 应用状态 ====================
+      let config = loadConfig();
+      let messages = loadMessages();
+
+      // 检查是否首次访问（无人格）
+      if (!config || !config.persona) {
+        showPersonaSelector();
+      } else {
+        // 已有人格，更新显示
+        document.getElementById('currentPersonaDisplay').textContent = PERSONAS[config.persona]?.name || '未知';
+        if (config.ownApiKey) {
+          document.getElementById('apiKeyInput').value = config.ownApiKey;
+        }
+      }
+
+      renderChat();
+      updateStorageUI();
+
+      // ==================== 人格选择 ====================
+      function showPersonaSelector() {
+        const overlay = document.getElementById('personaOverlay');
+        overlay.style.display = 'flex';
+        
+        const container = document.getElementById('personaOptions');
+        container.innerHTML = '';
+        let selectedPersona = null;
+
+        Object.entries(PERSONAS).forEach(([key, val]) => {
+          const div = document.createElement('div');
+          div.className = 'persona-option';
+          div.textContent = val.name;
+          div.addEventListener('click', () => {
+            document.querySelectorAll('.persona-option').forEach(el => el.classList.remove('selected'));
+            div.classList.add('selected');
+            selectedPersona = key;
+            document.getElementById('confirmPersonaBtn').disabled = false;
+          });
+          container.appendChild(div);
+        });
+
+        document.getElementById('confirmPersonaBtn').addEventListener('click', () => {
+          if (!selectedPersona) return;
+          config = { persona: selectedPersona, ownApiKey: '', chatCount: 0 };
+          saveConfig(config);
+          document.getElementById('currentPersonaDisplay').textContent = PERSONAS[selectedPersona].name;
+          overlay.style.display = 'none';
+          // 清空旧消息（以防万一）
+          messages = [];
+          saveMessages([]);
+          renderChat();
+          updateStorageUI();
+        }, { once: true });
+      }
+
+      // ==================== 聊天渲染 ====================
+      function renderChat() {
+        const chatArea = document.getElementById('chatArea');
+        chatArea.innerHTML = '';
+        messages.forEach(msg => {
+          appendMessageToDOM(msg.role, msg.content);
+        });
+        chatArea.scrollTop = chatArea.scrollHeight;
+      }
+
+      function appendMessageToDOM(role, content) {
+        const chatArea = document.getElementById('chatArea');
+        const div = document.createElement('div');
+        div.className = `msg ${role}`;
+        div.textContent = content;
+        chatArea.appendChild(div);
+        chatArea.scrollTop = chatArea.scrollHeight;
+      }
+
+      // 流式追加内容（正在输入中的消息）
+      let currentAssistantDiv = null;
+      function appendStreamChunk(chunk) {
+        if (!currentAssistantDiv) {
+          currentAssistantDiv = document.createElement('div');
+          currentAssistantDiv.className = 'msg assistant';
+          document.getElementById('chatArea').appendChild(currentAssistantDiv);
+        }
+        currentAssistantDiv.textContent += chunk;
+        document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
+      }
+      function finalizeAssistantMessage() {
+        if (currentAssistantDiv) {
+          const content = currentAssistantDiv.textContent;
+          messages.push({ role: 'assistant', content, time: Date.now() });
+          saveMessages(messages);
+          updateStorageUI();
+          currentAssistantDiv = null;
+        }
+      }
+
+      // ==================== API 调用与流式处理 ====================
+      async function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        if (!text) return;
+        
+        // 检查 API Key
+        const apiKey = config?.ownApiKey;
+        if (!apiKey) {
+          alert('请先在设置中填写你的 DeepSeek API Key');
+          return;
+        }
+
+        // 添加用户消息
+        messages.push({ role: 'user', content: text, time: Date.now() });
+        saveMessages(messages);
+        appendMessageToDOM('user', text);
+        input.value = '';
+        updateStorageUI();
+
+        // 构造请求
+        const systemPrompt = PERSONAS[config.persona].prompt;
+        const recentMessages = messages.slice(-CONTEXT_COUNT);
+        const apiMessages = [
+          { role: 'system', content: systemPrompt },
+          ...recentMessages.map(m => ({ role: m.role, content: m.content }))
+        ];
+
+        try {
+          const response = await fetch(DEEPSEEK_API, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: 'deepseek-chat',
+              messages: apiMessages,
+              stream: true
+            })
+          });
+
+          if (!response.ok) {
+            const err = await response.text();
+            throw new Error(`API 错误 ${response.status}: ${err}`);
+          }
+
+          // 流式读取
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // 不完整的行保留
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') {
+                  finalizeAssistantMessage();
+                  return;
+                }
+                try {
+                  const parsed = JSON.parse(data);
+                  const content = parsed.choices?.[0]?.delta?.content;
+                  if (content) {
+                    appendStreamChunk(content);
+                  }
+                } catch(e) {}
+              }
+            }
+          }
+          // 读取结束
+          finalizeAssistantMessage();
+        } catch (error) {
+          console.error(error);
+          alert('发送失败：' + error.message);
+          // 移除刚才添加的用户消息（回滚）
+          messages.pop();
+          saveMessages(messages);
+          renderChat();
+          updateStorageUI();
+        }
+      }
+
+      // ==================== 事件绑定 ====================
+      document.getElementById('sendBtn').addEventListener('click', sendMessage);
+      document.getElementById('messageInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
+
+      // 设置面板
+      const settingsPanel = document.getElementById('settingsPanel');
+      document.getElementById('settingsBtn').addEventListener('click', () => {
+        settingsPanel.classList.add('open');
+        document.getElementById('apiKeyInput').value = config?.ownApiKey || '';
+        updateStorageUI();
+      });
+      document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+        settingsPanel.classList.remove('open');
+        // 保存 API Key
+        if (config) {
+          config.ownApiKey = document.getElementById('apiKeyInput').value.trim();
+          saveConfig(config);
+        }
+      });
+
+      // 清除对话
+      document.getElementById('clearChatBtn').addEventListener('click', () => {
+        if (confirm('确定要清除所有聊天记录吗？')) {
+          messages = [];
+          saveMessages([]);
+          renderChat();
+          updateStorageUI();
+        }
+      });
+
+      // 重置应用（重新选择人格）
+      document.getElementById('resetAllBtn').addEventListener('click', () => {
+        if (confirm('确定要重置所有数据并重新选择人格吗？')) {
+          localStorage.removeItem('luminya_messages');
+          localStorage.removeItem('luminya_config');
+          config = null;
+          messages = [];
+          renderChat();
+          updateStorageUI();
+          settingsPanel.classList.remove('open');
+          showPersonaSelector();
+        }
+      });
+
+      // 初始化主题（沿用 main.css 中的暗色模式逻辑）
+      // 这里简单支持跟随系统，如果需要切换按钮可以复用原有逻辑
+      // 由于我们覆盖了整个页面，主题切换按钮可以后续在 CSS 中添加。
+    })();
+  </script>
+</body>
+</html>
