@@ -6,18 +6,17 @@
   <title>LumiNya · 智能伙伴</title>
   <link rel="stylesheet" href="/css/main.css" />
   <style>
-    /* 全局布局重置，仿微信全屏 */
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body {
       height: 100%;
       overflow: hidden;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-gradient);
     }
     body {
       display: flex;
       justify-content: center;
       align-items: center;
-      background: var(--bg-gradient);
     }
     #app {
       width: 100%;
@@ -27,330 +26,178 @@
       background: var(--bg-soft);
       backdrop-filter: blur(20px);
       box-shadow: 0 0 60px rgba(0,0,0,0.1);
-      border-radius: 0;
       overflow: hidden;
       position: relative;
     }
     @media (min-width: 768px) {
+      body { padding: 2rem; }
       #app { border-radius: 24px; height: 90vh; }
     }
+    @media (max-width: 767px) {
+      #app { border-radius: 0; box-shadow: none; }
+    }
 
-    /* 联系人列表（左侧或全屏） */
+    /* 联系人列表 */
     .contact-list {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
       background: rgba(255,255,255,0.2);
       backdrop-filter: blur(20px);
       border-right: 1px solid var(--border-light);
       transition: transform 0.3s;
-      position: absolute;
-      top: 0; left: 0; z-index: 5;
+      position: absolute; top:0; left:0; z-index:5;
     }
     @media (min-width: 768px) {
       .contact-list {
-        position: relative;
-        width: 320px;
-        min-width: 320px;
-        transform: none !important;
-        border-right: 1px solid var(--border-light);
+        position: relative; width: 320px; min-width: 320px;
+        transform: none !important; border-right: 1px solid var(--border-light);
       }
     }
-    .contact-list.hidden-mobile {
-      transform: translateX(-100%);
-    }
+    .contact-list.hidden-mobile { transform: translateX(-100%); }
     .contact-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1rem;
-      border-bottom: 1px solid var(--border-light);
-      background: rgba(255,255,255,0.3);
-      backdrop-filter: blur(16px);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem; border-bottom: 1px solid var(--border-light);
+      background: rgba(255,255,255,0.3); backdrop-filter: blur(16px);
     }
     .contact-header h2 {
-      font-size: 1.4rem;
-      font-weight: 700;
+      font-size: 1.4rem; font-weight: 700;
       background: var(--hero-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       background-clip: text;
     }
+    .add-btn-wrap { position: relative; }
     .add-btn {
-      background: var(--btn-gradient);
-      border: none;
-      color: #fff;
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      font-size: 1.5rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: var(--btn-gradient); border: none; color: #fff;
+      width: 36px; height: 36px; border-radius: 50%;
+      font-size: 1.5rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
       transition: transform 0.2s;
     }
     .add-btn:active { transform: scale(0.9); }
-    .contact-items {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0.5rem;
+
+    /* 添加面板（浮层） */
+    .add-panel {
+      position: absolute; top: 110%; right: 0; width: 280px;
+      background: var(--widget-bg); backdrop-filter: blur(20px);
+      border: 1px solid var(--border-light); border-radius: 20px;
+      padding: 1rem; box-shadow: 0 12px 28px rgba(0,0,0,0.2);
+      z-index: 50; display: none;
     }
-    .contact-item {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-      padding: 0.8rem;
-      border-radius: 16px;
-      margin-bottom: 0.3rem;
-      cursor: pointer;
+    .add-panel.open { display: block; }
+    .add-panel .panel-option {
+      display: block; width: 100%; text-align: left;
+      padding: 0.8rem 1rem; margin-bottom: 0.3rem;
+      background: transparent; border: none; border-radius: 12px;
+      color: var(--text-dark); font-size: 1rem; cursor: pointer;
       transition: background 0.2s;
-      color: var(--text-dark);
     }
-    .contact-item:hover, .contact-item.active {
-      background: rgba(107,159,212,0.15);
+    .add-panel .panel-option:hover { background: rgba(107,159,212,0.15); }
+    .add-panel .panel-back { margin-bottom: 0.8rem; }
+
+    /* 预设列表，自定义表单在面板内 */
+    .preset-list-item {
+      display: flex; align-items: center; gap: 0.8rem;
+      padding: 0.7rem 0.5rem; border-radius: 12px; cursor: pointer;
+      transition: background 0.2s;
     }
-    .contact-avatar {
-      width: 48px; height: 48px;
-      border-radius: 50%;
-      background: var(--btn-gradient);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-      color: #fff;
-      flex-shrink: 0;
-    }
-    .contact-info {
-      flex: 1;
-      overflow: hidden;
-    }
-    .contact-name {
-      font-weight: 600;
-      font-size: 1rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .contact-last-msg {
-      font-size: 0.8rem;
-      color: var(--text-medium);
-      margin-top: 0.1rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .preset-list-item:hover { background: rgba(107,159,212,0.15); }
+    .preset-list-item .avatar { font-size: 1.5rem; }
+    .preset-list-item .info { flex:1; }
+    .preset-list-item .name { font-weight:600; }
+    .preset-list-item .desc { font-size:0.8rem; color:var(--text-medium); }
+
+    .input-group { margin-bottom: 1rem; }
+    .input-group input, .input-group textarea {
+      width: 100%; padding: 0.6rem; border-radius: 12px;
+      border: 1px solid var(--border-light); background: var(--bg-soft);
+      color: var(--text-dark); margin-bottom: 0.5rem;
     }
 
-    /* 聊天窗口（右侧或全屏） */
+    /* 联系人项 */
+    .contact-items {
+      flex:1; overflow-y:auto; padding:0.5rem;
+    }
+    .contact-item {
+      display: flex; align-items: center; gap:0.8rem; padding:0.8rem;
+      border-radius:16px; margin-bottom:0.3rem; cursor:pointer;
+      transition: background 0.2s; color: var(--text-dark);
+    }
+    .contact-item:hover, .contact-item.active { background: rgba(107,159,212,0.15); }
+    .contact-avatar {
+      width:48px; height:48px; border-radius:50%; background: var(--btn-gradient);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.4rem; color:#fff; flex-shrink:0;
+    }
+    .contact-info { flex:1; overflow:hidden; }
+    .contact-name { font-weight:600; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .contact-last-msg { font-size:0.8rem; color:var(--text-medium); margin-top:0.1rem; }
+
+    /* 聊天窗口 */
     .chat-window {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      background: transparent;
-      position: absolute;
-      top: 0; left: 0;
-      transform: translateX(100%);
-      transition: transform 0.3s;
-      z-index: 10;
+      width:100%; height:100%; display:flex; flex-direction:column;
+      background:transparent; position:absolute; top:0; left:0;
+      transform: translateX(100%); transition: transform 0.3s; z-index:10;
     }
-    @media (min-width: 768px) {
-      .chat-window {
-        position: relative;
-        flex: 1;
-        transform: none !important;
-        border-left: none;
-      }
+    @media (min-width:768px) {
+      .chat-window { position:relative; flex:1; transform:none !important; }
     }
-    .chat-window.active-mobile {
-      transform: translateX(0);
-    }
+    .chat-window.active-mobile { transform: translateX(0); }
     .chat-header {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-      padding: 0.8rem 1rem;
-      border-bottom: 1px solid var(--border-light);
-      background: rgba(255,255,255,0.3);
-      backdrop-filter: blur(16px);
+      display:flex; align-items:center; gap:0.8rem; padding:0.8rem 1rem;
+      border-bottom:1px solid var(--border-light);
+      background:rgba(255,255,255,0.3); backdrop-filter:blur(16px);
     }
-    .back-btn {
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      cursor: pointer;
-      color: var(--text-dark);
-      padding: 0 0.3rem;
-      display: none;
-    }
-    @media (max-width: 767px) {
-      .back-btn { display: block; }
-    }
-    .chat-header .avatar-small {
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      background: var(--btn-gradient);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 1rem;
-    }
-    .chat-header .chat-title {
-      font-weight: 600;
-      font-size: 1.1rem;
-      color: var(--text-dark);
-    }
+    .back-btn { display:none; }
+    @media (max-width:767px) { .back-btn { display:block; } }
     .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.8rem;
+      flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:0.8rem;
       background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 20%);
     }
     .msg {
-      max-width: 75%;
-      padding: 0.7rem 1rem;
-      border-radius: 18px;
-      word-break: break-word;
-      line-height: 1.5;
-      font-size: 0.95rem;
+      max-width:75%; padding:0.7rem 1rem; border-radius:18px;
+      word-break:break-word; line-height:1.5; font-size:0.95rem;
       animation: fadeIn 0.2s ease;
-      position: relative;
     }
     .msg.user {
-      align-self: flex-end;
-      background: var(--btn-gradient);
-      color: #fff;
-      border-bottom-right-radius: 4px;
+      align-self:flex-end; background:var(--btn-gradient); color:#fff;
+      border-bottom-right-radius:4px;
     }
     .msg.assistant {
-      align-self: flex-start;
-      background: var(--widget-bg);
-      backdrop-filter: blur(6px);
-      color: var(--text-dark);
-      border-bottom-left-radius: 4px;
-      border: 1px solid var(--border-light);
+      align-self:flex-start; background:var(--widget-bg);
+      backdrop-filter:blur(6px); color:var(--text-dark);
+      border-bottom-left-radius:4px; border:1px solid var(--border-light);
     }
     .chat-input-area {
-      display: flex;
-      gap: 0.5rem;
-      padding: 0.8rem 1rem;
-      background: rgba(255,255,255,0.3);
-      backdrop-filter: blur(16px);
-      border-top: 1px solid var(--border-light);
+      display:flex; gap:0.5rem; padding:0.8rem 1rem;
+      background:rgba(255,255,255,0.3); backdrop-filter:blur(16px);
+      border-top:1px solid var(--border-light);
     }
     .chat-input-area input {
-      flex: 1;
-      background: var(--widget-bg);
-      backdrop-filter: blur(6px);
-      border: 1px solid var(--border-light);
-      border-radius: 20px;
-      padding: 0.6rem 1rem;
-      font-size: 0.95rem;
-      color: var(--text-dark);
-      outline: none;
+      flex:1; background:var(--widget-bg); backdrop-filter:blur(6px);
+      border:1px solid var(--border-light); border-radius:20px;
+      padding:0.6rem 1rem; font-size:0.95rem; color:var(--text-dark); outline:none;
     }
-    .chat-input-area input:focus { border-color: var(--primary-blue); }
     .send-btn {
-      background: var(--btn-gradient);
-      border: none;
-      color: #fff;
-      border-radius: 50%;
-      width: 40px; height: 40px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background:var(--btn-gradient); border:none; color:#fff;
+      border-radius:50%; width:40px; height:40px; font-size:1.2rem;
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
     }
-    .send-btn:active { transform: scale(0.9); }
 
     /* 右键菜单 */
     .context-menu {
-      position: fixed;
-      background: var(--widget-bg);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--border-light);
-      border-radius: 16px;
-      padding: 0.4rem 0;
-      z-index: 999;
-      min-width: 120px;
-      box-shadow: 0 12px 28px rgba(0,0,0,0.2);
-      display: none;
+      position:fixed; background:var(--widget-bg); backdrop-filter:blur(20px);
+      border:1px solid var(--border-light); border-radius:16px;
+      padding:0.4rem 0; z-index:999; min-width:120px;
+      box-shadow:0 12px 28px rgba(0,0,0,0.2); display:none;
     }
     .context-menu .menu-item {
-      padding: 0.5rem 1.2rem;
-      cursor: pointer;
-      font-size: 0.9rem;
-      color: var(--text-dark);
+      padding:0.5rem 1.2rem; cursor:pointer; font-size:0.9rem; color:var(--text-dark);
     }
-    .context-menu .menu-item:hover { background: rgba(107,159,212,0.15); }
+    .context-menu .menu-item:hover { background:rgba(107,159,212,0.15); }
 
-    /* 遮罩 & 添加智能体弹窗 */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      backdrop-filter: blur(8px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
+    .empty-hint {
+      text-align:center; color:var(--text-medium); margin-top:3rem; padding:2rem;
     }
-    .modal {
-      background: var(--widget-bg);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--border-light);
-      border-radius: 24px;
-      padding: 1.5rem;
-      width: 90%;
-      max-width: 400px;
-      color: var(--text-dark);
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-    .modal h3 { margin-bottom: 1rem; }
-    .modal input, .modal textarea {
-      width: 100%;
-      padding: 0.6rem;
-      border-radius: 12px;
-      border: 1px solid var(--border-light);
-      background: var(--bg-soft);
-      color: var(--text-dark);
-      margin-bottom: 0.8rem;
-    }
-    .modal textarea { height: 80px; resize: vertical; }
-    .modal-buttons {
-      display: flex;
-      gap: 0.8rem;
-      justify-content: flex-end;
-    }
-    .btn {
-      padding: 0.5rem 1.2rem;
-      border-radius: 20px;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .btn-primary { background: var(--btn-gradient); color: #fff; }
-    .btn-outline { background: transparent; border: 1px solid var(--border-light); color: var(--text-dark); }
-
-    .preset-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .preset-item {
-      background: rgba(107,159,212,0.1);
-      padding: 0.8rem;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .preset-item:hover { background: rgba(107,159,212,0.2); }
   </style>
 </head>
 <body>
@@ -359,7 +206,10 @@
   <div class="contact-list" id="contactList">
     <div class="contact-header">
       <h2>智能伙伴</h2>
-      <button class="add-btn" id="showAddMenuBtn">+</button>
+      <div class="add-btn-wrap">
+        <button class="add-btn" id="showAddPanelBtn">+</button>
+        <div class="add-panel" id="addPanel"></div>
+      </div>
     </div>
     <div class="contact-items" id="contactItems"></div>
   </div>
@@ -368,7 +218,7 @@
   <div class="chat-window" id="chatWindow">
     <div class="chat-header">
       <button class="back-btn" id="backBtn">←</button>
-      <div class="avatar-small" id="chatAvatar"></div>
+      <div class="avatar-small contact-avatar" id="chatAvatar" style="width:36px;height:36px;font-size:1rem;"></div>
       <div class="chat-title" id="chatTitle"></div>
     </div>
     <div class="chat-messages" id="chatMessages"></div>
@@ -382,35 +232,13 @@
 <!-- 右键菜单 -->
 <div class="context-menu" id="contextMenu"></div>
 
-<!-- 添加智能体模态 -->
-<div class="modal-overlay" id="addModal" style="display:none;">
-  <div class="modal" id="addModalContent">
-    <h3>添加智能伙伴</h3>
-    <div id="addMenuOptions">
-      <button class="btn btn-outline" id="fromPresetBtn">从预设添加</button>
-      <button class="btn btn-outline" id="customBtn" style="margin-left:0.5rem;">自定义创建</button>
-    </div>
-    <div id="presetListContainer" style="display:none;"></div>
-    <div id="customForm" style="display:none;">
-      <input type="text" id="agentName" placeholder="名称" />
-      <textarea id="agentPrompt" placeholder="角色设定 (System Prompt)"></textarea>
-      <div class="modal-buttons">
-        <button class="btn btn-outline" id="cancelCustomBtn">取消</button>
-        <button class="btn btn-primary" id="saveCustomBtn">保存</button>
-      </div>
-    </div>
-    <button class="btn btn-outline" id="closeAddModalBtn" style="margin-top:1rem;">关闭</button>
-  </div>
-</div>
-
 <script>
   (function() {
     const DEEPSEEK_API = 'https://api.deepseek.com/v1/chat/completions';
-    let agents = [];              // 所有智能体 [{id, name, avatar, prompt, createdAt}]
-    let messages = {};           // 对话记录 { agentId: [{role, content, time}] }
+    let agents = [];
+    let messages = {};
     let currentAgentId = null;
     let userApiKey = localStorage.getItem('luminya_apikey') || '';
-    let PERSONAS = null;         // 从 prompt.json 加载
 
     // DOM
     const contactItems = document.getElementById('contactItems');
@@ -419,21 +247,17 @@
     const chatTitle = document.getElementById('chatTitle');
     const chatAvatar = document.getElementById('chatAvatar');
     const messageInput = document.getElementById('messageInput');
-    const backBtn = document.getElementById('backBtn');
-    const sendBtn = document.getElementById('sendBtn');
-    const contextMenu = document.getElementById('contextMenu');
+    const addPanel = document.getElementById('addPanel');
 
     // 加载数据
     function loadAgents() {
-      const raw = localStorage.getItem('luminya_agents');
-      agents = raw ? JSON.parse(raw) : [];
+      agents = JSON.parse(localStorage.getItem('luminya_agents') || '[]');
     }
     function saveAgents() {
       localStorage.setItem('luminya_agents', JSON.stringify(agents));
     }
     function loadMessages() {
-      const raw = localStorage.getItem('luminya_messages');
-      messages = raw ? JSON.parse(raw) : {};
+      messages = JSON.parse(localStorage.getItem('luminya_messages') || '{}');
     }
     function saveMessages() {
       localStorage.setItem('luminya_messages', JSON.stringify(messages));
@@ -445,6 +269,10 @@
     // 渲染联系人列表
     function renderContactList() {
       contactItems.innerHTML = '';
+      if (agents.length === 0) {
+        contactItems.innerHTML = '<div class="empty-hint">✨ 还没有智能伙伴<br>点击右上角 <b>+</b> 添加吧</div>';
+        return;
+      }
       agents.forEach(agent => {
         const div = document.createElement('div');
         div.className = 'contact-item' + (agent.id === currentAgentId ? ' active' : '');
@@ -452,18 +280,15 @@
           <div class="contact-avatar">${agent.avatar || '🤖'}</div>
           <div class="contact-info">
             <div class="contact-name">${agent.name}</div>
-            <div class="contact-last-msg">${getLastMessagePreview(agent.id)}</div>
+            <div class="contact-last-msg">${getLastMsgPreview(agent.id)}</div>
           </div>
         `;
         div.addEventListener('click', () => openChat(agent.id));
         contactItems.appendChild(div);
       });
-      if (agents.length === 0) {
-        contactItems.innerHTML = '<p style="text-align:center; color:var(--text-medium); margin-top:2rem;">点击 + 添加智能伙伴</p>';
-      }
     }
 
-    function getLastMessagePreview(agentId) {
+    function getLastMsgPreview(agentId) {
       const msgs = getAgentMessages(agentId);
       return msgs.length ? msgs[msgs.length-1].content.substring(0, 20) : '开始聊天吧';
     }
@@ -490,10 +315,9 @@
       }
     }
 
-    // 渲染聊天消息
     function renderChatMessages() {
-      if (!currentAgentId) return;
       chatMessages.innerHTML = '';
+      if (!currentAgentId) return;
       const msgs = getAgentMessages(currentAgentId);
       msgs.forEach(msg => appendMessageBubble(msg.role, msg.content));
       scrollToBottom();
@@ -516,45 +340,31 @@
       if (!currentAgentId) return;
       const text = messageInput.value.trim();
       if (!text) return;
-      if (!userApiKey) { alert('请先到设置填写 API Key (点击右下角齿轮)'); return; }
-
+      if (!userApiKey) { alert('请先设置 API Key（在浏览器控制台执行 localStorage.setItem("luminya_apikey","sk-...") )'); return; }
       const agent = agents.find(a => a.id === currentAgentId);
       if (!agent) return;
-
-      // 添加用户消息
       if (!messages[currentAgentId]) messages[currentAgentId] = [];
       messages[currentAgentId].push({ role: 'user', content: text, time: Date.now() });
       saveMessages();
       appendMessageBubble('user', text);
       messageInput.value = '';
 
-      // 准备请求
-      const systemPrompt = agent.prompt || '你是一个有用的助手';
       const recent = getAgentMessages(currentAgentId).slice(-20);
       const apiMessages = [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: agent.prompt || '你是一个有用的助手' },
         ...recent.map(m => ({ role: m.role, content: m.content }))
       ];
-
       try {
         const response = await fetch(DEEPSEEK_API, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${userApiKey}`
-          },
-          body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: apiMessages,
-            stream: true
-          })
+          headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${userApiKey}` },
+          body: JSON.stringify({ model: 'deepseek-chat', messages: apiMessages, stream: true })
         });
         if (!response.ok) throw new Error(await response.text());
-        
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
-        let assistantMsg = { role: 'assistant', content: '', time: Date.now() };
+        const assistantMsg = { role: 'assistant', content: '', time: Date.now() };
         messages[currentAgentId].push(assistantMsg);
         const assistantDiv = document.createElement('div');
         assistantDiv.className = 'msg assistant';
@@ -569,10 +379,7 @@
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data = line.slice(6).trim();
-              if (data === '[DONE]') {
-                saveMessages();
-                return;
-              }
+              if (data === '[DONE]') { saveMessages(); return; }
               try {
                 const parsed = JSON.parse(data);
                 const chunk = parsed.choices?.[0]?.delta?.content;
@@ -586,7 +393,7 @@
           }
         }
         saveMessages();
-      } catch (err) {
+      } catch(err) {
         alert('发送失败: ' + err.message);
         messages[currentAgentId].pop();
         saveMessages();
@@ -594,79 +401,104 @@
       }
     }
 
-    // 添加智能体
+    // 添加面板管理
+    const addPanelBtn = document.getElementById('showAddPanelBtn');
+    let panelOpen = false;
+
+    function toggleAddPanel() {
+      if (panelOpen) {
+        closeAddPanel();
+      } else {
+        openAddPanelMain();
+      }
+    }
+
+    function openAddPanelMain() {
+      addPanel.innerHTML = `
+        <button class="panel-option" id="showPresetPanelBtn">🎭 从预设添加</button>
+        <button class="panel-option" id="showCustomFormBtn">✏️ 自定义创建</button>
+      `;
+      addPanel.classList.add('open');
+      panelOpen = true;
+      document.getElementById('showPresetPanelBtn')?.addEventListener('click', showPresetPanel);
+      document.getElementById('showCustomFormBtn')?.addEventListener('click', showCustomForm);
+    }
+
+    function closeAddPanel() {
+      addPanel.classList.remove('open');
+      panelOpen = false;
+    }
+
+    async function showPresetPanel() {
+      let PERSONAS = null;
+      try {
+        const resp = await fetch('/prompt.json');
+        if (!resp.ok) throw new Error();
+        PERSONAS = await resp.json();
+      } catch(e) {
+        alert('预设加载失败，请刷新或使用自定义创建');
+        return;
+      }
+      addPanel.innerHTML = '<button class="panel-option panel-back" id="backToMainPanel">← 返回</button>';
+      const listDiv = document.createElement('div');
+      Object.entries(PERSONAS).forEach(([key, val]) => {
+        const item = document.createElement('div');
+        item.className = 'preset-list-item';
+        item.innerHTML = `
+          <span class="avatar">${val.avatar || '🤖'}</span>
+          <div class="info"><div class="name">${val.name}</div><div class="desc">${val.prompt.substring(0,30)}...</div></div>
+        `;
+        item.addEventListener('click', () => {
+          addAgent(val.name, val.prompt, val.avatar || '🤖');
+          closeAddPanel();
+          renderContactList();
+        });
+        listDiv.appendChild(item);
+      });
+      addPanel.appendChild(listDiv);
+      document.getElementById('backToMainPanel')?.addEventListener('click', openAddPanelMain);
+    }
+
+    function showCustomForm() {
+      addPanel.innerHTML = `
+        <button class="panel-option panel-back" id="backToMainPanel">← 返回</button>
+        <div class="input-group">
+          <input type="text" id="agentName" placeholder="名称" />
+          <textarea id="agentPrompt" placeholder="角色设定 (System Prompt)"></textarea>
+          <button class="btn btn-primary" id="saveCustomBtn" style="width:100%;">保存</button>
+        </div>
+      `;
+      document.getElementById('backToMainPanel')?.addEventListener('click', openAddPanelMain);
+      document.getElementById('saveCustomBtn')?.addEventListener('click', () => {
+        const name = document.getElementById('agentName').value.trim();
+        const prompt = document.getElementById('agentPrompt').value.trim();
+        if (!name || !prompt) return;
+        addAgent(name, prompt);
+        closeAddPanel();
+        renderContactList();
+      });
+    }
+
     function addAgent(name, prompt, avatar = '🤖') {
       const id = Date.now().toString(36) + Math.random().toString(36).substr(2);
       agents.push({ id, name, avatar, prompt, createdAt: Date.now() });
       saveAgents();
-      renderContactList();
-      return id;
-    }
-
-    // 从预设添加
-    async function showPresets() {
-      if (!PERSONAS) {
-        try {
-          const resp = await fetch('/prompt.json');
-          PERSONAS = await resp.json();
-        } catch(e) {
-          alert('预设加载失败，请刷新或使用自定义创建');
-          return;
-        }
-      }
-      const container = document.getElementById('presetListContainer');
-      container.innerHTML = '<p>选择预设角色：</p><div class="preset-list"></div>';
-      const list = container.querySelector('.preset-list');
-      Object.entries(PERSONAS).forEach(([key, val]) => {
-        const div = document.createElement('div');
-        div.className = 'preset-item';
-        div.innerHTML = `<strong>${val.name}</strong><p style="font-size:0.8rem;margin-top:0.2rem;">${val.prompt.substring(0,40)}...</p>`;
-        div.addEventListener('click', () => {
-          addAgent(val.name, val.prompt, val.avatar || '🤖');
-          document.getElementById('addModal').style.display = 'none';
-          resetAddModal();
-        });
-        list.appendChild(div);
-      });
-      container.style.display = 'block';
-    }
-
-    function resetAddModal() {
-      document.getElementById('addMenuOptions').style.display = 'block';
-      document.getElementById('presetListContainer').style.display = 'none';
-      document.getElementById('customForm').style.display = 'none';
     }
 
     // 事件绑定
-    sendBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-    backBtn.addEventListener('click', closeChat);
+    addPanelBtn.addEventListener('click', toggleAddPanel);
+    document.addEventListener('click', (e) => {
+      if (panelOpen && !addPanel.contains(e.target) && e.target !== addPanelBtn) {
+        closeAddPanel();
+      }
+    });
 
-    // 添加按钮
-    document.getElementById('showAddMenuBtn').addEventListener('click', () => {
-      document.getElementById('addModal').style.display = 'flex';
-    });
-    document.getElementById('closeAddModalBtn').addEventListener('click', () => {
-      document.getElementById('addModal').style.display = 'none';
-      resetAddModal();
-    });
-    document.getElementById('fromPresetBtn').addEventListener('click', showPresets);
-    document.getElementById('customBtn').addEventListener('click', () => {
-      document.getElementById('addMenuOptions').style.display = 'none';
-      document.getElementById('presetListContainer').style.display = 'none';
-      document.getElementById('customForm').style.display = 'block';
-    });
-    document.getElementById('cancelCustomBtn').addEventListener('click', resetAddModal);
-    document.getElementById('saveCustomBtn').addEventListener('click', () => {
-      const name = document.getElementById('agentName').value.trim();
-      const prompt = document.getElementById('agentPrompt').value.trim();
-      if (!name || !prompt) return;
-      addAgent(name, prompt);
-      document.getElementById('addModal').style.display = 'none';
-      resetAddModal();
-    });
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    document.getElementById('backBtn').addEventListener('click', closeChat);
 
     // 右键菜单
+    const contextMenu = document.getElementById('contextMenu');
     let contextMsgIndex = -1;
     function showContextMenu(e, index) {
       e.preventDefault();
@@ -728,13 +560,8 @@
     loadMessages();
     renderContactList();
 
-    // 桌面端默认不打开聊天，移动端打开也是空白
-    // API Key 暂时用 prompt 输入框？不，我们添加一个简单的设置入口（可以继续用之前的设置图标，这里省略以保持简洁，后续可加）
-    // 为了简洁，我们假设用户已经在 localStorage 中设置了 key（可手动编辑 localStorage 或通过之前的设置页面）。
-    // 如果需要设置界面，可以后续补充。这里先保证核心聊天可用。
     if (!userApiKey) {
-      // 简单提示，但避免骚扰
-      console.warn('请设置 API Key: localStorage.setItem("luminya_apikey","sk-...")');
+      console.warn('未设置 API Key，请在控制台执行: localStorage.setItem("luminya_apikey","sk-...")');
     }
   })();
 </script>
