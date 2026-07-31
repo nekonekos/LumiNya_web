@@ -1068,7 +1068,31 @@ footer:hover {
 .footer-bottom .legal a:hover {
     color: var(--primary-blue);
 }
-
+.context-menu {
+  position: fixed;
+  background: var(--widget-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 0.4rem 0;
+  z-index: 999;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+  min-width: 120px;
+  display: none;
+}
+.context-menu .menu-item {
+  padding: 0.5rem 1.2rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  transition: background 0.15s;
+}
+.context-menu .menu-item:hover {
+  background: rgba(107,159,212,0.15);
+}
+.chat-area {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 20%);
+}
 /* ===== 响应式 ===== */
 @media (max-width: 820px) {
     body {
@@ -1276,4 +1300,15 @@ footer:hover {
     .contact-value {
         font-size: 0.85rem;
     }
+    
+}
+@media (min-width: 768px) {
+  .app-container {
+    max-width: 720px;
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0,0,0,0.05);  /* 增加桌面端的立体感 */
+  }
+  .msg {
+    max-width: 70%;
+  }
 }
