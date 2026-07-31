@@ -6,26 +6,97 @@
   <title>LumiNya · 陪伴</title>
   <link rel="stylesheet" href="/css/chat.css" />
   <style>
-    /* 移动端弹窗与交互优化 */
-    @media (max-width: 767px) {
-      .modal-dialog {
-        max-height: 70vh;
-        overflow-y: auto;
-        width: 92%;
-        padding: 1rem;
-      }
-      .settings-dialog {
-        width: 92%;
-        max-height: 80vh;
-        overflow-y: auto;
-      }
+    /* 居中遮罩弹窗样式（补充，不会与 chat.css 冲突） */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
     }
-    .msg {
-      touch-action: manipulation;
+    .modal-dialog {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 380px;
+      box-shadow: var(--shadow-lg);
+      max-height: 80vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
-    .input-area {
-      padding-bottom: max(0.8rem, env(safe-area-inset-bottom));
+    .modal-dialog h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-primary);
     }
+    .modal-close {
+      align-self: flex-end;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .preset-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .preset-item {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.6rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .preset-item:hover { background: var(--bg-hover); }
+    .preset-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.2rem;
+    }
+    .preset-info {
+      flex: 1;
+      overflow: hidden;
+    }
+    .preset-name { font-weight: 600; }
+    .preset-desc { font-size: 0.8rem; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 0.65rem 0.8rem;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--bg-input);
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      outline: none;
+    }
+    .form-group textarea { height: 80px; resize: vertical; }
+    .btn-group { display: flex; gap: 0.8rem; justify-content: flex-end; margin-top: 0.5rem; }
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border-radius: var(--radius-full);
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-subtle); }
   </style>
 </head>
 <body>
@@ -40,15 +111,17 @@
         </div>
         <button class="settings-btn" id="settingsBtn">⚙️</button>
       </div>
+
       <div class="agent-list" id="agentList">
         <div class="empty-hint" id="emptyHint">✨ 还没有伙伴<br><strong>点击下方 + 添加第一个</strong></div>
       </div>
+
       <div class="sidebar-footer">
         <button class="add-agent-btn" id="addAgentBtn"><span>+</span> 新伙伴</button>
       </div>
     </aside>
 
-    <!-- 聊天区域 -->
+    <!-- 聊天主区域 -->
     <section class="chat-area" id="chatArea">
       <header class="chat-header">
         <button class="back-btn" id="backBtn">←</button>
@@ -56,7 +129,7 @@
       </header>
       <div class="chat-messages" id="chatMessages"></div>
       <div class="input-area">
-        <input type="text" id="messageInput" placeholder="说点什么..." autocomplete="off" disabled />
+        <input type="text" id="messageInput" placeholder="说点什么..." autocomplete="off" disabled>
         <button class="send-btn" id="sendBtn" disabled>➤</button>
       </div>
     </section>
@@ -68,15 +141,15 @@
       <h2>设置</h2>
       <div class="form-group">
         <label>昵称</label>
-        <input type="text" id="nicknameInput" placeholder="你的名字" />
+        <input type="text" id="nicknameInput" placeholder="你的名字">
       </div>
       <div class="form-group">
         <label>DeepSeek API Key</label>
-        <input type="password" id="apiKeyInput" placeholder="sk-..." />
+        <input type="password" id="apiKeyInput" placeholder="sk-...">
       </div>
       <div id="keyStatus" style="font-size:0.8rem; margin-top:0.2rem;"></div>
       <button class="btn primary" id="testKeyBtn">测试 Key</button>
-      <div style="display:flex; gap:0.8rem; margin-top:0.5rem; flex-wrap:wrap;">
+      <div style="display:flex; gap:0.8rem; margin-top:0.5rem;">
         <button class="btn secondary" id="exportBtn">导出数据</button>
         <button class="btn secondary" id="clearBtn">清除所有数据</button>
       </div>
@@ -86,7 +159,9 @@
 
   <!-- 添加智能体弹窗 -->
   <div class="modal-overlay" id="addModalOverlay" style="display:none;">
-    <div class="modal-dialog" id="addModalContent"></div>
+    <div class="modal-dialog" id="addModalContent">
+      <!-- 内容动态填充 -->
+    </div>
   </div>
 
   <!-- 右键菜单 -->
@@ -118,35 +193,58 @@
       const settingsOverlay = document.getElementById('settingsOverlay');
       const contextMenu = document.getElementById('contextMenu');
 
-      // 持久化
-      function loadAgents() { agents = JSON.parse(localStorage.getItem('luminya_agents') || '[]'); }
-      function saveAgents() { localStorage.setItem('luminya_agents', JSON.stringify(agents)); }
-      function loadMessages() { messages = JSON.parse(localStorage.getItem('luminya_messages') || '{}'); }
-      function saveMessages() { localStorage.setItem('luminya_messages', JSON.stringify(messages)); }
-      function getAgentMessages(id) { return messages[id] || []; }
-      function updateAgentPreview(id, text) {
-        const agent = agents.find(a => a.id === id);
-        if (agent) { agent.lastMsg = text?.slice(0, 30) || ''; agent.lastTime = Date.now(); saveAgents(); }
+      // ----- 安全解析辅助 -----
+      function safeParseJSON(raw, fallback) {
+        try {
+          return JSON.parse(raw);
+        } catch (_) {
+          return fallback;
+        }
       }
 
-      // 渲染侧边栏
+      // ----- 持久化 -----
+      function loadAgents() {
+        agents = safeParseJSON(localStorage.getItem('luminya_agents'), []);
+      }
+      function saveAgents() {
+        localStorage.setItem('luminya_agents', JSON.stringify(agents));
+      }
+      function loadMessages() {
+        messages = safeParseJSON(localStorage.getItem('luminya_messages'), {});
+      }
+      function saveMessages() {
+        localStorage.setItem('luminya_messages', JSON.stringify(messages));
+      }
+      function getAgentMessages(id) {
+        return messages[id] || [];
+      }
+      function updateAgentPreview(id, text) {
+        const agent = agents.find(a => a.id === id);
+        if (agent) {
+          agent.lastMsg = text?.slice(0, 30) || '';
+          agent.lastTime = Date.now();
+          saveAgents();
+        }
+      }
+
+      // ----- 渲染侧边栏 -----
       function renderAgentList() {
         agentList.innerHTML = '';
         if (!agents.length) {
           agentList.innerHTML = '<div class="empty-hint">✨ 还没有伙伴<br><strong>点击下方 + 添加第一个</strong></div>';
           return;
         }
-        agents.sort((a, b) => (b.lastTime || 0) - (a.lastTime || 0)).forEach(agent => {
+        agents.sort((a,b) => (b.lastTime||0)-(a.lastTime||0)).forEach(agent => {
           const el = document.createElement('div');
           el.className = 'agent-item' + (agent.id === currentAgentId ? ' active' : '');
-          el.innerHTML = `<div class="agent-avatar">${agent.avatar || '🤖'}</div>
-                          <div class="agent-info"><div class="agent-name">${agent.name}</div><div class="agent-preview">${agent.lastMsg || '开始聊天吧'}</div></div>`;
+          el.innerHTML = `<div class="agent-avatar">${agent.avatar||'🤖'}</div>
+                          <div class="agent-info"><div class="agent-name">${agent.name}</div><div class="agent-preview">${agent.lastMsg||'开始聊天吧'}</div></div>`;
           el.addEventListener('click', () => switchChat(agent.id));
           agentList.appendChild(el);
         });
       }
 
-      // 切换聊天
+      // ----- 切换聊天 -----
       function switchChat(id) {
         currentAgentId = id;
         const agent = agents.find(a => a.id === id);
@@ -192,7 +290,7 @@
 
       function scrollToBottom() { chatMessages.scrollTop = chatMessages.scrollHeight; }
 
-      // 添加智能体弹窗
+      // ----- 添加智能体弹窗 -----
       function openAddModal() { addModalOverlay.style.display = 'flex'; showMainAddPanel(); }
       function closeAddModal() { addModalOverlay.style.display = 'none'; }
 
@@ -213,23 +311,32 @@
         document.getElementById('closePresetBtn').addEventListener('click', closeAddModal);
         try {
           const resp = await fetch('/chat_files/prompt.json');
-          if (!resp.ok) throw new Error();
+          if (!resp.ok) throw new Error('网络请求失败');
           const presets = await resp.json();
           const list = document.getElementById('presetList');
           list.innerHTML = '';
           Object.entries(presets).forEach(([key, preset]) => {
             const item = document.createElement('div');
             item.className = 'preset-item';
-            item.innerHTML = `<div class="preset-avatar">${preset.avatar || '🤖'}</div>
-                              <div class="preset-info"><div class="preset-name">${preset.name}</div><div class="preset-desc">${preset.prompt.slice(0, 40)}...</div></div>`;
+            item.innerHTML = `<div class="preset-avatar">${preset.avatar||'🤖'}</div>
+                              <div class="preset-info"><div class="preset-name">${preset.name}</div><div class="preset-desc">${preset.prompt.slice(0,40)}...</div></div>`;
             item.addEventListener('click', () => {
-              addAgent(preset.name, preset.prompt, preset.avatar || '🤖');
+              addAgent(preset.name, preset.prompt, preset.avatar||'🤖');
               closeAddModal();
             });
             list.appendChild(item);
           });
-        } catch {
-          addModalContent.innerHTML = '<p style="color:var(--text-secondary); text-align:center; padding:2rem;">预设加载失败，请刷新或自定义创建</p>';
+        } catch (e) {
+          addModalContent.innerHTML = `
+            <button class="modal-close" id="closePresetErrBtn">✕</button>
+            <h3>加载失败</h3>
+            <p style="color:var(--text-secondary); text-align:center; padding:0.5rem;">预设加载失败，请检查网络或稍后重试</p>
+            <button class="btn btn-secondary" id="retryPresetBtn">🔄 重试</button>
+            <button class="btn btn-secondary" id="backMainBtn">← 返回</button>
+          `;
+          document.getElementById('closePresetErrBtn').addEventListener('click', closeAddModal);
+          document.getElementById('retryPresetBtn').addEventListener('click', showPresetPanel);
+          document.getElementById('backMainBtn').addEventListener('click', showMainAddPanel);
         }
       }
 
@@ -249,49 +356,76 @@
         document.getElementById('saveCustomBtn').addEventListener('click', () => {
           const name = document.getElementById('customName').value.trim();
           const prompt = document.getElementById('customPrompt').value.trim();
-          if (!name || !prompt) return;
+          if (!name || !prompt) {
+            alert('请完整填写名称和角色设定');
+            return;
+          }
           addAgent(name, prompt);
           closeAddModal();
         });
       }
 
-      function addAgent(name, prompt, avatar = '🤖') {
-        const id = Date.now().toString(36) + Math.random().toString(36).substr(2);
-        agents.push({ id, name, avatar, prompt, lastMsg: '', lastTime: Date.now(), createdAt: Date.now() });
+      function addAgent(name, prompt, avatar='🤖') {
+        const id = Date.now().toString(36) + Math.random().toString(36).substring(2);
+        agents.push({ id, name, avatar, prompt, lastMsg:'', lastTime:Date.now(), createdAt:Date.now() });
         saveAgents();
         renderAgentList();
         return id;
       }
 
-      // 消息发送
+      // ----- 发送消息（含流式保存修复）-----
       async function sendMessage() {
-        if (!currentAgentId || !userApiKey) { if (!userApiKey) alert('请先设置 API Key'); return; }
+        if (!currentAgentId) return;
+        if (!userApiKey) {
+          alert('请先设置 API Key（点击头像或⚙️进入设置）');
+          return;
+        }
         const text = messageInput.value.trim();
         if (!text) return;
-        const agent = agents.find(a => a.id === currentAgentId);
+        const agent = agents.find(a=>a.id===currentAgentId);
         if (!agent) return;
+
+        // 初始化消息记录
         if (!messages[currentAgentId]) messages[currentAgentId] = [];
-        messages[currentAgentId].push({ role: 'user', content: text, time: Date.now() });
-        saveMessages(); updateAgentPreview(currentAgentId, text);
+
+        // 添加用户消息
+        messages[currentAgentId].push({ role:'user', content:text, time:Date.now() });
+        saveMessages();
+        updateAgentPreview(currentAgentId, text);
         appendMsgBubble('user', text);
         messageInput.value = '';
-        const systemPrompt = agent.prompt;
+
+        const systemPrompt = agent.prompt || '';
         const recent = getAgentMessages(currentAgentId).slice(-20);
-        const apiMsgs = [{ role: 'system', content: systemPrompt }, ...recent.map(m => ({ role: m.role, content: m.content }))];
+        const apiMsgs = [
+          { role:'system', content:systemPrompt },
+          ...recent.map(m=>({ role:m.role, content:m.content }))
+        ];
+
+        // 准备助手消息占位
+        const assistantMsg = { role:'assistant', content:'', time:Date.now() };
+        messages[currentAgentId].push(assistantMsg);
+        const bubble = document.createElement('div');
+        bubble.className = 'msg assistant';
+        chatMessages.appendChild(bubble);
+
         try {
           const res = await fetch(DEEPSEEK_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userApiKey}` },
-            body: JSON.stringify({ model: 'deepseek-chat', messages: apiMsgs, stream: true })
+            method:'POST',
+            headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${userApiKey}` },
+            body: JSON.stringify({ model:'deepseek-chat', messages:apiMsgs, stream:true })
           });
-          if (!res.ok) throw new Error(await res.text());
+          if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`API 错误 (${res.status}): ${errText}`);
+          }
+          if (!res.body) throw new Error('响应体为空');
+
           const reader = res.body.getReader();
           const decoder = new TextDecoder();
           let buffer = '';
-          const assistantMsg = { role: 'assistant', content: '', time: Date.now() };
-          messages[currentAgentId].push(assistantMsg);
-          const bubble = document.createElement('div'); bubble.className = 'msg assistant';
-          chatMessages.appendChild(bubble);
+          let receivedContent = false;
+
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -301,23 +435,45 @@
             for (const line of lines) {
               if (line.startsWith('data: ')) {
                 const data = line.slice(6).trim();
-                if (data === '[DONE]') { saveMessages(); updateAgentPreview(currentAgentId, assistantMsg.content); return; }
+                if (data === '[DONE]') continue;
                 try {
                   const json = JSON.parse(data);
                   const chunk = json.choices?.[0]?.delta?.content;
-                  if (chunk) { assistantMsg.content += chunk; bubble.textContent = assistantMsg.content; scrollToBottom(); }
-                } catch (e) { }
+                  if (chunk) {
+                    assistantMsg.content += chunk;
+                    bubble.textContent = assistantMsg.content;
+                    scrollToBottom();
+                    receivedContent = true;
+                  }
+                } catch (_) { /* 忽略解析错误 */ }
               }
             }
           }
-          saveMessages(); updateAgentPreview(currentAgentId, assistantMsg.content);
+          // 确保即使没有收到 [DONE] 也保存（若内容为空则删除此条）
+          if (!assistantMsg.content) {
+            // 若没有内容，移除占位消息，避免空回复
+            messages[currentAgentId].pop();
+            bubble.remove();
+          } else {
+            saveMessages();
+            updateAgentPreview(currentAgentId, assistantMsg.content);
+          }
         } catch (err) {
+          // 出错时移除占位消息，回滚
+          messages[currentAgentId].pop();
+          bubble.remove();
           alert('发送失败: ' + err.message);
-          messages[currentAgentId].pop(); saveMessages(); renderChatMessages(); updateAgentPreview(currentAgentId, text);
+        } finally {
+          // 重新渲染以确保一致性
+          renderChatMessages();
+          // 若消息列表为空则更新预览为空
+          const msgs = getAgentMessages(currentAgentId);
+          const last = msgs[msgs.length-1];
+          updateAgentPreview(currentAgentId, last?.role === 'assistant' ? last.content : '');
         }
       }
 
-      // 设置
+      // ----- 设置面板 -----
       function openSettings() {
         document.getElementById('nicknameInput').value = userNickname;
         document.getElementById('apiKeyInput').value = userApiKey;
@@ -326,56 +482,191 @@
       }
       function closeSettings() {
         settingsOverlay.style.display = 'none';
-        userNickname = document.getElementById('nicknameInput').value.trim() || 'LumiNya';
-        localStorage.setItem('luminya_nickname', userNickname);
-        document.querySelector('.user-name').textContent = userNickname;
+        const newNick = document.getElementById('nicknameInput').value.trim() || 'LumiNya';
+        if (newNick !== userNickname) {
+          userNickname = newNick;
+          localStorage.setItem('luminya_nickname', userNickname);
+          document.querySelector('.user-name').textContent = userNickname;
+        }
         const newKey = document.getElementById('apiKeyInput').value.trim();
-        if (newKey !== userApiKey) { userApiKey = newKey; localStorage.setItem('luminya_apikey', userApiKey); }
+        if (newKey !== userApiKey) {
+          userApiKey = newKey;
+          localStorage.setItem('luminya_apikey', userApiKey);
+        }
       }
+
       async function testApiKey() {
         const key = document.getElementById('apiKeyInput').value.trim();
         const status = document.getElementById('keyStatus');
-        if (!key) { status.textContent = '请输入 Key'; return; }
+        if (!key) { status.textContent = '请输入 Key'; status.style.color = ''; return; }
         status.textContent = '测试中...';
+        status.style.color = '';
         try {
-          const r = await fetch('https://api.deepseek.com/models', { headers: { 'Authorization': `Bearer ${key}` } });
-          status.textContent = r.ok ? '✓ 有效' : '✗ 无效';
-          status.style.color = r.ok ? '#4caf50' : '#e0556a';
-        } catch (e) { status.textContent = '✗ 网络错误'; status.style.color = '#e0556a'; }
+          const r = await fetch('https://api.deepseek.com/models', {
+            headers: { 'Authorization': `Bearer ${key}` }
+          });
+          if (r.ok) {
+            status.textContent = '✓ 有效';
+            status.style.color = '#4caf50';
+          } else {
+            status.textContent = '✗ 无效 (状态 ' + r.status + ')';
+            status.style.color = '#e0556a';
+          }
+        } catch (e) {
+          status.textContent = '✗ 网络错误: ' + e.message;
+          status.style.color = '#e0556a';
+        }
       }
 
-      // 右键/长按菜单
-      let ctxIndex = -1;
-      function showCtx(e, idx) {
+      // ----- 清除所有数据（修复）-----
+      function clearAllData() {
+        if (!confirm('确定清除所有数据？此操作不可恢复！')) return;
+        localStorage.clear();
+        // 重置内存变量
+        agents = [];
+        messages = {};
+        currentAgentId = null;
+        userApiKey = '';
+        userNickname = 'LumiNya';
+        // 更新设置面板输入框
+        document.getElementById('nicknameInput').value = userNickname;
+        document.getElementById('apiKeyInput').value = '';
+        document.querySelector('.user-name').textContent = userNickname;
+        // 重置界面
+        renderAgentList();
+        closeChat();
+        closeSettings();
+        // 清空所有消息显示
+        chatMessages.innerHTML = '';
+        chatTitle.textContent = '选择一个伙伴开始聊天';
+        messageInput.disabled = true;
+        sendBtn.disabled = true;
+      }
+
+      // ----- 右键菜单（修复索引问题：使用 data 属性）-----
+      let ctxMsgId = null; // 用消息唯一索引（实际用时间戳或id，简化用数组索引但绑定data-index）
+
+      function showCtx(e, index) {
         e.preventDefault();
-        ctxIndex = idx;
+        ctxMsgId = index;
         contextMenu.innerHTML = '<div class="menu-item" data-act="copy">复制</div><div class="menu-item" data-act="delete">删除</div><div class="menu-item" data-act="quote">引用</div>';
         contextMenu.style.display = 'block';
-        contextMenu.style.left = Math.min(e.clientX, innerWidth - 150) + 'px';
-        contextMenu.style.top = Math.min(e.clientY, innerHeight - 120) + 'px';
+        contextMenu.style.left = Math.min(e.clientX, window.innerWidth-150) + 'px';
+        contextMenu.style.top = Math.min(e.clientY, window.innerHeight-120) + 'px';
       }
-      chatMessages.addEventListener('contextmenu', e => {
-        const msg = e.target.closest('.msg'); if (!msg || !currentAgentId) return;
-        const idx = [...chatMessages.children].indexOf(msg); if (idx > -1) showCtx(e, idx);
-      });
-      contextMenu.addEventListener('click', e => {
-        const act = e.target.dataset.act; if (!act || !currentAgentId) return;
-        const msgs = getAgentMessages(currentAgentId);
-        if (act === 'copy') navigator.clipboard.writeText(msgs[ctxIndex]?.content || '');
-        else if (act === 'delete') { msgs.splice(ctxIndex, 1); messages[currentAgentId] = msgs; saveMessages(); renderChatMessages(); updateAgentPreview(currentAgentId, msgs[msgs.length - 1]?.content || ''); }
-        else if (act === 'quote') { const t = msgs[ctxIndex]?.content || ''; messageInput.value = '「' + t.slice(0, 40) + '」 '; messageInput.focus(); }
-        contextMenu.style.display = 'none';
-      });
-      document.addEventListener('click', () => contextMenu.style.display = 'none');
-      let timer;
-      chatMessages.addEventListener('touchstart', e => {
-        const msg = e.target.closest('.msg'); if (!msg) return;
-        timer = setTimeout(() => { const idx = [...chatMessages.children].indexOf(msg); if (idx > -1) showCtx({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY, preventDefault: () => { } }, idx); }, 500);
-      });
-      chatMessages.addEventListener('touchend', () => clearTimeout(timer));
-      chatMessages.addEventListener('touchmove', () => clearTimeout(timer));
 
-      // 事件绑定
+      chatMessages.addEventListener('contextmenu', e => {
+        const msgEl = e.target.closest('.msg');
+        if (!msgEl || !currentAgentId) return;
+        const index = parseInt(msgEl.dataset.index, 10);
+        if (!isNaN(index)) showCtx(e, index);
+      });
+
+      contextMenu.addEventListener('click', e => {
+        const act = e.target.dataset.act;
+        if (!act || ctxMsgId === null || !currentAgentId) return;
+        const msgs = getAgentMessages(currentAgentId);
+        if (ctxMsgId >= msgs.length) return;
+        if (act === 'copy') {
+          navigator.clipboard.writeText(msgs[ctxMsgId]?.content || '');
+        } else if (act === 'delete') {
+          msgs.splice(ctxMsgId, 1);
+          messages[currentAgentId] = msgs;
+          saveMessages();
+          renderChatMessages();
+          const last = msgs[msgs.length-1];
+          updateAgentPreview(currentAgentId, last?.role === 'assistant' ? last.content : '');
+        } else if (act === 'quote') {
+          const text = msgs[ctxMsgId]?.content || '';
+          messageInput.value = '「' + text.slice(0,40) + '」 ';
+          messageInput.focus();
+        }
+        contextMenu.style.display = 'none';
+        ctxMsgId = null;
+      });
+
+      document.addEventListener('click', () => {
+        contextMenu.style.display = 'none';
+        ctxMsgId = null;
+      });
+
+      // 移动端长按支持（添加 data-index 属性）
+      let pressTimer = null;
+      chatMessages.addEventListener('touchstart', e => {
+        const msg = e.target.closest('.msg');
+        if (!msg) return;
+        pressTimer = setTimeout(() => {
+          const index = parseInt(msg.dataset.index, 10);
+          if (!isNaN(index)) {
+            showCtx({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY, preventDefault: () => {} }, index);
+          }
+        }, 500);
+      }, { passive: true });
+      chatMessages.addEventListener('touchend', () => clearTimeout(pressTimer));
+      chatMessages.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
+      // 修改 appendMsgBubble 以添加 data-index
+      const originalAppend = appendMsgBubble;
+      appendMsgBubble = function(role, content) {
+        const div = document.createElement('div');
+        div.className = `msg ${role}`;
+        div.textContent = content;
+        // 索引在渲染时统一设置
+        chatMessages.appendChild(div);
+        scrollToBottom();
+      };
+
+      // 重写 renderChatMessages 以添加 data-index
+      const originalRender = renderChatMessages;
+      renderChatMessages = function() {
+        chatMessages.innerHTML = '';
+        if (!currentAgentId) return;
+        const msgs = getAgentMessages(currentAgentId);
+        msgs.forEach((m, idx) => {
+          const div = document.createElement('div');
+          div.className = `msg ${m.role}`;
+          div.textContent = m.content;
+          div.dataset.index = idx;
+          chatMessages.appendChild(div);
+        });
+        scrollToBottom();
+      };
+      // 重新绑定 switchChat 中的调用
+      const origSwitch = switchChat;
+      switchChat = function(id) {
+        currentAgentId = id;
+        const agent = agents.find(a => a.id === id);
+        if (!agent) return;
+        chatTitle.textContent = agent.name;
+        messageInput.disabled = false;
+        sendBtn.disabled = false;
+        renderChatMessages();
+        if (window.innerWidth < 768) {
+          sidebar.classList.add('hidden-mobile');
+          chatArea.classList.add('active-mobile');
+        }
+        renderAgentList();
+      };
+
+      // 修正 closeChat 也使用新 render
+      const origClose = closeChat;
+      closeChat = function() {
+        currentAgentId = null;
+        chatTitle.textContent = '选择一个伙伴开始聊天';
+        messageInput.disabled = true;
+        sendBtn.disabled = true;
+        chatMessages.innerHTML = '';
+        if (window.innerWidth < 768) {
+          sidebar.classList.remove('hidden-mobile');
+          chatArea.classList.remove('active-mobile');
+        }
+        renderAgentList();
+      };
+
+      // 修正 sendMessage 中的 appendMsgBubble 调用
+      // 因为 appendMsgBubble 已重新定义，无需修改
+
+      // ----- 事件绑定 -----
       addAgentBtn.addEventListener('click', openAddModal);
       addModalOverlay.addEventListener('click', e => { if (e.target === addModalOverlay) closeAddModal(); });
       sendBtn.addEventListener('click', sendMessage);
@@ -385,18 +676,26 @@
       userAvatarBtn.addEventListener('click', openSettings);
       document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
       document.getElementById('testKeyBtn').addEventListener('click', testApiKey);
-      document.getElementById('clearBtn').addEventListener('click', () => {
-        if (confirm('确定清除所有数据？')) { localStorage.clear(); agents = []; messages = {}; currentAgentId = null; renderAgentList(); closeChat(); closeSettings(); }
-      });
-      document.getElementById('exportBtn').addEventListener('click', () => {
-        const blob = new Blob([JSON.stringify({ agents, messages, version: 1 }, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'luminya_backup.json'; a.click();
+      document.getElementById('clearBtn').addEventListener('click', clearAllData);
+      document.getElementById('exportBtn').addEventListener('click', ()=>{
+        const blob = new Blob([JSON.stringify({ agents, messages, version:1 }, null, 2)], { type:'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'luminya_backup.json';
+        a.click();
+        URL.revokeObjectURL(a.href);
       });
       settingsOverlay.addEventListener('click', e => { if (e.target === settingsOverlay) closeSettings(); });
 
-      // 启动
-      loadAgents(); loadMessages(); renderAgentList();
+      // ----- 初始化 -----
+      loadAgents();
+      loadMessages();
+      renderAgentList();
       document.querySelector('.user-name').textContent = userNickname;
+      // 若有 API Key 则启用输入？但等待用户选择伙伴
+      // 默认禁用输入
+      messageInput.disabled = true;
+      sendBtn.disabled = true;
     })();
   </script>
 </body>
