@@ -357,57 +357,293 @@
   <div id="contextMenu" class="context-menu"></div>
 
   <script>
-    (function() {
-      const DEEPSEEK_API = 'https://api.deepseek.com/v1/chat/completions';
-      const MAX_MESSAGES = 200;
-      const CONTEXT_COUNT = 20;
+  (function() {
+    const DEEPSEEK_API = 'https://api.deepseek.com/v1/chat/completions';
+    const MAX_MESSAGES = 200;
+    const CONTEXT_COUNT = 20;
 
-      const PERSONAS = {
-        girlfriend: {
-          name: '温柔女友',
-          prompt: '你是小娜，用户的女朋友。你温柔、体贴、有点小撒娇，会主动关心他的日常、情绪，偶尔说一些可爱的情话。回复简洁自然，像真人发消息一样，不要长篇大论，适当时用表情符号。'
-        },
-        sister: {
-          name: '知心姐姐',
-          prompt: '你是小娜，一个善解人意的姐姐。你会耐心倾听用户的烦恼，给予温暖的鼓励和建议，语气成熟但亲切。回复尽量有温度，但保持适当的距离感。'
-        },
-        friend: {
-          name: '亲密好友',
-          prompt: '你是小娜，用户最要好的死党。你可以开玩笑、吐槽、分享有趣的事，语气活泼轻松。像哥们一样聊天，但又能察觉到对方的情绪变化。'
+    let PERSONAS = null;          // 从 prompt.json 加载
+    let config = null;            // 用户配置
+    let messages = [];            // 对话记录
+
+    // ==================== 本地存储 ====================
+    function loadConfig() {
+      const raw = localStorage.getItem('luminya_config');
+      return raw ? JSON.parse(raw) : null;
+    }
+    function saveConfig(conf) {
+      localStorage.setItem('luminya_config', JSON.stringify(conf));
+    }
+    function loadMessages() {
+      const raw = localStorage.getItem('luminya_messages');
+      return raw ? JSON.parse(raw) : [];
+    }
+    function saveMessages(msgs) {
+      const trimmed = msgs.slice(-MAX_MESSAGES);
+      localStorage.setItem('luminya_messages', JSON.stringify(trimmed));
+    }
+    function updateStorageUI() {
+      const msgCount = messages.length;
+      document.getElementById('messageCount').textContent = `共 ${msgCount} 条消息`;
+      let totalBytes = 0;
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          totalBytes += localStorage[key].length + key.length;
         }
-      };
+      }
+      document.getElementById('storageUsed').textContent = `已使用 ${(totalBytes / 1024).toFixed(1)} KB / 约 5 MB 可用`;
+    }
 
-      // ==================== 本地存储 ====================
-      function loadConfig() {
-        const raw = localStorage.getItem('luminya_config');
-        return raw ? JSON.parse(raw) : null;
+    // ==================== 聊天渲染 ====================
+    function renderChat() {
+      const chatArea = document.getElementById('chatArea');
+      chatArea.innerHTML = '';
+      messages.forEach(msg => appendMessageToDOM(msg.role, msg.content));
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+    function appendMessageToDOM(role, content) {
+      const chatArea = document.getElementById('chatArea');
+      const div = document.createElement('div');
+      div.className = `msg ${role}`;
+      div.textContent = content;
+      chatArea.appendChild(div);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    let currentAssistantDiv = null;
+    function appendStreamChunk(chunk) {
+      if (!currentAssistantDiv) {
+        currentAssistantDiv = document.createElement('div');
+        currentAssistantDiv.className = 'msg assistant';
+        document.getElementById('chatArea').appendChild(currentAssistantDiv);
       }
-      function saveConfig(config) {
-        localStorage.setItem('luminya_config', JSON.stringify(config));
+      currentAssistantDiv.textContent += chunk;
+      document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
+    }
+    function finalizeAssistantMessage() {
+      if (currentAssistantDiv) {
+        const content = currentAssistantDiv.textContent;
+        messages.push({ role: 'assistant', content, time: Date.now() });
+        saveMessages(messages);
+        updateStorageUI();
+        currentAssistantDiv = null;
       }
-      function loadMessages() {
-        const raw = localStorage.getItem('luminya_messages');
-        return raw ? JSON.parse(raw) : [];
+    }
+
+    // ==================== 人格选择界面 ====================
+    function showPersonaSelector() {
+      const overlay = document.getElementById('personaOverlay');
+      overlay.style.display = 'flex';
+      const container = document.getElementById('personaOptions');
+      container.innerHTML = '';
+      let selectedPersona = null;
+      Object.entries(PERSONAS).forEach(([key, val]) => {
+        const div = document.createElement('div');
+        div.className = 'persona-option';
+        div.textContent = val.name;
+        div.addEventListener('click', () => {
+          document.querySelectorAll('.persona-option').forEach(el => el.classList.remove('selected'));
+          div.classList.add('selected');
+          selectedPersona = key;
+          document.getElementById('confirmPersonaBtn').disabled = false;
+        });
+        container.appendChild(div);
+      });
+      document.getElementById('confirmPersonaBtn').addEventListener('click', () => {
+        if (!selectedPersona) return;
+        config = { persona: selectedPersona, ownApiKey: '', chatCount: 0 };
+        saveConfig(config);
+        document.getElementById('currentPersonaDisplay').textContent = PERSONAS[selectedPersona].name;
+        overlay.style.display = 'none';
+        messages = [];
+        saveMessages([]);
+        renderChat();
+        updateStorageUI();
+      }, { once: true });
+    }
+
+    // ==================== 发送消息 ====================
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text) return;
+      const apiKey = config?.ownApiKey;
+      if (!apiKey) {
+        alert('请先在设置中填写你的 DeepSeek API Key');
+        return;
       }
-      function saveMessages(messages) {
-        const trimmed = messages.slice(-MAX_MESSAGES);
-        localStorage.setItem('luminya_messages', JSON.stringify(trimmed));
-      }
-      function updateStorageUI() {
-        const msgCount = loadMessages().length;
-        document.getElementById('messageCount').textContent = `共 ${msgCount} 条消息`;
-        let totalBytes = 0;
-        for (let key in localStorage) {
-          if (localStorage.hasOwnProperty(key)) {
-            totalBytes += localStorage[key].length + key.length;
+      messages.push({ role: 'user', content: text, time: Date.now() });
+      saveMessages(messages);
+      appendMessageToDOM('user', text);
+      input.value = '';
+      updateStorageUI();
+
+      const systemPrompt = PERSONAS[config.persona].prompt;
+      const recentMessages = messages.slice(-CONTEXT_COUNT);
+      const apiMessages = [
+        { role: 'system', content: systemPrompt },
+        ...recentMessages.map(m => ({ role: m.role, content: m.content }))
+      ];
+
+      try {
+        const response = await fetch(DEEPSEEK_API, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: apiMessages,
+            stream: true
+          })
+        });
+        if (!response.ok) {
+          const err = await response.text();
+          throw new Error(`API 错误 ${response.status}: ${err}`);
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim();
+              if (data === '[DONE]') {
+                finalizeAssistantMessage();
+                return;
+              }
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) appendStreamChunk(content);
+              } catch(e) {}
+            }
           }
         }
-        document.getElementById('storageUsed').textContent = `已使用 ${(totalBytes/1024).toFixed(1)} KB / 约 5 MB 可用`;
+        finalizeAssistantMessage();
+      } catch (error) {
+        console.error(error);
+        alert('发送失败：' + error.message);
+        messages.pop();
+        saveMessages(messages);
+        renderChat();
+        updateStorageUI();
+      }
+    }
+
+    // ==================== 测试 API Key ====================
+    async function testApiKey() {
+      const apiKey = document.getElementById('apiKeyInput').value.trim();
+      const statusEl = document.getElementById('testKeyStatus');
+      if (!apiKey) {
+        statusEl.textContent = '请先输入 Key';
+        statusEl.style.color = 'var(--text-medium)';
+        return;
+      }
+      statusEl.textContent = '正在测试...';
+      statusEl.style.color = 'var(--text-medium)';
+      try {
+        const res = await fetch('https://api.deepseek.com/models', {
+          headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+        if (res.ok) {
+          statusEl.textContent = '恭喜，密钥配置成功';
+          statusEl.style.color = '#4caf50';
+        } else {
+          throw new Error('Invalid key');
+        }
+      } catch (e) {
+        statusEl.textContent = '密钥不可用，请检查网络或密钥';
+        statusEl.style.color = '#e0556a';
+      }
+    }
+
+    // ==================== 右键 / 长按菜单 ====================
+    const contextMenu = document.getElementById('contextMenu');
+    let currentMsgIndex = -1;
+
+    function showContextMenu(pos, msgIndex) {
+      const clientX = pos.clientX || (pos.touches && pos.touches[0].clientX);
+      const clientY = pos.clientY || (pos.touches && pos.touches[0].clientY);
+      currentMsgIndex = msgIndex;
+      contextMenu.innerHTML = `
+        <div class="menu-item" data-action="copy">复制</div>
+        <div class="menu-item" data-action="delete">删除（仅本地）</div>
+        <div class="menu-item" data-action="quote">引用</div>
+      `;
+      contextMenu.style.display = 'block';
+      contextMenu.style.left = Math.min(clientX, window.innerWidth - 150) + 'px';
+      contextMenu.style.top = Math.min(clientY, window.innerHeight - 150) + 'px';
+    }
+    function hideContextMenu() {
+      contextMenu.style.display = 'none';
+    }
+
+    document.getElementById('chatArea').addEventListener('contextmenu', (e) => {
+      const msgDiv = e.target.closest('.msg');
+      if (!msgDiv) return;
+      const allMsgs = [...document.querySelectorAll('.msg')];
+      const index = allMsgs.indexOf(msgDiv);
+      if (index === -1) return;
+      showContextMenu(e, index);
+    });
+
+    contextMenu.addEventListener('click', (e) => {
+      const action = e.target.dataset.action;
+      if (!action) return;
+      const msg = messages[currentMsgIndex];
+      if (!msg) return;
+      if (action === 'copy') {
+        navigator.clipboard.writeText(msg.content);
+      } else if (action === 'delete') {
+        messages.splice(currentMsgIndex, 1);
+        saveMessages(messages);
+        renderChat();
+        updateStorageUI();
+      } else if (action === 'quote') {
+        const quoted = `「${msg.content.substring(0, 50)}${msg.content.length > 50 ? '...' : ''}」`;
+        document.getElementById('messageInput').value = quoted + ' ';
+        document.getElementById('messageInput').focus();
+      }
+      hideContextMenu();
+    });
+
+    document.addEventListener('click', hideContextMenu);
+
+    let longPressTimer;
+    document.getElementById('chatArea').addEventListener('touchstart', (e) => {
+      const msgDiv = e.target.closest('.msg');
+      if (!msgDiv) return;
+      longPressTimer = setTimeout(() => {
+        const allMsgs = [...document.querySelectorAll('.msg')];
+        const index = allMsgs.indexOf(msgDiv);
+        if (index === -1) return;
+        showContextMenu(e, index);
+      }, 500);
+    });
+    document.getElementById('chatArea').addEventListener('touchend', () => clearTimeout(longPressTimer));
+    document.getElementById('chatArea').addEventListener('touchmove', () => clearTimeout(longPressTimer));
+
+    // ==================== 初始化入口 ====================
+    async function initApp() {
+      try {
+        const resp = await fetch('chat_files/prompt.json');
+        if (!resp.ok) throw new Error('无法加载人格配置');
+        PERSONAS = await resp.json();
+      } catch (e) {
+        alert('人格配置加载失败，请刷新页面重试');
+        return;
       }
 
-      // ==================== 状态 ====================
-      let config = loadConfig();
-      let messages = loadMessages();
+      // 加载本地数据
+      config = loadConfig();
+      messages = loadMessages();
 
       if (!config || !config.persona) {
         showPersonaSelector();
@@ -420,156 +656,7 @@
       renderChat();
       updateStorageUI();
 
-      // ==================== 人格选择 ====================
-      function showPersonaSelector() {
-        const overlay = document.getElementById('personaOverlay');
-        overlay.style.display = 'flex';
-        const container = document.getElementById('personaOptions');
-        container.innerHTML = '';
-        let selectedPersona = null;
-        Object.entries(PERSONAS).forEach(([key, val]) => {
-          const div = document.createElement('div');
-          div.className = 'persona-option';
-          div.textContent = val.name;
-          div.addEventListener('click', () => {
-            document.querySelectorAll('.persona-option').forEach(el => el.classList.remove('selected'));
-            div.classList.add('selected');
-            selectedPersona = key;
-            document.getElementById('confirmPersonaBtn').disabled = false;
-          });
-          container.appendChild(div);
-        });
-        document.getElementById('confirmPersonaBtn').addEventListener('click', () => {
-          if (!selectedPersona) return;
-          config = { persona: selectedPersona, ownApiKey: '', chatCount: 0 };
-          saveConfig(config);
-          document.getElementById('currentPersonaDisplay').textContent = PERSONAS[selectedPersona].name;
-          overlay.style.display = 'none';
-          messages = [];
-          saveMessages([]);
-          renderChat();
-          updateStorageUI();
-        }, { once: true });
-      }
-
-      // ==================== 聊天渲染 ====================
-      function renderChat() {
-        const chatArea = document.getElementById('chatArea');
-        chatArea.innerHTML = '';
-        messages.forEach(msg => appendMessageToDOM(msg.role, msg.content));
-        chatArea.scrollTop = chatArea.scrollHeight;
-      }
-      function appendMessageToDOM(role, content) {
-        const chatArea = document.getElementById('chatArea');
-        const div = document.createElement('div');
-        div.className = `msg ${role}`;
-        div.textContent = content;
-        chatArea.appendChild(div);
-        chatArea.scrollTop = chatArea.scrollHeight;
-      }
-
-      let currentAssistantDiv = null;
-      function appendStreamChunk(chunk) {
-        if (!currentAssistantDiv) {
-          currentAssistantDiv = document.createElement('div');
-          currentAssistantDiv.className = 'msg assistant';
-          document.getElementById('chatArea').appendChild(currentAssistantDiv);
-        }
-        currentAssistantDiv.textContent += chunk;
-        document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
-      }
-      function finalizeAssistantMessage() {
-        if (currentAssistantDiv) {
-          const content = currentAssistantDiv.textContent;
-          messages.push({ role: 'assistant', content, time: Date.now() });
-          saveMessages(messages);
-          updateStorageUI();
-          currentAssistantDiv = null;
-        }
-      }
-
-      // ==================== API 调用 ====================
-      async function sendMessage() {
-        const input = document.getElementById('messageInput');
-        const text = input.value.trim();
-        if (!text) return;
-        const apiKey = config?.ownApiKey;
-        if (!apiKey) {
-          alert('请先在设置中填写你的 DeepSeek API Key');
-          return;
-        }
-        messages.push({ role: 'user', content: text, time: Date.now() });
-        saveMessages(messages);
-        appendMessageToDOM('user', text);
-        input.value = '';
-        updateStorageUI();
-
-        const systemPrompt = PERSONAS[config.persona].prompt;
-        const recentMessages = messages.slice(-CONTEXT_COUNT);
-        const apiMessages = [
-          { role: 'system', content: systemPrompt },
-          ...recentMessages.map(m => ({ role: m.role, content: m.content }))
-        ];
-
-        try {
-          const response = await fetch(DEEPSEEK_API, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-              model: 'deepseek-chat',
-              messages: apiMessages,
-              stream: true
-            })
-          });
-          if (!response.ok) {
-            const err = await response.text();
-            throw new Error(`API 错误 ${response.status}: ${err}`);
-          }
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
-          let buffer = '';
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop();
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6).trim();
-                if (data === '[DONE]') {
-                  finalizeAssistantMessage();
-                  return;
-                }
-                try {
-                  const parsed = JSON.parse(data);
-                  const content = parsed.choices?.[0]?.delta?.content;
-                  if (content) appendStreamChunk(content);
-                } catch(e) {}
-              }
-            }
-          }
-          finalizeAssistantMessage();
-        } catch (error) {
-          console.error(error);
-          alert('发送失败：' + error.message);
-          messages.pop();
-          saveMessages(messages);
-          renderChat();
-          updateStorageUI();
-        }
-      }
-
-      // ==================== 事件绑定 ====================
-      document.getElementById('sendBtn').addEventListener('click', sendMessage);
-      document.getElementById('messageInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
-      });
-
-      // 设置面板
+      // 设置面板开关
       const settingsPanel = document.getElementById('settingsPanel');
       document.getElementById('settingsBtn').addEventListener('click', () => {
         settingsPanel.classList.add('open');
@@ -584,33 +671,14 @@
         }
       });
 
-      // 测试 Key
-      async function testApiKey() {
-        const apiKey = document.getElementById('apiKeyInput').value.trim();
-        const statusEl = document.getElementById('testKeyStatus');
-        if (!apiKey) {
-          statusEl.textContent = '请先输入 Key';
-          statusEl.style.color = 'var(--text-medium)';
-          return;
-        }
-        statusEl.textContent = '正在测试...';
-        statusEl.style.color = 'var(--text-medium)';
-        try {
-          const res = await fetch('https://api.deepseek.com/models', {
-            headers: { 'Authorization': `Bearer ${apiKey}` }
-          });
-          if (res.ok) {
-            statusEl.textContent = '恭喜，密钥配置成功';
-            statusEl.style.color = '#4caf50';
-          } else {
-            throw new Error('Invalid key');
-          }
-        } catch (e) {
-          statusEl.textContent = '密钥不可用，请检查网络或密钥';
-          statusEl.style.color = '#e0556a';
-        }
-      }
+      // 测试 Key 按钮
       document.getElementById('testKeyBtn').addEventListener('click', testApiKey);
+
+      // 发送按钮
+      document.getElementById('sendBtn').addEventListener('click', sendMessage);
+      document.getElementById('messageInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
 
       // 清除对话
       document.getElementById('clearChatBtn').addEventListener('click', () => {
@@ -635,74 +703,10 @@
           showPersonaSelector();
         }
       });
+    }
 
-      // ==================== 右键菜单（支持长按） ====================
-      const contextMenu = document.getElementById('contextMenu');
-      let currentMsgIndex = -1;
-
-      function showContextMenu(pos, msgIndex) {
-        const clientX = pos.clientX || (pos.touches && pos.touches[0].clientX);
-        const clientY = pos.clientY || (pos.touches && pos.touches[0].clientY);
-        currentMsgIndex = msgIndex;
-        contextMenu.innerHTML = `
-          <div class="menu-item" data-action="copy">复制</div>
-          <div class="menu-item" data-action="delete">删除（仅本地）</div>
-          <div class="menu-item" data-action="quote">引用</div>
-        `;
-        contextMenu.style.display = 'block';
-        contextMenu.style.left = Math.min(clientX, window.innerWidth - 150) + 'px';
-        contextMenu.style.top = Math.min(clientY, window.innerHeight - 150) + 'px';
-      }
-      function hideContextMenu() {
-        contextMenu.style.display = 'none';
-      }
-
-      document.getElementById('chatArea').addEventListener('contextmenu', (e) => {
-        const msgDiv = e.target.closest('.msg');
-        if (!msgDiv) return;
-        const allMsgs = [...document.querySelectorAll('.msg')];
-        const index = allMsgs.indexOf(msgDiv);
-        if (index === -1) return;
-        showContextMenu(e, index);
-      });
-
-      contextMenu.addEventListener('click', (e) => {
-        const action = e.target.dataset.action;
-        if (!action) return;
-        const msg = messages[currentMsgIndex];
-        if (!msg) return;
-        if (action === 'copy') {
-          navigator.clipboard.writeText(msg.content);
-        } else if (action === 'delete') {
-          messages.splice(currentMsgIndex, 1);
-          saveMessages(messages);
-          renderChat();
-          updateStorageUI();
-        } else if (action === 'quote') {
-          const quoted = `「${msg.content.substring(0, 50)}${msg.content.length > 50 ? '...' : ''}」`;
-          document.getElementById('messageInput').value = quoted + ' ';
-          document.getElementById('messageInput').focus();
-        }
-        hideContextMenu();
-      });
-
-      document.addEventListener('click', hideContextMenu);
-
-      // 移动端长按
-      let longPressTimer;
-      document.getElementById('chatArea').addEventListener('touchstart', (e) => {
-        const msgDiv = e.target.closest('.msg');
-        if (!msgDiv) return;
-        longPressTimer = setTimeout(() => {
-          const allMsgs = [...document.querySelectorAll('.msg')];
-          const index = allMsgs.indexOf(msgDiv);
-          if (index === -1) return;
-          showContextMenu(e, index);
-        }, 500);
-      });
-      document.getElementById('chatArea').addEventListener('touchend', () => clearTimeout(longPressTimer));
-      document.getElementById('chatArea').addEventListener('touchmove', () => clearTimeout(longPressTimer));
-    })();
-  </script>
+    initApp();
+  })();
+</script>
 </body>
 </html>
