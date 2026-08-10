@@ -770,7 +770,7 @@
         addModalContent.innerHTML = '<button class="modal-close" id="closePresetBtn">✕</button><h3>选择预设</h3><div class="preset-list" id="presetList">加载中...</div>';
         document.getElementById('closePresetBtn').addEventListener('click', closeAddModal);
         try {
-          const resp = await fetch('/chat_files/prompt.json');
+          const resp = await fetch('./chat_files/prompt.json');
           if (!resp.ok) throw new Error('网络请求失败');
           const presets = await resp.json();
           const list = document.getElementById('presetList');
