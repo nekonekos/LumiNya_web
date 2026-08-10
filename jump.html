@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LumiNya · 跳转确认</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/main.css" />
+</head>
+<body>
+    <div class="blob blob--1"></div>
+    <div class="blob blob--2"></div>
+    <div class="blob blob--3"></div>
+
+    <div class="container" id="pageContent">
+        <div class="section-wrapper">
+            <div class="section-content">
+                <p style="text-align:center; padding:1.5rem 0;">正在检查目标地址…</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const pageContent = document.getElementById('pageContent');
+            const root = document.documentElement;
+            const STORAGE_KEY = 'theme-preference';
+
+            function escapeHtml(value = '') {
+                return String(value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function getQueryValue(name) {
+                const params = new URLSearchParams(window.location.search);
+                return params.get(name) || '';
+            }
+
+            function normalizeTarget(raw) {
+                const value = (raw || '').trim();
+                if (!value) return '';
+                if (/^(https?:\/\/|mailto:|tel:)/i.test(value)) {
+                    return value;
+                }
+                return `https://${value}`;
+            }
+
+            function parseTarget(raw) {
+                const normalized = normalizeTarget(raw);
+                if (!normalized) return null;
+                try {
+                    return new URL(normalized);
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            function isAllowedHost(hostname, whitelist) {
+                return (whitelist || []).some(function (entry) {
+                    const normalized = String(entry).toLowerCase();
+                    return hostname === normalized || hostname.endsWith(`.${normalized}`);
+                });
+            }
+
+            function renderPage(data, targetUrl, allowed) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'section-wrapper';
+                wrapper.innerHTML = `
+                    <header>
+                        <a href="./index.html" class="logo">${escapeHtml(data.site.logoPrefix || 'Lumi')}<span>${escapeHtml(data.site.logoAccent || 'Nya')}</span></a>
+                        <div class="nav-wrapper">
+                            <button class="theme-toggle" id="themeToggle" aria-label="${escapeHtml(data.site.themeToggleLabel || '切换深浅色')}">
+                                <span class="icon-sun">☀️</span>
+                                <span class="icon-moon">🌙</span>
+                            </button>
+                        </div>
+                    </header>
+                    <div class="section-header">
+                        <h2 class="section-title">${escapeHtml(allowed ? data.labels.redirectingTitle : data.labels.warningTitle)}</h2>
+                        <p class="section-subtitle">${escapeHtml(allowed ? data.labels.redirectingSubtitle : data.labels.warningSubtitle)}</p>
+                    </div>
+                    <div class="section-divider">
+                        <span class="line"></span>
+                        <span class="dot"></span>
+                        <span class="line"></span>
+                    </div>
+                    <div class="section-content">
+                        ${allowed ? `<p class="about-text">${escapeHtml(data.labels.redirectingMessage || '')}</p>` : `
+                            <p class="about-text">${escapeHtml(data.labels.warningMessage || '')}</p>
+                            <div class="contact-card" style="margin-top:1rem;">
+                                <span class="contact-icon">🔗</span>
+                                <span class="contact-label">${escapeHtml(data.labels.targetLabel || '目标地址')}</span>
+                                <span class="contact-value">${escapeHtml(targetUrl || '')}</span>
+                            </div>
+                            <div class="btn-group" style="margin-top:1.5rem;">
+                                <a href="${escapeHtml(targetUrl || '#')}" class="btn btn--primary">${escapeHtml(data.labels.confirmButton || '继续访问')}</a>
+                                <a href="./index.html" class="btn btn--outline">${escapeHtml(data.labels.backButton || '返回首页')}</a>
+                            </div>
+                        `}
+                    </div>
+                `;
+                pageContent.innerHTML = '';
+                pageContent.appendChild(wrapper);
+            }
+
+            function getPreferredTheme() {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored === 'dark' || stored === 'light') return stored;
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            function setTheme(theme) {
+                if (theme === 'dark') {
+                    root.setAttribute('data-theme', 'dark');
+                } else {
+                    root.removeAttribute('data-theme');
+                }
+                localStorage.setItem(STORAGE_KEY, theme);
+            }
+
+            function toggleTheme() {
+                const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                const next = current === 'dark' ? 'light' : 'dark';
+                setTheme(next);
+            }
+
+            function initTheme() {
+                const theme = getPreferredTheme();
+                setTheme(theme);
+                const toggleBtn = document.getElementById('themeToggle');
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', toggleTheme);
+                }
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                mediaQuery.addEventListener('change', function (event) {
+                    if (!localStorage.getItem(STORAGE_KEY)) {
+                        setTheme(event.matches ? 'dark' : 'light');
+                    }
+                });
+            }
+
+            fetch('./jump.json')
+                .then(function (response) {
+                    if (!response.ok) throw new Error('加载跳转配置失败');
+                    return response.json();
+                })
+                .then(function (data) {
+                    document.title = data.site?.title || 'LumiNya · 跳转确认';
+                    const targetValue = getQueryValue('url') || getQueryValue('target') || getQueryValue('path') || '';
+                    const parsed = parseTarget(targetValue);
+                    const allowed = Boolean(parsed && isAllowedHost(parsed.hostname, data.whitelist || []));
+
+                    if (allowed && parsed) {
+                        window.location.replace(parsed.toString());
+                        return;
+                    }
+
+                    renderPage(data, parsed ? parsed.toString() : targetValue, false);
+                    initTheme();
+                })
+                .catch(function () {
+                    pageContent.innerHTML = `
+                        <div class="section-wrapper">
+                            <div class="section-content">
+                                <p style="text-align:center; padding:1.5rem 0;">跳转配置加载失败，请稍后重试。</p>
+                            </div>
+                        </div>
+                    `;
+                });
+        })();
+    </script>
+</body>
+</html>

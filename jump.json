@@ -1,0 +1,25 @@
+{
+  "site": {
+    "title": "LumiNya · 跳转确认",
+    "logoPrefix": "Lumi",
+    "logoAccent": "Nya",
+    "themeToggleLabel": "切换深浅色"
+  },
+  "whitelist": [
+    "luminya.cc",
+    "luminya.cn",
+    "asy.wiki",
+    "luminya.hk.cn"
+  ],
+  "labels": {
+    "redirectingTitle": "正在跳转",
+    "redirectingSubtitle": "目标地址已确认，正在为你转到安全页面",
+    "redirectingMessage": "当前地址属于 LumiNya 允许的域名范围，页面将直接跳转。",
+    "warningTitle": "下个页面不属于 LumiNya",
+    "warningSubtitle": "请确认目标地址后再继续访问",
+    "warningMessage": "你即将访问的目标地址不在白名单内，请确认是否要继续。",
+    "targetLabel": "目标地址",
+    "confirmButton": "继续访问",
+    "backButton": "返回首页"
+  }
+}
