@@ -16,7 +16,9 @@
     <div class="blob blob--2"></div>
     <div class="blob blob--3"></div>
 
-    <div class="container">
+    <div class="container" id="pageContent"></div>
+
+    <div class="container" id="legacyContent" style="display:none;">
         <!-- ===== Header ===== -->
         <header>
             <a href="#" class="logo">Lumi<span>Nya</span></a>
@@ -419,11 +421,205 @@
     </div>
 
     <script>
-        (function() {
-            // ===== 深浅主题切换 =====
-            const toggleBtn = document.getElementById('themeToggle');
+        (function () {
+            const pageContent = document.getElementById('pageContent');
             const root = document.documentElement;
             const STORAGE_KEY = 'theme-preference';
+
+            function escapeHtml(value = '') {
+                return String(value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function buildHeader(data) {
+                const header = document.createElement('header');
+                const navItems = (data.nav || []).map(item => `<li><a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a></li>`).join('');
+                header.innerHTML = `
+                    <a href="#" class="logo">${escapeHtml(data.site.logoPrefix)}<span>${escapeHtml(data.site.logoAccent)}</span></a>
+                    <div class="nav-wrapper">
+                        <ul class="nav-links">${navItems}</ul>
+                        <button class="theme-toggle" id="themeToggle" aria-label="${escapeHtml(data.site.themeToggleLabel)}">
+                            <span class="icon-sun">☀️</span>
+                            <span class="icon-moon">🌙</span>
+                        </button>
+                    </div>
+                `;
+                return header;
+            }
+
+            function buildHero(hero) {
+                const section = document.createElement('section');
+                section.className = 'hero';
+                const buttons = (hero.buttons || []).map(button => `<a href="${escapeHtml(button.href)}" class="btn ${escapeHtml(button.className || '')}">${escapeHtml(button.label)}</a>`).join('');
+                section.innerHTML = `
+                    <div class="hero-content">
+                        <h1>${escapeHtml(hero.title)}</h1>
+                        <p class="subhead">${escapeHtml(hero.subhead)}</p>
+                        <p class="bio">${escapeHtml(hero.bio)}</p>
+                        <div class="btn-group">${buttons}</div>
+                    </div>
+                    <div class="hero-visual">
+                        <div class="profile-circle">
+                            <span class="avatar">${escapeHtml(hero.profile?.avatar || '✨')}</span>
+                            <span class="name">${escapeHtml(hero.profile?.name || '')}</span>
+                            <span class="role">${escapeHtml(hero.profile?.role || '')}</span>
+                        </div>
+                        <div class="status-widget">
+                            <span class="indicator"></span>
+                            <span class="status-text">${escapeHtml(hero.status || '')}</span>
+                        </div>
+                    </div>
+                `;
+                return section;
+            }
+
+            function buildSection(section) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'section-wrapper';
+                if (section.id) wrapper.id = section.id;
+
+                let contentHtml = '';
+                switch (section.type) {
+                    case 'about':
+                        contentHtml = `
+                            <p class="about-text">
+                                ${escapeHtml(section.content || '')}
+                                ${section.highlight ? `<span class="highlight">${escapeHtml(section.highlight)}</span>` : ''}
+                            </p>
+                        `;
+                        break;
+                    case 'skills':
+                        contentHtml = `<div class="skills-grid">${(section.items || []).map(item => `
+                            <div class="skill-item">
+                                <span class="icon">${escapeHtml(item.icon || '')}</span>
+                                <div class="name">${escapeHtml(item.name || '')}</div>
+                            </div>
+                        `).join('')}</div>`;
+                        break;
+                    case 'services':
+                        contentHtml = `<div class="services-grid">${(section.items || []).map(item => `
+                            <div class="service-item">
+                                <span class="service-icon">${escapeHtml(item.icon || '')}</span>
+                                <div class="service-name">${escapeHtml(item.name || '')}</div>
+                                <div class="service-desc">${escapeHtml(item.desc || '')}</div>
+                            </div>
+                        `).join('')}</div>`;
+                        break;
+                    case 'metrics':
+                        contentHtml = `<div class="metrics-grid" id="metricsGrid">${(section.items || []).map(item => `
+                            <div class="metric-item">
+                                <div class="number" data-count="${escapeHtml(item.count)}">0</div>
+                                <div class="label">${escapeHtml(item.label || '')}</div>
+                            </div>
+                        `).join('')}</div>`;
+                        break;
+                    case 'works':
+                        contentHtml = `<div class="work-list">${(section.items || []).map(item => `
+                            <div class="work-card">
+                                <div class="thumb ${escapeHtml(item.thumbClass || '')}">${escapeHtml(item.icon || '')}</div>
+                                <div class="info">
+                                    <h4>${escapeHtml(item.title || '')}</h4>
+                                    <div class="desc">${escapeHtml(item.desc || '')}</div>
+                                    <div class="tags">${(item.tags || []).map(tag => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
+                                </div>
+                                <div class="action">
+                                    <a href="${escapeHtml(item.link || '#')}" class="project-link">
+                                        ${escapeHtml(item.action || '了解更多')} <span class="arrow">→</span>
+                                    </a>
+                                </div>
+                            </div>
+                        `).join('')}</div>`;
+                        break;
+                    case 'posts':
+                        contentHtml = `<div class="posts-grid">${(section.items || []).map(item => `
+                            <div class="post-item">
+                                <div class="post-date">${escapeHtml(item.date || '')}</div>
+                                <div class="post-title">${escapeHtml(item.title || '')}</div>
+                                <div class="post-excerpt">${escapeHtml(item.excerpt || '')}</div>
+                                <a href="${escapeHtml(item.link || '#')}" class="post-link">${escapeHtml(item.action || '阅读全文')}</a>
+                            </div>
+                        `).join('')}</div>`;
+                        break;
+                    case 'tools':
+                        contentHtml = `<div class="tools-wrap">${(section.items || []).map(item => `
+                            <div class="tool-item">
+                                <span class="tool-icon">${escapeHtml(item.icon || '')}</span>
+                                <span class="tool-name">${escapeHtml(item.name || '')}</span>
+                            </div>
+                        `).join('')}</div>`;
+                        break;
+                    case 'contact':
+                        contentHtml = `<div class="contact-grid">${(section.items || []).map(item => `
+                            <a href="${escapeHtml(item.href || '#')}" class="contact-card">
+                                <span class="contact-icon">${escapeHtml(item.icon || '')}</span>
+                                <span class="contact-label">${escapeHtml(item.label || '')}</span>
+                                <span class="contact-value">${escapeHtml(item.value || '')}</span>
+                            </a>
+                        `).join('')}</div>`;
+                        break;
+                    default:
+                        contentHtml = `<div class="about-text">${escapeHtml(section.content || '')}</div>`;
+                }
+
+                wrapper.innerHTML = `
+                    <div class="section-header">
+                        <h2 class="section-title">${escapeHtml(section.title || '')}</h2>
+                        ${section.subtitle ? `<p class="section-subtitle">${escapeHtml(section.subtitle)}</p>` : ''}
+                    </div>
+                    <div class="section-divider">
+                        <span class="line"></span>
+                        <span class="dot"></span>
+                        <span class="line"></span>
+                    </div>
+                    <div class="section-content">${contentHtml}</div>
+                `;
+                return wrapper;
+            }
+
+            function buildFooter(footer) {
+                const footerEl = document.createElement('footer');
+                footerEl.id = 'contact';
+                const navItems = (footer.nav || []).map(item => `<li><a href="${escapeHtml(item.href || '#')}">${escapeHtml(item.label || '')}</a></li>`).join('');
+                const contactLinks = (footer.contactLinks || []).map(link => `<a href="${escapeHtml(link.href || '#')}"><span class="link-icon">${escapeHtml(link.icon || '')}</span> ${escapeHtml(link.label || '')}</a>`).join('');
+                const socialLinks = (footer.socialLinks || []).map(link => `<a href="${escapeHtml(link.href || '#')}">${escapeHtml(link.label || '')}</a>`).join('');
+                const legalLinks = (footer.legalLinks || []).map(link => `<a href="${escapeHtml(link.href || '#')}">${escapeHtml(link.label || '')}</a>`).join('');
+                footerEl.innerHTML = `
+                    <div class="footer-grid">
+                        <div class="footer-brand">
+                            <div class="brand">${escapeHtml(footer.brandPrefix || 'Lumi')}<span>${escapeHtml(footer.brandAccent || 'Nya')}</span></div>
+                            <div class="brand-desc">${escapeHtml(footer.description || '')}</div>
+                        </div>
+                        <div class="footer-nav">
+                            <h5>${escapeHtml(footer.navTitle || '导航')}</h5>
+                            <ul>${navItems}</ul>
+                        </div>
+                        <div class="footer-contact">
+                            <h5>${escapeHtml(footer.contactTitle || '联系方式')}</h5>
+                            <div class="contact-links">${contactLinks}</div>
+                        </div>
+                    </div>
+                    <div class="footer-social">${socialLinks}</div>
+                    <div class="footer-bottom">
+                        <span class="copy">${escapeHtml(footer.copyright || '')}</span>
+                        <div class="legal">${legalLinks}</div>
+                    </div>
+                `;
+                return footerEl;
+            }
+
+            function renderPage(data) {
+                const fragment = document.createDocumentFragment();
+                fragment.appendChild(buildHeader(data));
+                fragment.appendChild(buildHero(data.hero));
+                (data.sections || []).forEach(section => fragment.appendChild(buildSection(section)));
+                fragment.appendChild(buildFooter(data.footer));
+                pageContent.innerHTML = '';
+                pageContent.appendChild(fragment);
+            }
 
             function getPreferredTheme() {
                 const stored = localStorage.getItem(STORAGE_KEY);
@@ -449,38 +645,36 @@
             function initTheme() {
                 const theme = getPreferredTheme();
                 setTheme(theme);
+                const toggleBtn = document.getElementById('themeToggle');
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', toggleTheme);
+                }
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                mediaQuery.addEventListener('change', function (event) {
+                    if (!localStorage.getItem(STORAGE_KEY)) {
+                        setTheme(event.matches ? 'dark' : 'light');
+                    }
+                });
             }
 
-            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            function handleSystemChange(e) {
-                if (!localStorage.getItem(STORAGE_KEY)) {
-                    const newTheme = e.matches ? 'dark' : 'light';
-                    setTheme(newTheme);
+            function initAnimations() {
+                const sections = document.querySelectorAll('.section-wrapper');
+                if (sections.length > 0) {
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                entry.target.classList.add('visible');
+                            }
+                        });
+                    }, {
+                        threshold: 0.10,
+                        rootMargin: '0px 0px -20px 0px'
+                    });
+                    sections.forEach(section => observer.observe(section));
                 }
             }
-            mediaQuery.addEventListener('change', handleSystemChange);
-            toggleBtn.addEventListener('click', toggleTheme);
-            initTheme();
 
-            // ===== 滚动触发：淡入上浮 =====
-            const sections = document.querySelectorAll('.section-wrapper');
-            if (sections.length > 0) {
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            entry.target.classList.add('visible');
-                        }
-                    });
-                }, {
-                    threshold: 0.10,
-                    rootMargin: '0px 0px -20px 0px'
-                });
-                sections.forEach(section => observer.observe(section));
-            }
-
-            // ===== 数字计数动画 =====
             let counted = false;
-
             function animateNumbers() {
                 if (counted) return;
                 const observer = new IntersectionObserver((entries) => {
@@ -516,20 +710,41 @@
                 if (grid) observer.observe(grid);
             }
 
-            setTimeout(animateNumbers, 300);
-
-            function checkMetricsVisibility() {
-                const grid = document.getElementById('metricsGrid');
-                if (!grid || counted) return;
-                const rect = grid.getBoundingClientRect();
-                if (rect.top < window.innerHeight * 0.8) {
-                    counted = false;
-                    animateNumbers();
+            function initMetrics() {
+                setTimeout(animateNumbers, 300);
+                function checkMetricsVisibility() {
+                    const grid = document.getElementById('metricsGrid');
+                    if (!grid || counted) return;
+                    const rect = grid.getBoundingClientRect();
+                    if (rect.top < window.innerHeight * 0.8) {
+                        counted = false;
+                        animateNumbers();
+                    }
                 }
+                window.addEventListener('load', checkMetricsVisibility);
+                window.addEventListener('scroll', checkMetricsVisibility, { passive: true });
             }
-            window.addEventListener('load', checkMetricsVisibility);
-            window.addEventListener('scroll', checkMetricsVisibility, { passive: true });
 
+            fetch('./index.json')
+                .then(function (response) {
+                    if (!response.ok) throw new Error('加载配置失败');
+                    return response.json();
+                })
+                .then(function (data) {
+                    renderPage(data);
+                    initTheme();
+                    initAnimations();
+                    initMetrics();
+                })
+                .catch(function () {
+                    pageContent.innerHTML = `
+                        <div class="section-wrapper">
+                            <div class="section-content">
+                                <p style="text-align:center; padding:1.5rem 0;">页面配置加载失败，请检查 index.json。</p>
+                            </div>
+                        </div>
+                    `;
+                });
         })();
     </script>
 
