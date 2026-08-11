@@ -3,16 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>testeng · 备用状态页</title>
+  <title>英语688词汇服务</title>
   <style>
     :root {
       color-scheme: light;
-      --bg: #f8fafc;
+      --bg: #f7f7fb;
       --card: #ffffff;
-      --text: #111827;
+      --text: #1f2937;
       --muted: #6b7280;
-      --success: #16a34a;
-      --success-soft: #ecfdf3;
+      --accent: #3b82f6;
       --border: #e5e7eb;
     }
     * { box-sizing: border-box; }
@@ -23,48 +22,40 @@
       place-items: center;
       padding: 24px;
       font-family: "Inter", "Microsoft YaHei", sans-serif;
-      background: linear-gradient(135deg, #ecfdf3 0%, #f8fafc 100%);
+      background: var(--bg);
       color: var(--text);
     }
     .card {
-      width: min(100%, 520px);
+      width: min(100%, 560px);
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 24px;
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-      padding: 32px;
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+      padding: 32px 28px;
       text-align: center;
     }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: var(--success-soft);
-      color: var(--success);
-      font-weight: 700;
-      margin-bottom: 16px;
+    h1 {
+      margin: 0 0 12px;
+      font-size: 1.7rem;
     }
-    h1 { margin: 0 0 8px; font-size: 1.8rem; }
-    p { margin: 0 0 20px; color: var(--muted); line-height: 1.7; }
-    .btn {
-      display: inline-block;
-      padding: 12px 18px;
-      border-radius: 999px;
-      text-decoration: none;
-      color: white;
-      background: var(--success);
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 1rem;
+    }
+    .contact {
+      margin-top: 18px;
       font-weight: 600;
+      color: var(--accent);
     }
   </style>
 </head>
 <body>
   <main class="card">
-    <div class="badge">✓ 状态已就绪</div>
-    <h1>提示界面已关闭</h1>
-    <p>当前备用页可用于后续扩展或跳转测试，界面已经重新搭好，后续可以继续补充内容。</p>
-    <a class="btn" href="./test.html">返回测试页</a>
+    <h1>英语688词汇服务已关闭</h1>
+    <p>若您是使用者，请联系系统管理员：QQ：1686157307</p>
+    <div class="contact">感谢您的理解</div>
   </main>
 </body>
 </html>

@@ -3,96 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>testeng · 提示已关闭</title>
+  <title>英语688词汇服务</title>
   <style>
     :root {
       color-scheme: light;
-      --bg: #f5f7fb;
+      --bg: #f7f7fb;
       --card: #ffffff;
       --text: #1f2937;
       --muted: #6b7280;
-      --accent: #4f46e5;
-      --accent-soft: #eef2ff;
+      --accent: #3b82f6;
       --border: #e5e7eb;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "Inter", "Microsoft YaHei", sans-serif;
-      background: linear-gradient(135deg, #f3f4f6 0%, #eef2ff 100%);
-      color: var(--text);
       display: grid;
       place-items: center;
       padding: 24px;
+      font-family: "Inter", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
     }
     .card {
       width: min(100%, 560px);
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 24px;
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-      padding: 32px;
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+      padding: 32px 28px;
       text-align: center;
     }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-weight: 700;
-      font-size: 0.9rem;
-      margin-bottom: 16px;
-    }
     h1 {
-      margin: 0 0 10px;
-      font-size: clamp(1.6rem, 2.2vw, 2.2rem);
+      margin: 0 0 12px;
+      font-size: 1.7rem;
     }
     p {
-      margin: 0 0 20px;
+      margin: 0;
       color: var(--muted);
       line-height: 1.7;
       font-size: 1rem;
     }
-    .actions {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .btn {
-      display: inline-block;
-      padding: 12px 18px;
-      border-radius: 999px;
-      text-decoration: none;
+    .contact {
+      margin-top: 18px;
       font-weight: 600;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .btn:hover { transform: translateY(-1px); }
-    .btn-primary {
-      background: var(--accent);
-      color: white;
-      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.18);
-    }
-    .btn-secondary {
-      background: #f8fafc;
-      color: var(--text);
-      border: 1px solid var(--border);
+      color: var(--accent);
     }
   </style>
 </head>
 <body>
   <main class="card">
-    <div class="badge">● 提示界面已关闭</div>
-    <h1>当前测试界面已切换为关闭状态</h1>
-    <p>这里现在用于占位展示，暂无提示内容输出。你可以返回首页，或者查看备用状态页。</p>
-    <div class="actions">
-      <a class="btn btn-primary" href="../index.html">返回首页</a>
-      <a class="btn btn-secondary" href="./pass.html">查看备用页</a>
-    </div>
+    <h1>英语688词汇服务已关闭</h1>
+    <p>若您是使用者，请联系系统管理员：QQ：1686157307</p>
+    <div class="contact">感谢您的理解</div>
   </main>
 </body>
 </html>
