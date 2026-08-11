@@ -2,11 +2,16 @@
 
 ## 项目结构说明
 
-- index.html：当前主站首页
-- chat.html：聊天页面
-- css/：样式文件
-- chat_files/：聊天预设数据
+- index.html：当前主站首页，使用 index.json 驱动内容
+- jump.html：跳转校验页，使用 jump.json 驱动文案与白名单
+- chat.html：独立聊天页面，使用 chat_files/prompt.json 提供默认预设
+- css/：主站与聊天页样式文件
 - archive/legacy/：旧版网页归档目录
+
+## 已清理内容
+
+- 删除了根目录下的测试页和实验性目录，如 test.html、testeng、zkcx、chars、000032.html
+- 保留了当前主站实际使用的入口与数据文件
 
 ## 维护建议
 
