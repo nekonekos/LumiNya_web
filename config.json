@@ -1,0 +1,154 @@
+{
+  "version": "2026.08.19.1",
+  "lastUpdated": "2026-08-19",
+  "site": {
+    "title": "LumiNya · 个人网站",
+    "logoPrefix": "Lumi",
+    "logoAccent": "Nya",
+    "themeToggleLabel": "切换深浅色"
+  },
+  "nav": [
+    { "label": "关于", "href": "#about" },
+    { "label": "作品", "href": "#work" },
+    { "label": "服务", "href": "#services" },
+    { "label": "联系", "href": "#contact-info" }
+  ],
+  "hero": {
+    "title": "你好，我是LumiNya",
+    "subhead": "一个喜欢编程的初中生 · 正在学习做网站",
+    "bio": "课余时间写写代码，听听音乐，玩玩游戏。慢慢地，用自己的方式搭建起这个小网站。",
+    "status": "在线 · 欢迎来玩",
+    "profile": {
+      "avatar": "✨",
+      "name": "LumiNya",
+      "role": "初中生 · 编程爱好者"
+    },
+    "buttons": [
+      { "label": "看看我的作品", "href": "#work", "className": "btn--primary" },
+      { "label": "打个招呼", "href": "#contact-info", "className": "btn--outline" }
+    ]
+  },
+  "sections": [
+    {
+      "id": "about",
+      "type": "about",
+      "title": "关于我",
+      "subtitle": "一小段简单的自我介绍",
+      "content": "我叫 LumiNya，也许叫我小娜。正在学习 HTML、CSS 和 JavaScript，试着做出一些有趣的网页。喜欢收集域名，也搭了一个 Minecraft 服务器和朋友一起玩。",
+      "highlight": "代码对我来说就像积木，拼拼凑凑就能变出好玩的东西。"
+    },
+    {
+      "type": "skills",
+      "title": "我会一点点",
+      "subtitle": "正在慢慢学习的东西",
+      "items": [
+        { "icon": "🎨", "name": "前端页面" },
+        { "icon": "🔧", "name": "小工具制作" },
+        { "icon": "🌐", "name": "搭网站" },
+        { "icon": "🎮", "name": "游戏服务器" }
+      ]
+    },
+    {
+      "id": "services",
+      "type": "services",
+      "title": "我能帮忙的",
+      "subtitle": "虽然还在学习，但也愿意试试",
+      "items": [
+        { "icon": "🛠️", "name": "实用小工具", "desc": "学习过程中顺手做的小工具，也许能帮到你" },
+        { "icon": "📝", "name": "个人博客", "desc": "记录学习过程和生活琐事，分享给感兴趣的朋友" },
+        { "icon": "☁️", "name": "Minecraft 服务器", "desc": "维护一个原版生存服，和朋友们一起玩耍" }
+      ]
+    },
+    {
+      "type": "metrics",
+      "title": "一些数字",
+      "subtitle": "记录一下小小的足迹",
+      "items": [
+        { "count": "3", "label": "年编程经历" },
+        { "count": "12", "label": "个小项目" },
+        { "count": "6", "label": "个域名" },
+        { "count": "100", "label": "热爱与好奇" }
+      ]
+    },
+    {
+      "id": "work",
+      "type": "works",
+      "title": "做过的一些东西",
+      "subtitle": "课余时间捣鼓出来的",
+      "items": [
+        { "icon": "🧰", "title": "NyaTools · 在线工具箱", "desc": "学习前端时做的几个小工具，有编码转换、倒计时什么的。", "tags": ["小工具", "HTML/CSS/JS", "持续更新"], "action": "体验一下", "link": "#" },
+        { "icon": "📝", "thumbClass": "thumb--green", "title": "小娜的博客", "desc": "记录我学习编程的经过和日常的想法。", "tags": ["博客", "成长记录", "2025"], "action": "去逛逛", "link": "#" },
+        { "icon": "⛏️", "thumbClass": "thumb--coral", "title": "LumiSer · 原版生存服", "desc": "一个 Minecraft 服务器，我和朋友们一起玩的地方。", "tags": ["Minecraft", "服务器", "2024"], "action": "了解更多", "link": "#" }
+      ]
+    },
+    {
+      "id": "posts",
+      "type": "posts",
+      "title": "最新动态",
+      "subtitle": "最近在干什么",
+      "items": [
+        { "date": "2026.07.21", "title": "用 CSS 画了一朵会动的樱花", "excerpt": "纯 CSS 实现花瓣飘落动画，原来前端可以这么美", "action": "阅读全文", "link": "#" },
+        { "date": "2026.07.14", "title": "我的第一个 JavaScript 小游戏", "excerpt": "用 Canvas 写了个贪吃蛇，邀请同学们试玩反馈", "action": "阅读全文", "link": "#" },
+        { "date": "2026.07.03", "title": "暑假的 Minecraft 建城计划", "excerpt": "和朋友一起在生存模式下建造一个海滨小镇", "action": "阅读全文", "link": "#" }
+      ]
+    },
+    {
+      "type": "tools",
+      "title": "常用工具",
+      "subtitle": "学习和捣鼓时会用到的一些",
+      "items": [
+        { "icon": "⌨️", "name": "VS Code" },
+        { "icon": "🌿", "name": "Git" },
+        { "icon": "🎨", "name": "Figma" },
+        { "icon": "📄", "name": "HTML" },
+        { "icon": "🎨", "name": "CSS" },
+        { "icon": "✨", "name": "JavaScript" },
+        { "icon": "🐍", "name": "Python" },
+        { "icon": "🎮", "name": "Minecraft" }
+      ]
+    },
+    {
+      "id": "contact-info",
+      "type": "contact",
+      "title": "联系我",
+      "subtitle": "想聊天、合作或者一起玩游戏？随时找我",
+      "items": [
+        { "icon": "✉️", "label": "邮箱", "value": "contact@luminya.cc", "href": "mailto:contact@luminya.cc" },
+        { "icon": "💬", "label": "微信", "value": "LumiNya_Dev", "href": "#" },
+        { "icon": "🐙", "label": "GitHub", "value": "github.com/nekonekos", "href": "https://github.com/nekonekos" },
+        { "icon": "📍", "label": "所在地", "value": "中国 · 广州", "href": "#" }
+      ]
+    }
+  ],
+  "footer": {
+    "brandPrefix": "Lumi",
+    "brandAccent": "Nya",
+    "description": "一个初中生的小网站，正在努力让它变得更好。",
+    "navTitle": "导航",
+    "contactTitle": "联系方式",
+    "nav": [
+      { "label": "首页", "href": "#" },
+      { "label": "作品", "href": "#work" },
+      { "label": "服务", "href": "#services" },
+      { "label": "动态", "href": "#posts" },
+      { "label": "联系", "href": "#contact-info" }
+    ],
+    "contactLinks": [
+      { "icon": "✉", "label": "contact@luminya.cc", "href": "mailto:contact@luminya.cc" },
+      { "icon": "💬", "label": "微信 · LumiNya_Dev", "href": "#" },
+      { "icon": "📍", "label": "中国 · 广州", "href": "#" }
+    ],
+    "socialLinks": [
+      { "label": "🐙 GitHub", "href": "#" },
+      { "label": "📝 博客", "href": "#" },
+      { "label": "🧰 小工具", "href": "#" },
+      { "label": "⛏️ 服务器", "href": "#" },
+      { "label": "🗂️ 归档旧版", "href": "./archive/legacy/index.html" }
+    ],
+    "legalLinks": [
+      { "label": "隐私政策", "href": "#" },
+      { "label": "使用条款", "href": "#" }
+    ],
+    "copyright": "© 2026 LumiNya · 个人网站"
+  }
+}

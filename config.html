@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="LumiNya 的个人配置文件编辑器" />
+  <title>config://luminya.profile</title>
+  <link rel="stylesheet" href="./css/configpage.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="./index.html"><span class="brand-mark">{ }</span> luminya.profile</a>
+      <div class="topbar-status"><span class="status-dot"></span><span id="connectionText">正在连接配置源</span></div>
+      <button class="icon-button" id="themeButton" type="button" aria-label="切换主题" title="切换主题">◐</button>
+    </header>
+
+    <div class="workspace">
+      <aside class="activitybar" aria-label="工具栏">
+        <button class="activity active" type="button" title="配置文件">▤</button>
+        <button class="activity" type="button" title="本地存储">◫</button>
+        <span class="activity-spacer"></span>
+        <button class="activity" id="helpButton" type="button" title="使用说明">?</button>
+      </aside>
+
+      <aside class="sidebar">
+        <div class="sidebar-heading"><span>资源管理器</span><span class="sidebar-kebab">···</span></div>
+        <div class="folder-label">LUMINYA_WEB</div>
+        <button class="file-entry selected" type="button"><span class="file-icon">{ }</span> config.json <span class="dirty-indicator" id="dirtyIndicator"></span></button>
+        <div class="sidebar-note"><span class="lock-mini">⌁</span> 灰色字段为只读信息</div>
+      </aside>
+
+      <main class="editor-area">
+        <div class="tabbar"><div class="tab active"><span class="file-icon">{ }</span> config.json <button id="closeTab" type="button" aria-label="关闭标签页">×</button></div></div>
+        <div class="editor-toolbar">
+          <div><span class="crumb">LUMINYA_WEB</span><span class="crumb-separator">/</span><strong>config.json</strong></div>
+          <div class="toolbar-actions"><span class="save-state" id="saveState">已同步</span><button class="text-button" id="resetButton" type="button">恢复拉取版</button><button class="save-button" id="saveButton" type="button">保存本地版</button></div>
+        </div>
+        <section class="editor" aria-label="配置文件编辑器"><div id="configTree" class="config-tree"><div class="loading">正在读取 config.json ...</div></div></section>
+        <div class="editor-footer"><span>JSON with Comments</span><span id="cursorStatus">Ln 1, Col 1</span><span>UTF-8</span><span>LF</span></div>
+      </main>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-symbol" id="modalSymbol">!</div><h2 id="modalTitle">需要你的选择</h2><p id="modalMessage"></p>
+      <div class="modal-actions" id="modalActions"></div>
+    </section>
+  </div>
+  <script>
+    const STORAGE_KEY = 'luminya.config.local';
+    const VERSION_KEY = 'luminya.config.serverVersion';
+    const EDITABLE_KEYS = new Set(['title', 'subhead', 'bio', 'status', 'avatar', 'name', 'role', 'subtitle', 'content', 'highlight', 'desc', 'excerpt', 'count', 'date', 'value', 'description', 'copyright']);
+    const READ_ONLY_KEYS = new Set(['version', 'lastUpdated', 'type', 'id', 'href', 'link', 'className', 'thumbClass', 'icon', 'action', 'label', 'logoPrefix', 'logoAccent', 'themeToggleLabel', 'brandPrefix', 'brandAccent', 'navTitle', 'contactTitle']);
+    let serverConfig = null;
+    let workingConfig = null;
+    let localVersion = null;
+    let isDirty = false;
+    let lineCounter = 0;
+
+    const $ = (selector) => document.querySelector(selector);
+    const clone = (value) => JSON.parse(JSON.stringify(value));
+    const pathLabel = (path) => path.length ? path.join('.') : 'config';
+    const isEditable = (key, path) => EDITABLE_KEYS.has(key) && !READ_ONLY_KEYS.has(key) && !path.includes('nav');
+
+    function showToast(message, kind = 'normal') {
+      const toast = $('#toast'); toast.textContent = message; toast.className = `toast visible ${kind}`;
+      window.clearTimeout(showToast.timer); showToast.timer = window.setTimeout(() => toast.classList.remove('visible'), 2800);
+    }
+
+    function openModal({ title, message, symbol = '!', actions }) {
+      $('#modalTitle').textContent = title; $('#modalMessage').textContent = message; $('#modalSymbol').textContent = symbol;
+      const actionBox = $('#modalActions'); actionBox.innerHTML = '';
+      actions.forEach(({ label, kind = 'quiet', onClick }) => { const button = document.createElement('button'); button.type = 'button'; button.className = `modal-button ${kind}`; button.textContent = label; button.addEventListener('click', () => { closeModal(); onClick(); }); actionBox.append(button); });
+      $('#modalBackdrop').hidden = false;
+    }
+    function closeModal() { $('#modalBackdrop').hidden = true; }
+
+    function valueText(value) {
+      if (typeof value === 'string') return `"${value.replaceAll('"', '\\"')}"`;
+      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+      return JSON.stringify(value);
+    }
+
+    function renderTree(value, path = [], depth = 0, key = null, isLast = true) {
+      const fragment = document.createDocumentFragment();
+      const isContainer = value && typeof value === 'object';
+      const row = document.createElement('div'); row.className = 'code-row'; row.style.setProperty('--depth', depth); row.dataset.path = pathLabel(path);
+      const lineNumber = document.createElement('span'); lineNumber.className = 'line-number'; lineNumber.textContent = String(++lineCounter);
+      const code = document.createElement('div'); code.className = 'code-line';
+      const keyText = key === null ? '' : `<span class="key">${key}</span><span class="colon">:</span> `;
+      if (isContainer) {
+        const toggle = document.createElement('button'); toggle.className = 'fold-button'; toggle.type = 'button'; toggle.textContent = '⌄'; toggle.title = '折叠/展开';
+        const open = Array.isArray(value) ? '[' : '{'; const close = Array.isArray(value) ? ']' : '}';
+        code.innerHTML = `${keyText}<span class="bracket">${open}</span>`; code.prepend(toggle); row.append(lineNumber, code); fragment.append(row);
+        const children = document.createElement('div'); children.className = 'tree-children';
+        const entries = Array.isArray(value) ? value.map((item, index) => [index, item]) : Object.entries(value);
+        entries.forEach(([childKey, childValue], index) => children.append(renderTree(childValue, path.concat(childKey), depth + 1, Array.isArray(value) ? null : childKey, index === entries.length - 1)));
+        const closeRow = document.createElement('div'); closeRow.className = 'code-row closing-row'; closeRow.style.setProperty('--depth', depth); closeRow.innerHTML = `<span class="line-number">${++lineCounter}</span><div class="code-line"><span class="bracket">${close}</span>${isLast ? '' : ','}</div>`;
+        children.append(closeRow); fragment.append(children); toggle.addEventListener('click', () => { children.classList.toggle('collapsed'); toggle.textContent = children.classList.contains('collapsed') ? '›' : '⌄'; });
+      } else {
+        const editable = key !== null && isEditable(String(key), path);
+        code.innerHTML = `${keyText}<span class="value ${typeof value}"></span><span class="comma">${isLast ? '' : ','}</span>`;
+        const valueSlot = code.querySelector('.value');
+        if (editable) { const input = document.createElement('input'); input.className = 'value-input'; input.value = value; input.title = `编辑 ${pathLabel(path)}`; input.addEventListener('input', () => updateValue(path, input.value, typeof value)); valueSlot.replaceWith(input); }
+        else { valueSlot.textContent = valueText(value); row.classList.add('readonly'); const lock = document.createElement('button'); lock.className = 'lock-button'; lock.type = 'button'; lock.textContent = '⌁'; lock.title = '此字段只读'; lock.addEventListener('click', () => openModal({ title: '字段已锁定', message: `${pathLabel(path)} 属于页面结构或链接配置，访问者不能修改。`, symbol: '⌁', actions: [{ label: '知道了', kind: 'primary', onClick: () => {} }] })); code.append(lock); }
+        row.append(lineNumber, code); fragment.append(row);
+      }
+      return fragment;
+    }
+
+    function getAtPath(root, path) { return path.reduce((current, part) => current[part], root); }
+    function updateValue(path, nextValue, originalType) { let value = nextValue; if (originalType === 'number') value = Number(nextValue) || 0; if (originalType === 'boolean') value = nextValue === 'true'; let target = workingConfig; path.slice(0, -1).forEach((part) => { target = target[part]; }); target[path.at(-1)] = value; markDirty(); }
+    function markDirty() { isDirty = true; $('#dirtyIndicator').classList.add('visible'); $('#saveState').textContent = '有未保存修改'; }
+    function render() { lineCounter = 0; $('#configTree').replaceChildren(renderTree(workingConfig)); }
+    function saveLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(workingConfig)); localStorage.setItem(VERSION_KEY, serverConfig.version); isDirty = false; $('#dirtyIndicator').classList.remove('visible'); $('#saveState').textContent = '已保存到本机'; showToast('修改已保存到 localStorage', 'success'); }
+    function useServerVersion() { localStorage.removeItem(STORAGE_KEY); localStorage.setItem(VERSION_KEY, serverConfig.version); workingConfig = clone(serverConfig); isDirty = false; render(); $('#saveState').textContent = '已同步'; showToast('已恢复服务器最新版本', 'success'); }
+
+    async function loadConfig() {
+      try {
+        const response = await fetch('./config.json', { cache: 'no-store' }); if (!response.ok) throw new Error('HTTP ' + response.status); serverConfig = await response.json();
+        localVersion = localStorage.getItem(VERSION_KEY); const localRaw = localStorage.getItem(STORAGE_KEY);
+        if (localRaw && localVersion && localVersion !== serverConfig.version) {
+          workingConfig = JSON.parse(localRaw); render(); $('#saveState').textContent = '等待版本选择';
+          openModal({ title: '配置版本发生变化', message: `服务器版本已从 ${localVersion} 更新为 ${serverConfig.version}。请选择要使用的版本。`, symbol: '↻', actions: [{ label: '覆盖本地版', kind: 'danger', onClick: useServerVersion }, { label: '保留本地版', kind: 'primary', onClick: () => { workingConfig = JSON.parse(localRaw); render(); $('#saveState').textContent = '本地版本'; showToast('已保留本地 localStorage 版本', 'success'); } }] });
+        } else if (localRaw) { workingConfig = JSON.parse(localRaw); $('#saveState').textContent = '本地版本'; } else { workingConfig = clone(serverConfig); localStorage.setItem(VERSION_KEY, serverConfig.version); }
+        render(); $('#connectionText').textContent = `配置源 · v${serverConfig.version}`;
+      } catch (error) { $('#connectionText').textContent = '配置源读取失败'; $('#configTree').innerHTML = '<div class="loading error">无法读取 config.json，请通过本地服务器打开此页面。</div>'; showToast('读取配置失败：' + error.message, 'error'); }
+    }
+
+    $('#saveButton').addEventListener('click', saveLocal); $('#resetButton').addEventListener('click', () => openModal({ title: '恢复服务器版本？', message: '这会清除当前 localStorage 中的编辑内容，并重新显示服务器版本。', symbol: '↺', actions: [{ label: '取消', onClick: () => {} }, { label: '确认恢复', kind: 'danger', onClick: useServerVersion }] }));
+    $('#helpButton').addEventListener('click', () => openModal({ title: '配置编辑器', message: '这是 LumiNya 的个人配置文件视图。亮色输入框可编辑，带锁字段属于页面结构或链接信息。所有修改只保存在当前浏览器的 localStorage。', symbol: '?', actions: [{ label: '明白了', kind: 'primary', onClick: () => {} }] }));
+    $('#themeButton').addEventListener('click', () => document.body.classList.toggle('light-theme'));
+    $('#modalBackdrop').addEventListener('click', (event) => { if (event.target.id === 'modalBackdrop') closeModal(); });
+    loadConfig();
+  </script>
+</body>
+</html>
