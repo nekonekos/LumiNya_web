@@ -52,8 +52,6 @@
   <script>
     const STORAGE_KEY = 'luminya.config.local';
     const VERSION_KEY = 'luminya.config.serverVersion';
-    const EDITABLE_KEYS = new Set(['title', 'subhead', 'bio', 'status', 'avatar', 'name', 'role', 'subtitle', 'content', 'highlight', 'desc', 'excerpt', 'count', 'date', 'value', 'description', 'copyright']);
-    const READ_ONLY_KEYS = new Set(['version', 'lastUpdated', 'type', 'id', 'href', 'link', 'className', 'thumbClass', 'icon', 'action', 'label', 'logoPrefix', 'logoAccent', 'themeToggleLabel', 'brandPrefix', 'brandAccent', 'navTitle', 'contactTitle']);
     let serverConfig = null;
     let workingConfig = null;
     let localVersion = null;
@@ -63,7 +61,11 @@
     const $ = (selector) => document.querySelector(selector);
     const clone = (value) => JSON.parse(JSON.stringify(value));
     const pathLabel = (path) => path.length ? path.join('.') : 'config';
-    const isEditable = (key, path) => EDITABLE_KEYS.has(key) && !READ_ONLY_KEYS.has(key) && !path.includes('nav');
+    const matchesPath = (pattern, path) => {
+      const parts = pattern.split('.');
+      return parts.length === path.length && parts.every((part, index) => part === '*' || part === String(path[index]));
+    };
+    const isEditable = (key, path) => (serverConfig?._editor?.editable || []).some((pattern) => matchesPath(pattern, path));
 
     function showToast(message, kind = 'normal') {
       const toast = $('#toast'); toast.textContent = message; toast.className = `toast visible ${kind}`;
@@ -96,7 +98,7 @@
         const open = Array.isArray(value) ? '[' : '{'; const close = Array.isArray(value) ? ']' : '}';
         code.innerHTML = `${keyText}<span class="bracket">${open}</span>`; code.prepend(toggle); row.append(lineNumber, code); fragment.append(row);
         const children = document.createElement('div'); children.className = 'tree-children';
-        const entries = Array.isArray(value) ? value.map((item, index) => [index, item]) : Object.entries(value);
+        const entries = Array.isArray(value) ? value.map((item, index) => [index, item]) : Object.entries(value).filter(([childKey]) => childKey !== '_editor');
         entries.forEach(([childKey, childValue], index) => children.append(renderTree(childValue, path.concat(childKey), depth + 1, Array.isArray(value) ? null : childKey, index === entries.length - 1)));
         const closeRow = document.createElement('div'); closeRow.className = 'code-row closing-row'; closeRow.style.setProperty('--depth', depth); closeRow.innerHTML = `<span class="line-number">${++lineCounter}</span><div class="code-line"><span class="bracket">${close}</span>${isLast ? '' : ','}</div>`;
         children.append(closeRow); fragment.append(children); toggle.addEventListener('click', () => { children.classList.toggle('collapsed'); toggle.textContent = children.classList.contains('collapsed') ? '›' : '⌄'; });

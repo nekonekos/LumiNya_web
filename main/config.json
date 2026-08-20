@@ -1,6 +1,30 @@
 {
-  "version": "2026.08.19.3",
+  "version": "2026.08.19.4",
   "lastUpdated": "2026-08-19",
+  "_editor": {
+    "editable": [
+      "hero.title",
+      "hero.subhead",
+      "hero.bio",
+      "hero.status",
+      "hero.profile.avatar",
+      "hero.profile.name",
+      "hero.profile.role",
+      "sections.*.title",
+      "sections.*.subtitle",
+      "sections.*.content",
+      "sections.*.highlight",
+      "sections.*.items.*.name",
+      "sections.*.items.*.title",
+      "sections.*.items.*.desc",
+      "sections.*.items.*.count",
+      "sections.*.items.*.date",
+      "sections.*.items.*.excerpt",
+      "sections.*.items.*.value",
+      "footer.description",
+      "footer.copyright"
+    ]
+  },
   "site": {
     "title": "LumiNya · 个人网站",
     "logoPrefix": "Lumi",

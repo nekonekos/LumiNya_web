@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>asy.wiki · 正在跳转</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/redirect.css">
+</head>
+<body class="resolve-page">
+    <main class="resolve-shell" aria-live="polite">
+        <div class="brand-mark">asy<span>.wiki</span></div>
+        <div class="resolve-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p class="eyebrow">PRIVATE LINK ROUTER</p>
+        <h1 id="heading">正在查找链接</h1>
+        <p id="message">请稍候，正在验证这个短地址。</p>
+        <a id="fallback" class="button button--quiet" href="/" hidden>返回首页</a>
+    </main>
+    <script>
+        (() => {
+            const heading = document.querySelector('#heading');
+            const message = document.querySelector('#message');
+            const fallback = document.querySelector('#fallback');
+            const code = location.pathname.split('/').filter(Boolean).pop() || '';
+
+            function showError(title, detail) {
+                heading.textContent = title;
+                message.textContent = detail;
+                fallback.hidden = false;
+            }
+
+            if (!code || code === 'index.html' || code === 'admin.html') {
+                showError('这里没有公开目录', '请使用一个有效的短链接地址。');
+                return;
+            }
+
+            fetch(`/api/links/${encodeURIComponent(code)}`, { headers: { Accept: 'application/json' } })
+                .then((response) => response.ok ? response.json() : Promise.reject(new Error('not-found')))
+                .then((link) => {
+                    document.title = link.title ? `${link.title} · asy.wiki` : '正在跳转 · asy.wiki';
+                    heading.textContent = '即将抵达';
+                    message.textContent = '目标地址已确认，正在打开。';
+                    location.replace(link.target);
+                })
+                .catch(() => showError('短链接不可用', '它可能不存在，或暂时已被停用。'));
+        })();
+    </script>
+</body>
+</html>
