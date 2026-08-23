@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="LumiNya · 网页版 Minecraft" />
+  <title>LumiNya · Minecraft</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/minecraft.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="gameCanvas" aria-label="Minecraft 游戏画面"></canvas>
+
+  <!-- ===== 加载遮罩 ===== -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-inner">
+      <div class="loading-logo">Lumi<span>Nya</span></div>
+      <div class="loading-title">MINECRAFT</div>
+      <div class="loading-bar"><div class="loading-bar-fill" id="loadingBarFill"></div></div>
+      <div class="loading-text" id="loadingText">正在加载…</div>
+    </div>
+  </div>
+
+  <!-- ===== 开始 / 主菜单 ===== -->
+  <div class="menu-screen hidden" id="menuScreen">
+    <div class="menu-panel">
+      <div class="menu-logo">Lumi<span>Nya</span></div>
+      <div class="menu-subtitle">WEB MINECRAFT</div>
+      <div class="menu-buttons">
+        <button class="menu-btn menu-btn--primary" id="btnNewWorld">创建新世界</button>
+        <button class="menu-btn" id="btnContinue">继续游戏</button>
+        <button class="menu-btn" id="btnLoadSlots">存档管理</button>
+        <button class="menu-btn" id="btnSettings">设置</button>
+      </div>
+      <div class="menu-tip">WASD 移动 · 空格 跳跃 · F 飞行 · 鼠标破坏/放置</div>
+    </div>
+  </div>
+
+  <!-- ===== 新世界弹窗 ===== -->
+  <div class="modal-screen hidden" id="newWorldModal">
+    <div class="modal-card">
+      <h2 class="modal-title">创建新世界</h2>
+      <label class="field-label" for="worldName">世界名称</label>
+      <input class="text-input" id="worldName" type="text" maxlength="24" value="我的世界" />
+      <label class="field-label" for="worldSeed">种子（留空随机）</label>
+      <input class="text-input" id="worldSeed" type="text" maxlength="32" placeholder="例如：LumiNya" />
+      <div class="modal-actions">
+        <button class="menu-btn" id="btnCancelNew">取消</button>
+        <button class="menu-btn menu-btn--primary" id="btnConfirmNew">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 存档管理弹窗 ===== -->
+  <div class="modal-screen hidden" id="slotsModal">
+    <div class="modal-card modal-card--wide">
+      <h2 class="modal-title">存档管理</h2>
+      <div class="slot-list" id="slotList"></div>
+      <div class="modal-actions">
+        <button class="menu-btn" id="btnCloseSlots">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 设置弹窗 ===== -->
+  <div class="modal-screen hidden" id="settingsModal">
+    <div class="modal-card">
+      <h2 class="modal-title">设置</h2>
+      <label class="field-label">渲染距离：<span id="renderDistValue">4</span> 区块</label>
+      <input class="range-input" id="renderDistance" type="range" min="2" max="8" step="1" value="4" />
+      <label class="field-label">鼠标灵敏度：<span id="sensitivityValue">1.0</span></label>
+      <input class="range-input" id="sensitivity" type="range" min="0.3" max="2.5" step="0.1" value="1.0" />
+      <label class="field-label checkbox-label"><input type="checkbox" id="soundEnabled" checked /> 开启音效</label>
+      <div class="modal-actions">
+        <button class="menu-btn" id="btnCancelSettings">取消</button>
+        <button class="menu-btn menu-btn--primary" id="btnConfirmSettings">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 暂停菜单 ===== -->
+  <div class="pause-screen hidden" id="pauseScreen">
+    <div class="menu-panel">
+      <div class="menu-subtitle">游戏已暂停</div>
+      <div class="menu-buttons">
+        <button class="menu-btn menu-btn--primary" id="btnResume">继续游戏</button>
+        <button class="menu-btn" id="btnSaveGame">保存世界</button>
+        <button class="menu-btn" id="btnPauseSettings">设置</button>
+        <button class="menu-btn" id="btnQuitToMenu">返回主菜单</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HUD ===== -->
+  <div class="hud hidden" id="hud">
+    <div class="crosshair" id="crosshair"><span class="crosshair-dot"></span></div>
+    <div class="debug-info" id="debugInfo">
+      <span id="debugPos">0, 0, 0</span>
+      <span id="debugFps">0 FPS</span>
+      <span id="debugBiome">平原</span>
+    </div>
+    <div class="hotbar" id="hotbar">
+      <div class="hotbar-slots" id="hotbarSlots"></div>
+    </div>
+    <button class="hud-btn hud-btn--inventory" id="btnInventory" title="背包 (E)">背包</button>
+    <button class="hud-btn hud-btn--menu" id="btnMenu" title="菜单 (Esc)">≡</button>
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+
+  <!-- ===== 点击继续遮罩 ===== -->
+  <div class="click-catcher hidden" id="clickCatcher">
+    <div class="click-catcher-inner">
+      <div class="click-catcher-title">点击进入游戏</div>
+      <div class="click-catcher-sub">将锁定鼠标指针 · Esc 暂停</div>
+    </div>
+  </div>
+
+  <!-- ===== 背包 / 合成界面 ===== -->
+  <div class="inventory-screen hidden" id="inventoryScreen">
+    <div class="inventory-panel">
+      <div class="inventory-header">
+        <span>物品栏</span>
+        <button class="inventory-close" id="btnCloseInventory" title="关闭 (E)">✕</button>
+      </div>
+      <div class="inventory-body">
+        <div class="inventory-main">
+          <div class="inventory-grid" id="inventoryGrid"></div>
+          <div class="inventory-row-note">快捷栏（1-9 切换）</div>
+        </div>
+        <div class="crafting-side">
+          <div class="crafting-title">合成</div>
+          <div class="crafting-grid" id="craftingGrid"></div>
+          <div class="crafting-arrow">→</div>
+          <div class="crafting-result" id="craftingResult"></div>
+          <div class="inventory-row-note">工作台</div>
+        </div>
+        <div class="creative-side hidden" id="creativeSide">
+          <div class="creative-title">创造物品</div>
+          <div class="creative-grid" id="creativeGrid"></div>
+        </div>
+      </div>
+    </div>
+    <div class="inventory-tooltip hidden" id="inventoryTooltip"></div>
+  </div>
+
+  <!-- ===== 移动端触控 ===== -->
+  <div class="touch-controls hidden" id="touchControls">
+    <div class="touch-joystick" id="touchJoystick"><div class="touch-joystick-knob" id="touchJoystickKnob"></div></div>
+    <div class="touch-look" id="touchLook"></div>
+    <div class="touch-actions">
+      <button class="touch-btn touch-btn--jump" id="touchJump">跳</button>
+      <button class="touch-btn touch-btn--fly" id="touchFly">飞</button>
+      <button class="touch-btn touch-btn--inv" id="touchInv">包</button>
+      <button class="touch-btn touch-btn--place" id="touchPlace">放</button>
+      <button class="touch-btn touch-btn--break" id="touchBreak">挖</button>
+    </div>
+  </div>
+
+  <script type="module" src="./js/minecraft.js"></script>
+</body>
+</html>
