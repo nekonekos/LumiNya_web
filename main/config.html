@@ -5,12 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="LumiNya 的只读博客与文件展示器" />
   <title>LumiNya · 文件展示</title>
-  <link rel="stylesheet" href="./css/configpage.css" />
+  <link rel="stylesheet" href="./css/configview.css" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <button class="icon-button menu-button" id="menuButton" type="button" aria-label="打开文件列表" title="文件列表">☰</button>
+      <button class="icon-button menu-button" id="menuButton" type="button" aria-label="打开文件列表" title="文件列表">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
       <a class="brand" href="./index.html"><span class="brand-mark">{ }</span> luminya.blog</a>
       <div class="topbar-status"><span class="status-dot"></span><span id="connectionText">正在读取目录清单</span></div>
       <button class="icon-button" id="themeButton" type="button" aria-label="切换主题" title="切换主题">◐</button>
