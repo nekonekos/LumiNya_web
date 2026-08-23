@@ -1014,6 +1014,8 @@ select {
     transform: translateX(-100%);
     box-shadow: var(--shadow-lg);
     width: min(82vw, 300px);
+    /* 侧边栏需高于遮罩层(40)，否则会被模糊遮罩挡住无法点击 */
+    z-index: 45;
   }
   .sidebar.open {
     transform: translateX(0);
