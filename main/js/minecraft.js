@@ -522,59 +522,87 @@ function generateChunk(chunk) {
         else if (y < 22 && r > 0.996) data[li] = GOLD_ORE;
         else if (y < 14 && r > 0.9985) data[li] = DIAMOND_ORE;
       }
-      // 植被
-      if (surface === GRASS || surface === SNOW_GRASS) {
-        const rp = hashNoise01(x, 999, z);
-        const above = data[cidx(lx, h + 1, lz)];
-        if (above === AIR) {
-          if (biome === 'forest' && rp < 0.9) data[cidx(lx, h + 1, lz)] = TALL_GRASS;
-          else if (biome === 'plains' && rp < 0.92) data[cidx(lx, h + 1, lz)] = TALL_GRASS;
-          else if (rp > 0.985) data[cidx(lx, h + 1, lz)] = POPPY;
-          else if (rp > 0.975) data[cidx(lx, h + 1, lz)] = DANDELION;
-        }
-      }
-      // 树
-      if ((biome === 'forest' || biome === 'plains') && surface === GRASS) {
-        if (hashNoise01(x, 777, z) < (biome === 'forest' ? 0.016 : 0.006)) {
-          growTree(x, h + 1, z);
-        }
-      }
     }
   }
+  // 树木（确定性跨区块生成：每个区块为其重叠的树打上本区块内的部分）
+  stampTrees(chunk);
+  // 植被（在树木之后打，避免长在树干底部）
+  stampVegetation(chunk);
   // 应用编辑差分
   const em = editsByChunk.get(ckey(cx, cz));
   if (em) for (const [li, id] of em) data[li] = id;
   chunk.generated = true;
 }
 
-function growTree(x, y, z) {
-  const th = 4 + Math.floor(hashNoise01(x, y, z) * 3);
-  for (let i = 0; i < th; i++) setRaw(x, y + i, z, LOG);
-  const topY = y + th - 2;
-  for (let dy = -2; dy <= 1; dy++) {
-    const r = dy === 1 ? 1 : 2;
-    for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
-      if (Math.abs(dx) === r && Math.abs(dz) === r && hashNoise01(x + dx, y, z + dz) < 0.5) continue;
-      const yy = topY + dy;
-      if (getRaw(x + dx, yy, z + dz) === AIR) setRaw(x + dx, yy, z + dz, LEAVES);
+/* 判断 (tx,tz) 处是否有一棵树（纯种子函数，与区块生成顺序无关） */
+function treeAt(tx, tz) {
+  const h = heightAt(tx, tz);
+  if (h < SEA + 1) return null; // 水下不长树
+  const t = noise.noise2(tx * 0.0013, tz * 0.0013);
+  const m = noise.noise2(tx * 0.0015 + 500, tz * 0.0015 + 500);
+  let biome = 'plains';
+  if (h >= SEA + 14) biome = 'mountain';
+  else if (t < -0.16) biome = 'snow';
+  else if (t > 0.18 && m < -0.05) biome = 'desert';
+  else if (m > 0.12) biome = 'forest';
+  if (biome !== 'forest' && biome !== 'plains') return null;
+  if (hashNoise01(tx, 777, tz) >= (biome === 'forest' ? 0.016 : 0.006)) return null;
+  const th = 4 + Math.floor(hashNoise01(tx, h + 1, tz) * 3);
+  return { h, th };
+}
+
+/* 为当前区块打上所有与本区块重叠的树木（只写本区块内的方块） */
+function stampTrees(chunk) {
+  const { cx, cz, data } = chunk;
+  const x0 = cx * CHUNK - 2, x1 = cx * CHUNK + CHUNK + 1;
+  const z0 = cz * CHUNK - 2, z1 = cz * CHUNK + CHUNK + 1;
+  const set = (x, y, z, id) => {
+    if (y < 0 || y >= HEIGHT) return;
+    if (x < cx * CHUNK || x >= cx * CHUNK + CHUNK) return;
+    if (z < cz * CHUNK || z >= cz * CHUNK + CHUNK) return;
+    const li = cidx(x - cx * CHUNK, y, z - cz * CHUNK);
+    if (data[li] === AIR) data[li] = id;
+  };
+  for (let tx = x0; tx <= x1; tx++) {
+    for (let tz = z0; tz <= z1; tz++) {
+      const tree = treeAt(tx, tz);
+      if (!tree) continue;
+      const baseY = tree.h + 1;
+      // 树干
+      for (let i = 0; i < tree.th; i++) set(tx, baseY + i, tz, LOG);
+      // 树冠
+      const topY = baseY + tree.th - 2;
+      for (let dy = -2; dy <= 1; dy++) {
+        const r = dy === 1 ? 1 : 2;
+        for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+          if (Math.abs(dx) === r && Math.abs(dz) === r && hashNoise01(tx + dx, baseY, tz + dz) < 0.5) continue;
+          set(tx + dx, topY + dy, tz + dz, LEAVES);
+        }
+      }
+      set(tx, baseY + tree.th, tz, LEAVES);
     }
   }
-  setRaw(x, y + th, z, LEAVES);
 }
-function getRaw(x, y, z) {
-  if (y < 0 || y >= HEIGHT) return AIR;
-  const cx = Math.floor(x / CHUNK), cz = Math.floor(z / CHUNK);
-  const chunk = chunks.get(ckey(cx, cz));
-  if (!chunk) return AIR;
-  const lx = x - cx * CHUNK, lz = z - cz * CHUNK;
-  return chunk.data[cidx(lx, y, lz)];
-}
-function setRaw(x, y, z, id) {
-  if (y < 0 || y >= HEIGHT) return;
-  const cx = Math.floor(x / CHUNK), cz = Math.floor(z / CHUNK);
-  const chunk = chunks.get(ckey(cx, cz));
-  if (!chunk) return;
-  chunk.data[cidx(x - cx * CHUNK, y, z - cz * CHUNK)] = id;
+
+/* 植被：只种在草地/雪草地上方一格且该格为空（AIR）的位置 */
+function stampVegetation(chunk) {
+  const { cx, cz, data } = chunk;
+  for (let lx = 0; lx < CHUNK; lx++) {
+    for (let lz = 0; lz < CHUNK; lz++) {
+      const x = cx * CHUNK + lx, z = cz * CHUNK + lz;
+      const h = heightAt(x, z);
+      const surface = data[cidx(lx, h, lz)];
+      if (surface !== GRASS && surface !== SNOW_GRASS) continue;
+      const li = cidx(lx, h + 1, lz);
+      if (data[li] !== AIR) continue; // 树干等占位时跳过
+      const biome = biomeAt(x, z);
+      const rp = hashNoise01(x, 999, z);
+      if (biome === 'forest' && rp < 0.35) data[li] = TALL_GRASS;
+      else if (biome === 'plains' && rp < 0.22) data[li] = TALL_GRASS;
+      else if (rp > 0.985) data[li] = POPPY;
+      else if (rp > 0.97) data[li] = DANDELION;
+    }
+  }
 }
 
 function findSpawn() {
@@ -659,11 +687,14 @@ function meshChunk(chunk) {
       for (let ly = 0; ly < HEIGHT; ly++) {
         const id = data[cidx(lx, ly, lz)];
         if (id === AIR) continue;
-        const bx = cx * CHUNK + lx, by = ly, bz = cz * CHUNK + lz;
+        // 世界坐标：用于邻居查找（面剔除 / AO）
+        const wx = cx * CHUNK + lx, wy = ly, wz = cz * CHUNK + lz;
+        // 本地坐标：用于顶点位置（网格随后整体平移到区块原点）
+        const px = lx, py = ly, pz = lz;
         const def = BLOCKS[id];
         if (!def) continue;
         if (def.cross) {
-          addCross(builders.cutout, bx, by, bz, def.top);
+          addCross(builders.cutout, px, py, pz, def.top);
           continue;
         }
         const isWater = id === WATER;
@@ -672,11 +703,9 @@ function meshChunk(chunk) {
         const target = isWater ? builders.water : isGlass ? builders.glass : isCutout ? builders.cutout : builders.opaque;
         for (const face of FACES) {
           const nx = face.n[0], ny = face.n[1], nz = face.n[2];
-          const nb = getBlock(bx + nx, by + ny, bz + nz);
+          const nb = getBlock(wx + nx, wy + ny, wz + nz);
           if (!shouldRenderFace(id, nb)) continue;
-          let tile = face.d === 1 ? (ny > 0 ? def.top : def.bottom) : def.side;
-          // 树木：竖直面用树皮纹理，顶/底面用年轮纹理
-          if (id === LOG) tile = (face.d === 1) ? (ny > 0 ? def.top : def.bottom) : def.side;
+          const tile = face.d === 1 ? (ny > 0 ? def.top : def.bottom) : def.side;
           const uvRect = tileUV(tile);
           let topYOffset = 0;
           if (isWater && ny > 0) topYOffset = -0.125;
@@ -685,14 +714,6 @@ function meshChunk(chunk) {
           const uvArr = [];
           for (let ci = 0; ci < 4; ci++) {
             const c = corners[ci];
-            // 归一化面内坐标
-            let u, v;
-            if (face.d === 0) { u = c[2]; v = c[1]; }
-            else if (face.d === 1) { u = c[0]; v = c[2]; }
-            else { u = c[0]; v = c[1]; }
-            const U = uvRect.u0 + u * (uvRect.u1 - uvRect.u0);
-            const V = uvRect.v0 + (1 - v) * (uvRect.v1 - uvRect.v0);
-            uvArr.push([U, V]);
             // AO 与光照
             const axes = [0, 1, 2].filter(a => a !== face.d);
             const a1 = axes[0], a2 = axes[1];
@@ -700,19 +721,27 @@ function meshChunk(chunk) {
             const s2 = c[a2] === 1 ? 1 : -1;
             const e1 = [0, 0, 0]; e1[a1] = s1;
             const e2 = [0, 0, 0]; e2[a2] = s2;
-            const ox1 = bx + nx + e1[0], oy1 = by + ny + e1[1], oz1 = bz + nz + e1[2];
-            const ox2 = bx + nx + e2[0], oy2 = by + ny + e2[1], oz2 = bz + nz + e2[2];
-            const ox3 = bx + nx + e1[0] + e2[0], oy3 = by + ny + e1[1] + e2[1], oz3 = bz + nz + e1[2] + e2[2];
+            const ox1 = wx + nx + e1[0], oy1 = wy + ny + e1[1], oz1 = wz + nz + e1[2];
+            const ox2 = wx + nx + e2[0], oy2 = wy + ny + e2[1], oz2 = wz + nz + e2[2];
+            const ox3 = wx + nx + e1[0] + e2[0], oy3 = wy + ny + e1[1] + e2[1], oz3 = wz + nz + e1[2] + e2[2];
             const b1 = isOpaque(getBlock(ox1, oy1, oz1)) ? 1 : 0;
             const b2 = isOpaque(getBlock(ox2, oy2, oz2)) ? 1 : 0;
             const b3 = isOpaque(getBlock(ox3, oy3, oz3)) ? 1 : 0;
             const ao = (b1 && b2) ? 0 : 3 - (b1 + b2 + b3);
             lights.push(face.shade * AO_BRIGHT[ao]);
+            // UV（flipY=true：v0=底部，v1=顶部；块底→v0，块顶→v1）
+            let u, v;
+            if (face.d === 0) { u = c[2]; v = c[1]; }
+            else if (face.d === 1) { u = c[0]; v = c[2]; }
+            else { u = c[0]; v = c[1]; }
+            const U = uvRect.u0 + u * (uvRect.u1 - uvRect.u0);
+            const V = uvRect.v0 + v * (uvRect.v1 - uvRect.v0);
+            uvArr.push([U, V]);
           }
-          const p0 = [bx + corners[0][0], by + corners[0][1] + topYOffset, bz + corners[0][2]];
-          const p1 = [bx + corners[1][0], by + corners[1][1] + topYOffset, bz + corners[1][2]];
-          const p2 = [bx + corners[2][0], by + corners[2][1] + topYOffset, bz + corners[2][2]];
-          const p3 = [bx + corners[3][0], by + corners[3][1] + topYOffset, bz + corners[3][2]];
+          const p0 = [px + corners[0][0], py + corners[0][1] + topYOffset, pz + corners[0][2]];
+          const p1 = [px + corners[1][0], py + corners[1][1] + topYOffset, pz + corners[1][2]];
+          const p2 = [px + corners[2][0], py + corners[2][1] + topYOffset, pz + corners[2][2]];
+          const p3 = [px + corners[3][0], py + corners[3][1] + topYOffset, pz + corners[3][2]];
           target.quad(p0, p1, p2, p3, face.n, uvArr[0], uvArr[1], uvArr[2], uvArr[3], lights[0], lights[1], lights[2], lights[3]);
         }
       }
@@ -864,7 +893,7 @@ let atlasTexture;
 
 function initThree() {
   const canvas = document.getElementById('gameCanvas');
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: true });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -872,7 +901,7 @@ function initThree() {
   scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xbfd7ee, renderDistance * CHUNK * 0.45, renderDistance * CHUNK * 0.95);
 
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 600);
+  camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 600);
   camera.rotation.order = 'YXZ';
 
   // 天空穹顶
@@ -990,7 +1019,8 @@ function updateChunks() {
     if (!chunk.generated && genBudget > 0) { generateChunk(chunk); genBudget--; markDirty(cx - 1, cz); markDirty(cx + 1, cz); markDirty(cx, cz - 1); markDirty(cx, cz + 1); }
     if (chunk.generated && chunk.dirty && meshBudget > 0) { meshChunk(chunk); meshBudget--; }
   }
-  scene.fog.far = renderDistance * CHUNK * 0.9;
+  scene.fog.near = renderDistance * CHUNK * 0.45;
+  scene.fog.far = renderDistance * CHUNK * 0.95;
 }
 
 /* ============================ 音效 ============================ */
@@ -1556,7 +1586,7 @@ function bindInput() {
       if (gameState === 'playing') pauseGame();
       else if (gameState === 'paused') resumeGame();
     }
-    if (e.code === 'F3') { e.preventDefault(); el.debugInfo.style.display = el.debugInfo.style.display === 'none' ? 'flex' : 'none'; }
+    if (e.code === 'F3') { e.preventDefault(); debugInfoEnabled = !debugInfoEnabled; applyDebugInfo(); saveSettings(); }
     if (gameState === 'playing' && !inventoryOpen) {
       const num = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'];
       const ni = num.indexOf(e.code);
@@ -1710,6 +1740,10 @@ function placeBlock() {
 let lastTime = performance.now();
 let fpsFrames = 0, fpsTime = 0, fps = 0;
 let sensitivity = 1.0;
+let fov = 75;
+let debugInfoEnabled = false;
+let autoSaveEnabled = true;
+const SETTINGS_KEY = 'luminya_mc_settings';
 
 function animate(now) {
   requestAnimationFrame(animate);
@@ -1729,7 +1763,7 @@ function animate(now) {
     updateHighlight();
     updateDebug();
     // 自动保存
-    if (now - lastAutoSave > 30000 && activeSaveName) { lastAutoSave = now; saveGame(true); }
+    if (autoSaveEnabled && now - lastAutoSave > 30000 && activeSaveName) { lastAutoSave = now; saveGame(true); }
   }
 
   camera.position.set(player.x, player.y + EYE, player.z);
@@ -1757,10 +1791,14 @@ function updateHighlight() {
   }
 }
 function updateDebug() {
+  if (!debugInfoEnabled) return;
   el.debugPos.textContent = `XYZ: ${player.x.toFixed(1)} / ${player.y.toFixed(1)} / ${player.z.toFixed(1)}`;
   el.debugFps.textContent = fps + ' FPS';
   const b = biomeAt(Math.floor(player.x), Math.floor(player.z));
   el.debugBiome.textContent = BIOME_CN[b] || b;
+}
+function applyDebugInfo() {
+  el.debugInfo.style.display = debugInfoEnabled ? 'flex' : 'none';
 }
 
 /* ============================ 启动 ============================ */
@@ -1803,11 +1841,18 @@ function init() {
   el.renderDistance = $('#renderDistance');
   el.sensitivity = $('#sensitivity');
   el.soundEnabled = $('#soundEnabled');
+  el.fov = $('#fov');
+  el.fovValue = $('#fovValue');
+  el.debugInfoEnabled = $('#debugInfoEnabled');
+  el.autoSaveEnabled = $('#autoSaveEnabled');
+  el.aboutModal = $('#aboutModal');
 
+  loadSettings();
   buildAtlas();
   initThree();
   bindInput();
   renderHotbar(); renderCreative();
+  applyDebugInfo();
 
   // 菜单按钮
   $('#btnNewWorld').onclick = () => { el.newWorldModal.classList.remove('hidden'); };
@@ -1831,17 +1876,25 @@ function init() {
   $('#btnPauseSettings').onclick = openSettings;
   $('#btnCancelSettings').onclick = () => el.settingsModal.classList.add('hidden');
   $('#btnConfirmSettings').onclick = () => {
+    fov = parseInt(el.fov.value, 10);
     renderDistance = parseInt(el.renderDistance.value, 10);
     sensitivity = parseFloat(el.sensitivity.value);
     soundOn = el.soundEnabled.checked;
-    el.renderDistValue.textContent = renderDistance;
-    el.sensitivityValue.textContent = sensitivity.toFixed(1);
+    debugInfoEnabled = el.debugInfoEnabled.checked;
+    autoSaveEnabled = el.autoSaveEnabled.checked;
+    applyFov();
+    applyDebugInfo();
+    scene.fog.near = renderDistance * CHUNK * 0.45;
+    scene.fog.far = renderDistance * CHUNK * 0.95;
+    saveSettings();
     el.settingsModal.classList.add('hidden');
     showToast('设置已保存');
   };
   $('#btnResume').onclick = resumeGame;
   $('#btnSaveGame').onclick = () => saveGame(false);
   $('#btnQuitToMenu').onclick = () => { saveGame(true); showMenu(); };
+  $('#btnAbout').onclick = () => el.aboutModal.classList.remove('hidden');
+  $('#btnCloseAbout').onclick = () => el.aboutModal.classList.add('hidden');
   $('#btnInventory').onclick = () => { if (inventoryOpen) closeInventory(); else openInventory(); };
   $('#btnMenu').onclick = () => { if (gameState === 'playing') pauseGame(); };
   $('#btnCloseInventory').onclick = closeInventory;
@@ -1862,11 +1915,16 @@ function init() {
 
   el.renderDistance.addEventListener('input', () => el.renderDistValue.textContent = el.renderDistance.value);
   el.sensitivity.addEventListener('input', () => el.sensitivityValue.textContent = parseFloat(el.sensitivity.value).toFixed(1));
+  el.fov.addEventListener('input', () => el.fovValue.textContent = el.fov.value);
 
   function openSettings() {
+    el.fov.value = fov;
+    el.fovValue.textContent = fov;
     el.renderDistance.value = renderDistance;
     el.sensitivity.value = sensitivity;
     el.soundEnabled.checked = soundOn;
+    el.debugInfoEnabled.checked = debugInfoEnabled;
+    el.autoSaveEnabled.checked = autoSaveEnabled;
     el.renderDistValue.textContent = renderDistance;
     el.sensitivityValue.textContent = sensitivity.toFixed(1);
     el.settingsModal.classList.remove('hidden');
@@ -1881,6 +1939,32 @@ function hashString(s) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   return h >>> 0;
+}
+
+/* ============================ 设置持久化 ============================ */
+function applyFov() {
+  camera.fov = fov;
+  camera.updateProjectionMatrix();
+}
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (typeof s.renderDistance === 'number') renderDistance = s.renderDistance;
+    if (typeof s.sensitivity === 'number') sensitivity = s.sensitivity;
+    if (typeof s.fov === 'number') fov = s.fov;
+    if (typeof s.soundOn === 'boolean') soundOn = s.soundOn;
+    if (typeof s.debugInfo === 'boolean') debugInfoEnabled = s.debugInfo;
+    if (typeof s.autoSave === 'boolean') autoSaveEnabled = s.autoSave;
+  } catch (e) { /* 忽略损坏的设置 */ }
+}
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      renderDistance, sensitivity, fov, soundOn, debugInfo: debugInfoEnabled, autoSave: autoSaveEnabled,
+    }));
+  } catch (e) { /* 忽略 */ }
 }
 
 init();

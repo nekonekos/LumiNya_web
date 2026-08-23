@@ -253,6 +253,40 @@ button {
 }
 .modal-actions .menu-btn { width: auto; min-width: 96px; }
 
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.settings-grid .field-label {
+  margin: 8px 0 2px;
+  font-size: 14px;
+  color: var(--mc-text);
+}
+.settings-grid .field-label span {
+  color: var(--mc-accent);
+  font-weight: 600;
+}
+.settings-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--mc-border);
+}
+.about-line {
+  font-size: 14px;
+  color: var(--mc-text-dim);
+  text-align: center;
+  line-height: 1.9;
+}
+.about-line:first-of-type {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--mc-text);
+}
+
 /* ===== 存档列表 ===== */
 .slot-list {
   display: flex;
