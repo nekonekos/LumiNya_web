@@ -110,6 +110,33 @@ button {
   font-size: 13px;
 }
 
+/* ===== 错误遮罩 ===== */
+.error-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 14, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.error-face {
+  font-size: 64px;
+  line-height: 1;
+  text-align: center;
+  color: var(--mc-gold);
+  margin-bottom: 18px;
+}
+.error-text {
+  font-size: 14px;
+  color: var(--mc-text-dim);
+  text-align: center;
+  line-height: 1.8;
+  margin: 12px 0 24px;
+}
+
 /* ===== 菜单屏 ===== */
 .menu-screen, .pause-screen {
   position: fixed;
@@ -353,12 +380,85 @@ button {
   left: 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   font-size: 12px;
   font-family: 'Noto Sans SC', monospace;
   color: #eaf2ea;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
   pointer-events: none;
+  background: rgba(12, 14, 19, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  backdrop-filter: blur(2px);
+}
+.debug-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+#debugChart {
+  display: block;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  image-rendering: pixelated;
+}
+
+/* ===== 聊天与指令 ===== */
+.chat {
+  position: absolute;
+  left: 14px;
+  bottom: 96px;
+  width: 340px;
+  max-width: 80vw;
+  pointer-events: none;
+  font-size: 14px;
+}
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 180px;
+  overflow: hidden;
+  justify-content: flex-end;
+}
+.chat-line {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  line-height: 1.4;
+  word-break: break-word;
+  animation: chat-fade 6s forwards;
+}
+@keyframes chat-fade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.chat-line .chat-name { color: #f2c14e; font-weight: 600; }
+.chat-line .chat-sys { color: #9aa2b1; }
+.chat-line .chat-err { color: #e25555; }
+.chat-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  pointer-events: auto;
+  background: rgba(12, 14, 19, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.chat-prompt {
+  color: #f2c14e;
+  font-weight: 700;
+}
+.chat-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 14px;
+  font-family: 'Noto Sans SC', monospace;
 }
 
 .hud-btn {
@@ -441,35 +541,37 @@ button {
 .slot.dragging { opacity: 0.5; }
 .slot.drag-over { border-color: var(--mc-accent); box-shadow: 0 0 0 2px rgba(84, 200, 90, 0.4); }
 
-/* ===== 点击继续遮罩 ===== */
-.click-catcher {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(6, 8, 12, 0.4);
-  cursor: pointer;
-  pointer-events: auto;
-}
-.click-catcher-inner {
-  text-align: center;
-  padding: 26px 40px;
-  background: rgba(18, 20, 26, 0.85);
+/* ===== 光标选中方块信息 ===== */
+.block-info {
+  position: absolute;
+  bottom: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  background: rgba(18, 20, 26, 0.78);
   border: 1px solid var(--mc-border-strong);
-  border-radius: 16px;
-  animation: menu-in 0.25s ease;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
-.click-catcher-title {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-.click-catcher-sub {
-  margin-top: 10px;
-  font-size: 13px;
-  color: var(--mc-text-dim);
+
+/* ===== 物品悬停气泡 ===== */
+.hover-tooltip {
+  position: fixed;
+  z-index: 80;
+  padding: 7px 12px;
+  background: rgba(12, 14, 19, 0.96);
+  border: 1px solid var(--mc-border-strong);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: var(--mc-shadow);
+  transform: translate(12px, 12px);
 }
 
 /* ===== Toast ===== */
@@ -533,13 +635,25 @@ button {
   gap: 24px;
   align-items: flex-start;
 }
+.inventory-body.creative-body {
+  flex-direction: row;
+  align-items: stretch;
+}
+.inventory-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  padding-left: 24px;
+  border-left: 1px solid var(--mc-border);
+}
 .inventory-grid {
   display: grid;
-  grid-template-columns: repeat(9, 52px);
+  grid-template-columns: repeat(3, 52px);
   gap: 4px;
 }
 .inventory-row-note {
-  margin-top: 10px;
+  margin-top: 2px;
   font-size: 12px;
   color: var(--mc-text-dim);
   text-align: center;
@@ -547,46 +661,44 @@ button {
 .inventory-grid .slot { width: 52px; height: 52px; }
 .inventory-grid .slot img { width: 40px; height: 40px; }
 
-.crafting-side {
+.trash-area {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-left: 24px;
-  border-left: 1px solid var(--mc-border);
   flex-direction: column;
-}
-.crafting-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
-.crafting-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 48px);
+  align-items: center;
   gap: 4px;
+  margin-top: 12px;
 }
-.crafting-grid .slot { width: 48px; height: 48px; }
-.crafting-grid .slot img { width: 36px; height: 36px; }
-.crafting-arrow { font-size: 22px; color: var(--mc-text-dim); }
-.crafting-result {
-  width: 48px;
-  height: 48px;
-  border: 2px dashed var(--mc-border-strong);
-  border-radius: 8px;
+.trash-slot {
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 22px;
+  background: rgba(226, 85, 85, 0.12);
+  border: 2px dashed rgba(226, 85, 85, 0.45);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
-.crafting-result img { width: 36px; height: 36px; image-rendering: pixelated; }
-.crafting-result .slot { width: 48px; height: 48px; border: none; }
+.trash-slot:hover, .trash-slot.drag-over {
+  background: rgba(226, 85, 85, 0.28);
+  border-color: var(--mc-danger);
+}
+.trash-label { font-size: 12px; color: var(--mc-text-dim); }
 
 .creative-side {
-  padding-left: 24px;
-  border-left: 1px solid var(--mc-border);
+  padding-left: 0;
+  border-left: none;
   max-width: 340px;
+  min-width: 340px;
 }
 .creative-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
 .creative-grid {
   display: grid;
   grid-template-columns: repeat(6, 46px);
   gap: 4px;
-  max-height: 320px;
+  max-height: 340px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -677,11 +789,11 @@ button {
   .slot { width: 40px; height: 40px; }
   .slot img { width: 30px; height: 30px; }
   .inventory-body { flex-direction: column; align-items: center; }
-  .inventory-grid { grid-template-columns: repeat(9, 40px); }
+  .inventory-grid { grid-template-columns: repeat(3, 40px); }
   .inventory-grid .slot { width: 40px; height: 40px; }
   .inventory-grid .slot img { width: 30px; height: 30px; }
-  .crafting-side { padding-left: 0; border-left: none; border-top: 1px solid var(--mc-border); padding-top: 16px; flex-direction: row; flex-wrap: wrap; justify-content: center; }
-  .creative-side { padding-left: 0; border-left: none; border-top: 1px solid var(--mc-border); padding-top: 16px; max-width: 100%; }
+  .inventory-right { padding-left: 0; border-left: none; border-top: 1px solid var(--mc-border); padding-top: 16px; }
+  .creative-side { padding-left: 0; border-left: none; border-top: 1px solid var(--mc-border); padding-top: 16px; max-width: 100%; min-width: 0; }
   .creative-grid { max-height: 180px; }
   .hotbar-slots { gap: 3px; padding: 4px; }
   .hud-btn--inventory { bottom: 76px; }

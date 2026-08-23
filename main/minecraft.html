@@ -30,6 +30,19 @@
     </div>
   </div>
 
+  <!-- ===== WebGL 错误遮罩 ===== -->
+  <div class="error-screen hidden" id="errorScreen">
+    <div class="menu-panel">
+      <div class="error-face">☹</div>
+      <div class="menu-subtitle">渲染引擎初始化失败</div>
+      <p class="error-text">WebGL 上下文无法创建或已丢失。<br/>可能是显卡驱动问题或浏览器限制了 WebGL。</p>
+      <div class="menu-buttons">
+        <button class="menu-btn menu-btn--primary" id="btnRetryGL">重试</button>
+        <button class="menu-btn" id="btnReloadPage">刷新页面</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== 开始 / 主菜单 ===== -->
   <div class="menu-screen hidden" id="menuScreen">
     <div class="menu-panel">
@@ -126,9 +139,16 @@
   <div class="hud hidden" id="hud">
     <div class="crosshair" id="crosshair"><span class="crosshair-dot"></span></div>
     <div class="debug-info" id="debugInfo">
-      <span id="debugPos">0, 0, 0</span>
-      <span id="debugFps">0 FPS</span>
-      <span id="debugBiome">平原</span>
+      <div class="debug-lines">
+        <span id="debugPos">0, 0, 0</span>
+        <span id="debugFps">0 FPS</span>
+        <span id="debugBiome">平原</span>
+        <span id="debugChunk">区块 0, 0</span>
+        <span id="debugFacing">朝向 南</span>
+        <span id="debugSeed">种子 0</span>
+        <span id="debugExtra">飞行 关 · 粒子 0 · 区块 0</span>
+      </div>
+      <canvas id="debugChart" width="220" height="60"></canvas>
     </div>
     <div class="hotbar" id="hotbar">
       <div class="hotbar-slots" id="hotbarSlots"></div>
@@ -136,38 +156,38 @@
     <button class="hud-btn hud-btn--inventory" id="btnInventory" title="背包 (E)">背包</button>
     <button class="hud-btn hud-btn--menu" id="btnMenu" title="菜单 (Esc)">≡</button>
     <div class="toast" id="toast" role="status"></div>
-  </div>
-
-  <!-- ===== 点击继续遮罩 ===== -->
-  <div class="click-catcher hidden" id="clickCatcher">
-    <div class="click-catcher-inner">
-      <div class="click-catcher-title">点击进入游戏</div>
-      <div class="click-catcher-sub">将锁定鼠标指针 · Esc 暂停</div>
+    <div class="block-info hidden" id="blockInfo"></div>
+    <div class="chat" id="chat">
+      <div class="chat-log" id="chatLog"></div>
+      <div class="chat-bar hidden" id="chatBar">
+        <span class="chat-prompt" id="chatPrompt">›</span>
+        <input class="chat-input" id="chatInput" type="text" maxlength="200" autocomplete="off" spellcheck="false" />
+      </div>
     </div>
   </div>
 
-  <!-- ===== 背包 / 合成界面 ===== -->
+  <!-- ===== 物品悬停气泡 ===== -->
+  <div class="hover-tooltip hidden" id="hoverTooltip"></div>
+
+  <!-- ===== 背包 / 创造物品栏 ===== -->
   <div class="inventory-screen hidden" id="inventoryScreen">
     <div class="inventory-panel">
       <div class="inventory-header">
-        <span>物品栏</span>
+        <span>物品栏（创造模式）</span>
         <button class="inventory-close" id="btnCloseInventory" title="关闭 (E)">✕</button>
       </div>
-      <div class="inventory-body">
-        <div class="inventory-main">
-          <div class="inventory-grid" id="inventoryGrid"></div>
-          <div class="inventory-row-note">快捷栏（1-9 切换）</div>
-        </div>
-        <div class="crafting-side">
-          <div class="crafting-title">合成</div>
-          <div class="crafting-grid" id="craftingGrid"></div>
-          <div class="crafting-arrow">→</div>
-          <div class="crafting-result" id="craftingResult"></div>
-          <div class="inventory-row-note">工作台</div>
-        </div>
-        <div class="creative-side hidden" id="creativeSide">
+      <div class="inventory-body creative-body">
+        <div class="creative-side" id="creativeSide">
           <div class="creative-title">创造物品</div>
           <div class="creative-grid" id="creativeGrid"></div>
+        </div>
+        <div class="inventory-right">
+          <div class="inventory-grid" id="inventoryGrid"></div>
+          <div class="inventory-row-note">快捷栏（1-9 切换 · 点击/拖拽整理）</div>
+          <div class="trash-area">
+            <div class="trash-slot" id="trashSlot" title="将物品拖到这里销毁">🗑</div>
+            <div class="trash-label">销毁物品</div>
+          </div>
         </div>
       </div>
     </div>
