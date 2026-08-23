@@ -3,41 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="LumiNya 的个人配置文件编辑器" />
-  <title>config://luminya.profile</title>
+  <meta name="description" content="LumiNya 的只读博客与文件展示器" />
+  <title>LumiNya · 文件展示</title>
   <link rel="stylesheet" href="./css/configpage.css" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="./index.html"><span class="brand-mark">{ }</span> luminya.profile</a>
-      <div class="topbar-status"><span class="status-dot"></span><span id="connectionText">正在连接配置源</span></div>
+      <a class="brand" href="./index.html"><span class="brand-mark">{ }</span> luminya.blog</a>
+      <div class="topbar-status"><span class="status-dot"></span><span id="connectionText">正在读取目录清单</span></div>
       <button class="icon-button" id="themeButton" type="button" aria-label="切换主题" title="切换主题">◐</button>
     </header>
 
     <div class="workspace">
       <aside class="activitybar" aria-label="工具栏">
-        <button class="activity active" type="button" title="配置文件">▤</button>
-        <button class="activity" type="button" title="本地存储">◫</button>
+        <button class="activity active" type="button" title="资源管理器">▤</button>
+        <button class="activity" type="button" title="文件">◫</button>
         <span class="activity-spacer"></span>
         <button class="activity" id="helpButton" type="button" title="使用说明">?</button>
       </aside>
 
       <aside class="sidebar">
         <div class="sidebar-heading"><span>资源管理器</span><span class="sidebar-kebab">···</span></div>
-        <div class="folder-label">LUMINYA_WEB</div>
-        <button class="file-entry selected" type="button"><span class="file-icon">{ }</span> config.json <span class="dirty-indicator" id="dirtyIndicator"></span></button>
-        <div class="sidebar-note"><span class="lock-mini">⌁</span> 灰色字段为只读信息</div>
+        <div class="folder-label">LUMINYA_CFG</div>
+        <div class="file-tree" id="fileTree"><div class="loading">正在读取目录…</div></div>
+        <div class="sidebar-note"><span class="lock-mini">⌁</span> 只读展示 · 文件由后端更新</div>
       </aside>
 
       <main class="editor-area">
-        <div class="tabbar"><div class="tab active"><span class="file-icon">{ }</span> config.json <button id="closeTab" type="button" aria-label="关闭标签页">×</button></div></div>
+        <div class="tabbar" id="tabbar"></div>
         <div class="editor-toolbar">
-          <div><span class="crumb">LUMINYA_WEB</span><span class="crumb-separator">/</span><strong>config.json</strong></div>
-          <div class="toolbar-actions"><span class="save-state" id="saveState">已同步</span><button class="text-button" id="resetButton" type="button">恢复拉取版</button><button class="save-button" id="saveButton" type="button">保存本地版</button></div>
+          <div><span class="crumb">LUMINYA_CFG</span><span class="crumb-separator">/</span><strong id="crumbName">欢迎页</strong></div>
+          <div class="toolbar-actions"><span class="save-state" id="saveState">只读</span></div>
         </div>
-        <section class="editor" aria-label="配置文件编辑器"><div id="configTree" class="config-tree"><div class="loading">正在读取 config.json ...</div></div></section>
-        <div class="editor-footer"><span>JSON with Comments</span><span id="cursorStatus">Ln 1, Col 1</span><span>UTF-8</span><span>LF</span></div>
+        <section class="editor" aria-label="文件阅读器"><div id="codeView" class="code-view"><div class="loading">正在读取目录清单…</div></div></section>
+        <div class="editor-footer"><span id="langLabel">文本</span><span id="lineCount">0 行</span><span>UTF-8</span><span>自动换行</span></div>
       </main>
     </div>
   </div>
@@ -50,22 +50,18 @@
     </section>
   </div>
   <script>
-    const STORAGE_KEY = 'luminya.config.local';
-    const VERSION_KEY = 'luminya.config.serverVersion';
-    let serverConfig = null;
-    let workingConfig = null;
-    let localVersion = null;
-    let isDirty = false;
-    let lineCounter = 0;
-
+    const CONFIG_URL = './cfg/conf.json';
     const $ = (selector) => document.querySelector(selector);
-    const clone = (value) => JSON.parse(JSON.stringify(value));
-    const pathLabel = (path) => path.length ? path.join('.') : 'config';
-    const matchesPath = (pattern, path) => {
-      const parts = pattern.split('.');
-      return parts.length === path.length && parts.every((part, index) => part === '*' || part === String(path[index]));
-    };
-    const isEditable = (key, path) => (serverConfig?._editor?.editable || []).some((pattern) => matchesPath(pattern, path));
+    const escapeHtml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const fileIcons = { json: '{ }', html: '<>', xml: '<>', md: 'M↓', txt: '≡' };
+    const fileClasses = { json: 'ficon-json', html: 'ficon-html', xml: 'ficon-xml', md: 'ficon-md', txt: 'ficon-txt' };
+    const langLabels = { json: 'JSON', html: 'HTML', xml: 'XML', md: 'Markdown', txt: '纯文本' };
+
+    let manifest = null;
+    let activePath = null;
+    let activeLang = null;
+    let tabs = [];
 
     function showToast(message, kind = 'normal') {
       const toast = $('#toast'); toast.textContent = message; toast.className = `toast visible ${kind}`;
@@ -80,63 +76,240 @@
     }
     function closeModal() { $('#modalBackdrop').hidden = true; }
 
-    function valueText(value) {
-      if (typeof value === 'string') return `"${value.replaceAll('"', '\\"')}"`;
-      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-      return JSON.stringify(value);
+    function typeOfPath(path) {
+      const ext = path.split('.').pop().toLowerCase();
+      return ['txt', 'html', 'xml', 'json', 'md'].includes(ext) ? ext : 'txt';
     }
 
-    function renderTree(value, path = [], depth = 0, key = null, isLast = true) {
-      const fragment = document.createDocumentFragment();
-      const isContainer = value && typeof value === 'object';
-      const row = document.createElement('div'); row.className = 'code-row'; row.style.setProperty('--depth', depth); row.dataset.path = pathLabel(path);
-      const lineNumber = document.createElement('span'); lineNumber.className = 'line-number'; lineNumber.textContent = String(++lineCounter);
-      const code = document.createElement('div'); code.className = 'code-line';
-      const keyText = key === null ? '' : `<span class="key">${key}</span><span class="colon">:</span> `;
-      if (isContainer) {
-        const toggle = document.createElement('button'); toggle.className = 'fold-button'; toggle.type = 'button'; toggle.textContent = '⌄'; toggle.title = '折叠/展开';
-        const open = Array.isArray(value) ? '[' : '{'; const close = Array.isArray(value) ? ']' : '}';
-        code.innerHTML = `${keyText}<span class="bracket">${open}</span>`; code.prepend(toggle); row.append(lineNumber, code); fragment.append(row);
-        const children = document.createElement('div'); children.className = 'tree-children';
-        const entries = Array.isArray(value) ? value.map((item, index) => [index, item]) : Object.entries(value).filter(([childKey]) => childKey !== '_editor');
-        entries.forEach(([childKey, childValue], index) => children.append(renderTree(childValue, path.concat(childKey), depth + 1, Array.isArray(value) ? null : childKey, index === entries.length - 1)));
-        const closeRow = document.createElement('div'); closeRow.className = 'code-row closing-row'; closeRow.style.setProperty('--depth', depth); closeRow.innerHTML = `<span class="line-number">${++lineCounter}</span><div class="code-line"><span class="bracket">${close}</span>${isLast ? '' : ','}</div>`;
-        children.append(closeRow); fragment.append(children); toggle.addEventListener('click', () => { children.classList.toggle('collapsed'); toggle.textContent = children.classList.contains('collapsed') ? '›' : '⌄'; });
-      } else {
-        const editable = key !== null && isEditable(String(key), path);
-        code.innerHTML = `${keyText}<span class="value ${typeof value}"></span><span class="comma">${isLast ? '' : ','}</span>`;
-        const valueSlot = code.querySelector('.value');
-        if (editable) { const input = document.createElement('input'); input.className = 'value-input'; input.value = value; input.title = `编辑 ${pathLabel(path)}`; input.addEventListener('input', () => updateValue(path, input.value, typeof value)); valueSlot.replaceWith(input); }
-        else { valueSlot.textContent = valueText(value); row.classList.add('readonly'); const lock = document.createElement('button'); lock.className = 'lock-button'; lock.type = 'button'; lock.textContent = '⌁'; lock.title = '此字段只读'; lock.addEventListener('click', () => openModal({ title: '字段已锁定', message: `${pathLabel(path)} 属于页面结构或链接配置，访问者不能修改。`, symbol: '⌁', actions: [{ label: '知道了', kind: 'primary', onClick: () => {} }] })); code.append(lock); }
-        row.append(lineNumber, code); fragment.append(row);
+    function buildFolderTree() {
+      const root = { dirs: {}, files: [] };
+      (manifest.files || []).forEach((file) => {
+        const segments = file.path.split('/');
+        let node = root;
+        segments.forEach((segment, index) => {
+          const isLast = index === segments.length - 1;
+          if (isLast) { node.files.push(file); return; }
+          node.dirs[segment] = node.dirs[segment] || { dirs: {}, files: [] };
+          node = node.dirs[segment];
+        });
+      });
+      return root;
+    }
+
+    function renderTree() {
+      const root = buildFolderTree();
+      const container = $('#fileTree');
+      const renderDir = (dir, depth) => {
+        const fragment = document.createDocumentFragment();
+        Object.keys(dir.dirs).sort().forEach((name) => {
+          const folderButton = document.createElement('button');
+          folderButton.type = 'button'; folderButton.className = 'tree-folder';
+          folderButton.style.setProperty('--depth', depth);
+          folderButton.innerHTML = `<span class="tree-chevron">⌄</span><span class="ficon ficon-folder">▸</span><span class="tree-name">${escapeHtml(name)}</span>`;
+          const children = document.createElement('div'); children.className = 'tree-children';
+          children.append(renderDir(dir.dirs[name], depth + 1));
+          folderButton.addEventListener('click', () => {
+            const collapsed = children.classList.toggle('collapsed');
+            folderButton.querySelector('.tree-chevron').textContent = collapsed ? '›' : '⌄';
+            folderButton.querySelector('.ficon').textContent = collapsed ? '▸' : '▾';
+          });
+          fragment.append(folderButton, children);
+        });
+        dir.files.forEach((file) => {
+          const lang = typeOfPath(file.path);
+          const button = document.createElement('button');
+          button.type = 'button'; button.className = 'tree-file'; button.dataset.path = file.path;
+          button.style.setProperty('--depth', depth);
+          button.innerHTML = `<span class="tree-chevron"></span><span class="ficon ${fileClasses[lang] || ''}">${fileIcons[lang] || '·'}</span><span class="tree-name">${escapeHtml(file.path.split('/').pop())}</span>`;
+          button.addEventListener('click', () => openFile(file.path));
+          fragment.append(button);
+        });
+        return fragment;
+      };
+      container.replaceChildren(renderDir(root, 0));
+    }
+
+    function tokenizeJson(code) {
+      const tokens = [];
+      const push = (cls, start, end) => { if (end > start) tokens.push({ cls, start, end }); };
+      let i = 0;
+      while (i < code.length) {
+        const char = code[i];
+        if (char === '"') {
+          let j = i + 1;
+          while (j < code.length && code[j] !== '"') { if (code[j] === '\\') j++; j++; }
+          const isKey = i > 0 && /[\[{,]\s*$/.test(code.slice(0, i));
+          push(isKey ? 'key' : 'str', i, Math.min(j + 1, code.length));
+          i = j + 1;
+        } else if (/[0-9]/.test(char) || (char === '-' && /[0-9]/.test(code[i + 1] || ''))) {
+          const match = code.slice(i).match(/^-?\d+(\.\d+)?([eE][+-]?\d+)?/);
+          push('num', i, i + match[0].length); i += match[0].length;
+        } else if (code.startsWith('true', i) || code.startsWith('false', i) || code.startsWith('null', i)) {
+          const word = code.startsWith('true', i) ? 'true' : code.startsWith('false', i) ? 'false' : 'null';
+          push('bool', i, i + word.length); i += word.length;
+        } else { push('punct', i, i + 1); i++; }
       }
-      return fragment;
+      return tokens;
     }
 
-    function getAtPath(root, path) { return path.reduce((current, part) => current[part], root); }
-    function updateValue(path, nextValue, originalType) { let value = nextValue; if (originalType === 'number') value = Number(nextValue) || 0; if (originalType === 'boolean') value = nextValue === 'true'; let target = workingConfig; path.slice(0, -1).forEach((part) => { target = target[part]; }); target[path.at(-1)] = value; markDirty(); }
-    function markDirty() { isDirty = true; $('#dirtyIndicator').classList.add('visible'); $('#saveState').textContent = '有未保存修改'; }
-    function render() { lineCounter = 0; $('#configTree').replaceChildren(renderTree(workingConfig)); }
-    function saveLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(workingConfig)); localStorage.setItem(VERSION_KEY, serverConfig.version); isDirty = false; $('#dirtyIndicator').classList.remove('visible'); $('#saveState').textContent = '已保存到本机'; showToast('修改已保存到 localStorage', 'success'); }
-    function useServerVersion() { localStorage.removeItem(STORAGE_KEY); localStorage.setItem(VERSION_KEY, serverConfig.version); workingConfig = clone(serverConfig); isDirty = false; render(); $('#saveState').textContent = '已同步'; showToast('已恢复服务器最新版本', 'success'); }
+    function tokenizeXml(code) {
+      const tokens = [];
+      const push = (cls, start, end) => { if (end > start) tokens.push({ cls, start, end }); };
+      let i = 0;
+      while (i < code.length) {
+        const char = code[i];
+        if (code.startsWith('<!--', i)) { const end = code.indexOf('-->', i + 4); const stop = end === -1 ? code.length : end + 3; push('comment', i, stop); i = stop; continue; }
+        if (char === '<') {
+          const close = code.indexOf('>', i);
+          const stop = close === -1 ? code.length : close + 1;
+          const tagBody = code.slice(i + 1, close === -1 ? code.length : close);
+          const tagMatch = tagBody.match(/^\/?\s*([A-Za-z0-9._-]+)/);
+          if (tagMatch) {
+            const nameStart = i + 1 + (tagBody.startsWith('/') ? 1 : 0) + (tagBody.indexOf(tagMatch[1]) - (tagBody.startsWith('/') ? 1 : 0));
+            push('punct', i, nameStart);
+            push('tag', nameStart, nameStart + tagMatch[1].length);
+            const rest = code.slice(nameStart + tagMatch[1].length, stop);
+            let offset = nameStart + tagMatch[1].length;
+            const attrRe = /([A-Za-z0-9._:-]+)(\s*=\s*"[^"]*")?/g;
+            let attrMatch;
+            while ((attrMatch = attrRe.exec(rest))) {
+              const attrStart = offset + attrMatch.index;
+              push('attr', attrStart, attrStart + attrMatch[1].length);
+              if (attrMatch[2]) push('str', attrStart + attrMatch[1].length, attrStart + attrMatch[0].length);
+            }
+            push('punct', stop - 1, stop);
+          } else { push('tag', i, stop); }
+          i = stop;
+        } else { push('punct', i, i + 1); i++; }
+      }
+      return tokens;
+    }
 
-    async function loadConfig() {
+    function highlightMd(line) {
+      if (/^\s{0,3}#{1,6}\s/.test(line)) return `<span class="hl-md-heading">${escapeHtml(line)}</span>`;
+      const bullet = line.replace(/^(\s*)([-*+]\s+)(.*)$/, (m, a, b, rest) => `${escapeHtml(a)}<span class="hl-md-bullet">${escapeHtml(b)}</span>${highlightMdInline(rest)}`);
+      if (bullet !== line) return bullet;
+      if (/^\s*&gt;/.test(line)) return `<span class="hl-comment">${escapeHtml(line)}</span>`;
+      return highlightMdInline(line);
+    }
+    function highlightMdInline(text) {
+      return escapeHtml(text)
+        .replace(/`([^`]+)`/g, '<span class="hl-md-code">$1</span>')
+        .replace(/\*\*([^*]+)\*\*/g, '<span class="hl-md-bold">$1</span>')
+        .replace(/(^|[^*])\*([^*]+)\*/g, '$1<span class="hl-md-italic">$2</span>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="hl-md-link">$1</span>');
+    }
+
+    function renderCode(lang, text) {
+      const view = $('#codeView');
+      view.classList.remove('is-welcome');
+      const fragment = document.createDocumentFragment();
+      const lines = text.replace(/\r\n/g, '\n').split('\n');
+      lines.forEach((lineText, index) => {
+        const line = document.createElement('div'); line.className = 'code-row';
+        const no = document.createElement('span'); no.className = 'line-no'; no.textContent = String(index + 1);
+        const content = document.createElement('div'); content.className = 'code-content';
+        if (lang === 'json') { content.innerHTML = highlightLine(lineText, tokenizeJson(lineText)); }
+        else if (lang === 'xml' || lang === 'html') { content.innerHTML = highlightLine(lineText, tokenizeXml(lineText)); }
+        else if (lang === 'md') { content.innerHTML = highlightMd(lineText); }
+        else { content.textContent = lineText; }
+        line.append(no, content); fragment.append(line);
+      });
+      view.replaceChildren(fragment);
+      $('#lineCount').textContent = `${lines.length} 行`;
+      $('#langLabel').textContent = langLabels[lang] || '文本';
+    }
+    function highlightLine(code, segments) {
+      let index = 0; let html = '';
+      segments.forEach((segment) => { html += escapeHtml(code.slice(index, segment.start)); html += `<span class="hl-${segment.cls}">${escapeHtml(code.slice(segment.start, segment.end))}</span>`; index = segment.end; });
+      html += escapeHtml(code.slice(index));
+      return html;
+    }
+
+    function renderWelcome() {
+      const view = $('#codeView');
+      view.classList.add('is-welcome');
+      const wrap = document.createElement('div'); wrap.className = 'welcome';
+      const hero = document.createElement('div'); hero.className = 'welcome-hero';
+      hero.innerHTML = `<div class="welcome-logo">{ }</div><h1>${escapeHtml(manifest.site || '文件展示')}</h1><p>只读 · 仿 VS Code 的博客与文件展示器</p><p class="welcome-sub">目录清单由 conf.json 枚举 · ${escapeHtml(manifest.generatedAt || '')}</p>`;
+      wrap.append(hero);
+      const section = document.createElement('div'); section.className = 'welcome-section';
+      section.innerHTML = '<h2>文件</h2>';
+      const grid = document.createElement('div'); grid.className = 'welcome-grid';
+      (manifest.files || []).forEach((file) => {
+        const lang = typeOfPath(file.path);
+        const card = document.createElement('button'); card.type = 'button'; card.className = 'welcome-card';
+        card.innerHTML = `<span class="welcome-card-icon">${fileIcons[lang] || '·'}</span><span class="welcome-card-body"><span class="welcome-card-title">${escapeHtml(file.path)}</span><span class="welcome-card-note">${escapeHtml(file.note || '')}</span></span><span class="welcome-card-badge">${escapeHtml(lang)}</span>`;
+        card.addEventListener('click', () => openFile(file.path));
+        grid.append(card);
+      });
+      section.append(grid); wrap.append(section);
+      view.replaceChildren(wrap);
+      $('#lineCount').textContent = `${manifest.files.length} 个文件`;
+      $('#langLabel').textContent = '欢迎页';
+    }
+
+    function renderTabs() {
+      const bar = $('#tabbar'); bar.innerHTML = '';
+      tabs.forEach((path) => {
+        const tab = document.createElement('div'); tab.className = 'tab' + (path === activePath ? ' active' : '');
+        tab.innerHTML = `<span class="file-icon ${fileClasses[typeOfPath(path)] || ''}">${fileIcons[typeOfPath(path)] || '·'}</span><span class="tab-name">${escapeHtml(path.split('/').pop())}</span><button type="button" aria-label="关闭标签页">×</button>`;
+        tab.querySelector('.tab-name').addEventListener('click', () => openFile(path));
+        tab.querySelector('button').addEventListener('click', (event) => { event.stopPropagation(); closeTab(path); });
+        bar.append(tab);
+      });
+    }
+
+    function setActiveTree(path) {
+      document.querySelectorAll('#fileTree .tree-file').forEach((node) => node.classList.toggle('active', node.dataset.path === path));
+    }
+
+    async function openFile(path) {
+      if (path === '__welcome__') { activePath = '__welcome__'; activeLang = null; renderWelcome(); renderTabs(); setActiveTree(null); $('#crumbName').textContent = '欢迎页'; return; }
       try {
-        const response = await fetch('./config.json', { cache: 'no-store' }); if (!response.ok) throw new Error('HTTP ' + response.status); serverConfig = await response.json();
-        localVersion = localStorage.getItem(VERSION_KEY); const localRaw = localStorage.getItem(STORAGE_KEY);
-        if (localRaw && localVersion && localVersion !== serverConfig.version) {
-          workingConfig = JSON.parse(localRaw); render(); $('#saveState').textContent = '等待版本选择';
-          openModal({ title: '配置版本发生变化', message: `服务器版本已从 ${localVersion} 更新为 ${serverConfig.version}。请选择要使用的版本。`, symbol: '↻', actions: [{ label: '覆盖本地版', kind: 'danger', onClick: useServerVersion }, { label: '保留本地版', kind: 'primary', onClick: () => { workingConfig = JSON.parse(localRaw); render(); $('#saveState').textContent = '本地版本'; showToast('已保留本地 localStorage 版本', 'success'); } }] });
-        } else if (localRaw) { workingConfig = JSON.parse(localRaw); $('#saveState').textContent = '本地版本'; } else { workingConfig = clone(serverConfig); localStorage.setItem(VERSION_KEY, serverConfig.version); }
-        render(); $('#connectionText').textContent = `配置源 · v${serverConfig.version}`;
-      } catch (error) { $('#connectionText').textContent = '配置源读取失败'; $('#configTree').innerHTML = '<div class="loading error">无法读取 config.json，请通过本地服务器打开此页面。</div>'; showToast('读取配置失败：' + error.message, 'error'); }
+        const response = await fetch('./cfg/' + path, { cache: 'no-store' });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const text = await response.text();
+        const lang = typeOfPath(path);
+        activePath = path; activeLang = lang;
+        if (!tabs.includes(path)) tabs.push(path);
+        renderCode(lang, text); renderTabs(); setActiveTree(path);
+        $('#crumbName').textContent = path.split('/').pop();
+      } catch (error) {
+        showToast('读取失败：' + error.message, 'error');
+      }
     }
 
-    $('#saveButton').addEventListener('click', saveLocal); $('#resetButton').addEventListener('click', () => openModal({ title: '恢复服务器版本？', message: '这会清除当前 localStorage 中的编辑内容，并重新显示服务器版本。', symbol: '↺', actions: [{ label: '取消', onClick: () => {} }, { label: '确认恢复', kind: 'danger', onClick: useServerVersion }] }));
-    $('#helpButton').addEventListener('click', () => openModal({ title: '配置编辑器', message: '这是 LumiNya 的个人配置文件视图。亮色输入框可编辑，带锁字段属于页面结构或链接信息。所有修改只保存在当前浏览器的 localStorage。', symbol: '?', actions: [{ label: '明白了', kind: 'primary', onClick: () => {} }] }));
+    function closeTab(path) {
+      tabs = tabs.filter((item) => item !== path);
+      if (path === activePath) {
+        if (tabs.length) { openFile(tabs[tabs.length - 1]); }
+        else { activePath = '__welcome__'; activeLang = null; renderWelcome(); renderTabs(); setActiveTree(null); $('#crumbName').textContent = '欢迎页'; }
+      } else { renderTabs(); }
+    }
+
+    async function loadManifest() {
+      try {
+        const response = await fetch(CONFIG_URL, { cache: 'no-store' });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        manifest = await response.json();
+        $('#connectionText').textContent = `目录清单 · ${manifest.files.length} 个文件`;
+        renderTree();
+        renderWelcome();
+        $('#tabbar').innerHTML = '';
+      } catch (error) {
+        $('#connectionText').textContent = '目录清单读取失败';
+        $('#fileTree').innerHTML = '<div class="loading error">无法读取 cfg/conf.json</div>';
+        $('#codeView').innerHTML = '<div class="loading error">无法读取 cfg/conf.json，请通过本地服务器打开此页面。</div>';
+        showToast('读取目录清单失败：' + error.message, 'error');
+      }
+    }
+
+    $('#helpButton').addEventListener('click', () => openModal({ title: '只读文件展示器', message: '把 txt / html / xml / json / md 文件放进 main/cfg 文件夹，再在 main/cfg/conf.json 中枚举文件路径即可。本页是只读的，无法修改文件，并自动换行显示代码。', symbol: '?', actions: [{ label: '明白了', kind: 'primary', onClick: () => {} }] }));
     $('#themeButton').addEventListener('click', () => document.body.classList.toggle('light-theme'));
     $('#modalBackdrop').addEventListener('click', (event) => { if (event.target.id === 'modalBackdrop') closeModal(); });
-    loadConfig();
+
+    loadManifest();
   </script>
 </body>
 </html>

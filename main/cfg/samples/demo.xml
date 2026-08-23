@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site name="LumiNya">
+  <owner>LumiNya</owner>
+  <description>一个 XML 代码示例，只读展示</description>
+  <pages>
+    <page id="home" title="首页" />
+    <page id="blog" title="博客" />
+    <page id="about" title="关于" />
+  </pages>
+</site>

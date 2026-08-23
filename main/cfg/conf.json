@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-23",
+  "site": "LumiNya · 文件展示",
+  "files": [
+    { "path": "config.json", "type": "json", "note": "旧的站点配置文件，作为 JSON 阅读示例" },
+    { "path": "welcome.md", "type": "md", "note": "欢迎页" },
+    { "path": "about.txt", "type": "txt", "note": "关于我" },
+    { "path": "notes/readme.md", "type": "md", "note": "笔记 · 子目录示例" },
+    { "path": "samples/demo.html", "type": "html", "note": "HTML 代码示例" },
+    { "path": "samples/demo.xml", "type": "xml", "note": "XML 代码示例" }
+  ]
+}
