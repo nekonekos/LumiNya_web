@@ -10,9 +10,11 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
+      <button class="icon-button menu-button" id="menuButton" type="button" aria-label="打开文件列表" title="文件列表">☰</button>
       <a class="brand" href="./index.html"><span class="brand-mark">{ }</span> luminya.blog</a>
       <div class="topbar-status"><span class="status-dot"></span><span id="connectionText">正在读取目录清单</span></div>
       <button class="icon-button" id="themeButton" type="button" aria-label="切换主题" title="切换主题">◐</button>
+      <button class="icon-button help-mobile" id="helpMobileButton" type="button" aria-label="使用说明" title="使用说明">?</button>
     </header>
 
     <div class="workspace">
@@ -40,6 +42,7 @@
         <div class="editor-footer"><span id="langLabel">文本</span><span id="lineCount">0 行</span><span>UTF-8</span><span>自动换行</span></div>
       </main>
     </div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -275,6 +278,7 @@
         if (!tabs.includes(path)) tabs.push(path);
         renderCode(lang, text); renderTabs(); setActiveTree(path);
         $('#crumbName').textContent = path.split('/').pop();
+        closeSidebar();
       } catch (error) {
         showToast('读取失败：' + error.message, 'error');
       }
@@ -305,7 +309,17 @@
       }
     }
 
-    $('#helpButton').addEventListener('click', () => openModal({ title: '只读文件展示器', message: '把 txt / html / xml / json / md 文件放进 main/cfg 文件夹，再在 main/cfg/conf.json 中枚举文件路径即可。本页是只读的，无法修改文件，并自动换行显示代码。', symbol: '?', actions: [{ label: '明白了', kind: 'primary', onClick: () => {} }] }));
+    function openSidebar() { document.body.classList.add('sidebar-open'); $('#sidebarBackdrop').hidden = false; }
+    function closeSidebar() { document.body.classList.remove('sidebar-open'); $('#sidebarBackdrop').hidden = true; }
+
+    $('#menuButton').addEventListener('click', () => {
+      if (document.body.classList.contains('sidebar-open')) closeSidebar(); else openSidebar();
+    });
+    $('#sidebarBackdrop').addEventListener('click', closeSidebar);
+
+    $('#helpButton').addEventListener('click', showHelp);
+    $('#helpMobileButton').addEventListener('click', showHelp);
+    function showHelp() { openModal({ title: '只读文件展示器', message: '把 txt / html / xml / json / md 文件放进 main/cfg 文件夹，再在 main/cfg/conf.json 中枚举文件路径即可。本页是只读的，无法修改文件，并自动换行显示代码。', symbol: '?', actions: [{ label: '明白了', kind: 'primary', onClick: () => {} }] }); }
     $('#themeButton').addEventListener('click', () => document.body.classList.toggle('light-theme'));
     $('#modalBackdrop').addEventListener('click', (event) => { if (event.target.id === 'modalBackdrop') closeModal(); });
 
