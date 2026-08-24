@@ -105,6 +105,10 @@ const AIR = 0, GRASS = 1, DIRT = 2, STONE = 3, COBBLE = 4, PLANK = 5, LOG = 6,
   BEDROCK = 14, COAL_ORE = 15, IRON_ORE = 16, GOLD_ORE = 17, DIAMOND_ORE = 18,
   CRAFTING = 19, FURNACE = 20, TORCH = 21, STONE_BRICK = 22, SANDSTONE = 23,
   POPPY = 24, DANDELION = 25, TALL_GRASS = 26, SNOW_GRASS = 27;
+// 红石系统方块（门除外）
+const RS_WIRE = 28, RS_TORCH = 29, RS_BLOCK = 30, RS_REPEATER = 31, RS_COMPARATOR = 32,
+  RS_LEVER = 33, RS_BUTTON = 34, RS_PLATE = 35, RS_PISTON = 36, RS_STICKY = 37,
+  RS_OBSERVER = 38, RS_TNT = 39, RS_LAMP = 40;
 const STICK = 100;
 
 /* ============================ 纹理生成 ============================ */
@@ -141,7 +145,13 @@ const TILE_NAMES = [
   'leaves', 'sand', 'gravel', 'water', 'glass', 'brick', 'snow', 'bedrock',
   'coal_ore', 'iron_ore', 'gold_ore', 'diamond_ore', 'craft_top', 'craft_side',
   'furnace_side', 'furnace_top', 'torch', 'stone_brick', 'sandstone_top', 'sandstone_side',
-  'poppy', 'dandelion', 'tall_grass', 'stick'
+  'poppy', 'dandelion', 'tall_grass', 'stick',
+  // 红石方块纹理
+  'rs_wire_off', 'rs_wire_on', 'rs_torch_off', 'rs_torch_on', 'rs_block',
+  'rs_repeater_off', 'rs_repeater_on', 'rs_comparator', 'rs_lever', 'rs_button',
+  'rs_plate', 'piston_top', 'piston_side', 'piston_bottom', 'sticky_top',
+  'observer_side', 'observer_back', 'observer_front', 'tnt_side', 'tnt_top', 'tnt_bottom',
+  'rs_lamp_off', 'rs_lamp_on'
 ];
 
 function buildTiles() {
@@ -273,6 +283,48 @@ function buildTiles() {
     for (let i = 0; i < 16; i++) { const off = (i % 3) - 1; px(ctx, i, 4 + Math.max(0, Math.min(10, Math.floor(i * 0.7) + off)), '#9c6b3f'); }
     ctx.fillStyle = '#7a4e28'; ctx.fillRect(8, 7, 2, 2);
   });
+  // ---- 红石纹理 ----
+  t.rs_wire_off = makeTile(ctx => {
+    ctx.clearRect(0, 0, 16, 16);
+    ctx.fillStyle = '#5a1f16'; // 深红，低亮度
+    for (const [x, y] of [[1, 8], [4, 4], [8, 11], [12, 3], [6, 14], [14, 8], [3, 12], [11, 6]]) ctx.fillRect(x, y, 2, 2);
+  });
+  t.rs_wire_on = makeTile(ctx => {
+    ctx.clearRect(0, 0, 16, 16);
+    ctx.fillStyle = '#e0342c'; // 亮红
+    for (const [x, y] of [[1, 8], [4, 4], [8, 11], [12, 3], [6, 14], [14, 8], [3, 12], [11, 6]]) ctx.fillRect(x, y, 2, 2);
+    ctx.fillStyle = '#ff7a66';
+    for (const [x, y] of [[2, 9], [5, 5], [9, 12], [13, 4]]) ctx.fillRect(x, y, 1, 1);
+  });
+  t.rs_torch_off = makeTile(ctx => {
+    ctx.fillStyle = '#5c3a1e'; ctx.fillRect(7, 6, 2, 10);
+    ctx.fillStyle = '#7a1f1f'; ctx.fillRect(5, 2, 6, 3);
+    ctx.fillStyle = '#552525'; ctx.fillRect(6, 3, 4, 2);
+  });
+  t.rs_torch_on = makeTile(ctx => {
+    ctx.fillStyle = '#5c3a1e'; ctx.fillRect(7, 6, 2, 10);
+    ctx.fillStyle = '#ff5b4d'; ctx.fillRect(5, 2, 6, 3);
+    ctx.fillStyle = '#ffd9a0'; ctx.fillRect(6, 3, 4, 2);
+  });
+  t.rs_block = makeTile(ctx => noiseFill(ctx, '#a8322b', 0.15, 128));
+  t.rs_repeater_off = makeTile(ctx => { noiseFill(ctx, '#7a7a7a', 0.12, 129); ctx.fillStyle = '#3a3a3a'; ctx.fillRect(5, 5, 6, 2); ctx.fillRect(5, 9, 6, 2); ctx.fillStyle = '#d0342c'; ctx.fillRect(7, 7, 2, 2); });
+  t.rs_repeater_on = makeTile(ctx => { noiseFill(ctx, '#7a7a7a', 0.12, 130); ctx.fillStyle = '#3a3a3a'; ctx.fillRect(5, 5, 6, 2); ctx.fillRect(5, 9, 6, 2); ctx.fillStyle = '#ff5b4d'; ctx.fillRect(7, 7, 2, 2); });
+  t.rs_comparator = makeTile(ctx => { noiseFill(ctx, '#7a7a7a', 0.12, 131); ctx.fillStyle = '#d0342c'; ctx.fillRect(4, 6, 4, 2); ctx.fillRect(8, 6, 2, 4); ctx.fillStyle = '#f2d24b'; ctx.fillRect(3, 5, 2, 4); });
+  t.rs_lever = makeTile(ctx => { noiseFill(ctx, '#9c6b3f', 0.12, 132); ctx.fillStyle = '#d8d8d8'; ctx.fillRect(3, 4, 6, 3); ctx.fillRect(4, 7, 4, 2); ctx.fillRect(7, 9, 2, 4); });
+  t.rs_button = makeTile(ctx => { noiseFill(ctx, '#9c6b3f', 0.12, 133); ctx.fillStyle = '#7a4e28'; ctx.fillRect(4, 5, 8, 6); ctx.fillStyle = '#e8e8e8'; ctx.fillRect(6, 7, 4, 2); });
+  t.rs_plate = makeTile(ctx => { noiseFill(ctx, '#b0b0b0', 0.1, 134); ctx.fillStyle = '#d8d8d8'; ctx.fillRect(4, 5, 8, 6); });
+  t.piston_top = makeTile(ctx => { noiseFill(ctx, '#9a6b3f', 0.12, 135); ctx.fillStyle = '#c9c2b8'; ctx.fillRect(3, 3, 10, 10); ctx.fillStyle = '#9a6b3f'; ctx.fillRect(6, 6, 4, 4); });
+  t.piston_side = makeTile(ctx => { noiseFill(ctx, '#8a8a8a', 0.12, 136); ctx.fillStyle = '#c9c2b8'; ctx.fillRect(4, 4, 8, 8); ctx.fillStyle = '#8a8a8a'; ctx.fillRect(6, 6, 4, 4); });
+  t.piston_bottom = makeTile(ctx => noiseFill(ctx, '#8a8a8a', 0.15, 137));
+  t.sticky_top = makeTile(ctx => { noiseFill(ctx, '#4a7a3a', 0.12, 138); ctx.fillStyle = '#8fd47a'; ctx.fillRect(3, 3, 10, 10); ctx.fillStyle = '#4a7a3a'; ctx.fillRect(6, 6, 4, 4); });
+  t.observer_side = makeTile(ctx => noiseFill(ctx, '#7a7a7a', 0.12, 139));
+  t.observer_back = makeTile(ctx => { noiseFill(ctx, '#5c5c5c', 0.12, 140); ctx.fillStyle = '#d0342c'; ctx.fillRect(5, 5, 6, 6); });
+  t.observer_front = makeTile(ctx => { noiseFill(ctx, '#4a4a4a', 0.12, 141); ctx.fillStyle = '#111111'; ctx.fillRect(4, 4, 8, 8); ctx.fillStyle = '#f2d24b'; ctx.fillRect(6, 6, 4, 4); });
+  t.tnt_side = makeTile(ctx => { noiseFill(ctx, '#c0392b', 0.15, 142); ctx.fillStyle = '#fdf5e6'; ctx.fillRect(0, 0, 16, 1); ctx.fillRect(0, 5, 16, 1); ctx.fillRect(0, 10, 16, 1); ctx.fillRect(0, 15, 16, 1); ctx.fillRect(0, 0, 1, 16); ctx.fillRect(7, 0, 1, 16); ctx.fillRect(15, 0, 1, 16); });
+  t.tnt_top = makeTile(ctx => { noiseFill(ctx, '#c0392b', 0.15, 143); ctx.fillStyle = '#fdf5e6'; ctx.fillRect(0, 0, 16, 1); ctx.fillRect(0, 15, 16, 1); ctx.fillRect(0, 0, 1, 16); ctx.fillRect(15, 0, 1, 16); ctx.fillStyle = '#8b1a10'; ctx.fillRect(6, 6, 4, 4); });
+  t.tnt_bottom = makeTile(ctx => noiseFill(ctx, '#8b1a10', 0.2, 144));
+  t.rs_lamp_off = makeTile(ctx => { noiseFill(ctx, '#6b4a1e', 0.12, 145); ctx.fillStyle = '#8a6b3f'; ctx.fillRect(3, 3, 10, 10); ctx.fillStyle = '#5c3a1e'; ctx.fillRect(5, 5, 6, 6); });
+  t.rs_lamp_on = makeTile(ctx => { noiseFill(ctx, '#d8b45a', 0.12, 146); ctx.fillStyle = '#f7e2a0'; ctx.fillRect(3, 3, 10, 10); ctx.fillStyle = '#fff3c0'; ctx.fillRect(5, 5, 6, 6); });
   return t;
 }
 function oreBlobs(ctx, color, seed) {
@@ -316,6 +368,20 @@ const BLOCKS = {
   [DANDELION]: { name: '蒲公英', top: T.dandelion, side: T.dandelion, bottom: T.dandelion, cross: true },
   [TALL_GRASS]: { name: '草丛', top: T.tall_grass, side: T.tall_grass, bottom: T.tall_grass, cross: true },
   [SNOW_GRASS]: { name: '雪草方块', top: T.snow, side: T.grass_side, bottom: T.dirt, solid: true },
+  // 红石方块
+  [RS_WIRE]: { name: '红石粉', top: T.rs_wire_off, side: T.rs_wire_off, bottom: T.rs_wire_off, redstone: true, wire: true },
+  [RS_TORCH]: { name: '红石火把', top: T.rs_torch_off, side: T.rs_torch_off, bottom: T.rs_torch_off, redstone: true, cross: true, torch: true },
+  [RS_BLOCK]: { name: '红石块', top: T.rs_block, side: T.rs_block, bottom: T.rs_block, solid: true, redstone: true, alwaysPowered: true },
+  [RS_REPEATER]: { name: '红石中继器', top: T.rs_repeater_off, side: T.rs_repeater_off, bottom: T.rs_repeater_off, redstone: true, repeater: true },
+  [RS_COMPARATOR]: { name: '红石比较器', top: T.rs_comparator, side: T.rs_comparator, bottom: T.rs_comparator, redstone: true, comparator: true },
+  [RS_LEVER]: { name: '拉杆', top: T.rs_lever, side: T.rs_lever, bottom: T.rs_lever, redstone: true, cross: true, lever: true },
+  [RS_BUTTON]: { name: '按钮', top: T.rs_button, side: T.rs_button, bottom: T.rs_button, redstone: true, button: true },
+  [RS_PLATE]: { name: '压力板', top: T.rs_plate, side: T.rs_plate, bottom: T.rs_plate, redstone: true, plate: true },
+  [RS_PISTON]: { name: '活塞', top: T.piston_top, side: T.piston_side, bottom: T.piston_bottom, solid: true, redstone: true, piston: true },
+  [RS_STICKY]: { name: '粘性活塞', top: T.sticky_top, side: T.piston_side, bottom: T.piston_bottom, solid: true, redstone: true, piston: true, sticky: true },
+  [RS_OBSERVER]: { name: '侦测器', top: T.observer_side, side: T.observer_side, bottom: T.observer_side, solid: true, redstone: true, observer: true },
+  [RS_TNT]: { name: 'TNT', top: T.tnt_top, side: T.tnt_side, bottom: T.tnt_bottom, solid: true, redstone: true, tnt: true },
+  [RS_LAMP]: { name: '红石灯', top: T.rs_lamp_off, side: T.rs_lamp_off, bottom: T.rs_lamp_off, solid: true, redstone: true, lamp: true },
 };
 
 const ITEMS = {
@@ -405,6 +471,40 @@ let renderDistance = 4;
 const ckey = (cx, cz) => cx + ',' + cz;
 const cidx = (lx, ly, lz) => (ly * CHUNK + lz) * CHUNK + lx;
 
+/* ============================ 红石状态 ============================ */
+// 每方块状态：power(0-15)、facing(0-3)、extra(开/关、延时等)。用 Map 按 "x,y,z" 存取，节省内存。
+const rsState = new Map();
+let rsTickQueue = [];  // 待处理的刻事件 {t, x, y, z, type}
+let rsTime = 0;
+const RS_DIRS = [
+  [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0],
+];
+function rsKey(x, y, z) { return x + ',' + y + ',' + z; }
+function rsGet(x, y, z) {
+  return rsState.get(rsKey(x, y, z));
+}
+function rsSet(x, y, z, partial) {
+  const k = rsKey(x, y, z);
+  const s = rsState.get(k) || { power: 0, facing: 0, on: false };
+  Object.assign(s, partial);
+  rsState.set(k, s);
+  return s;
+}
+function rsDel(x, y, z) { rsState.delete(rsKey(x, y, z)); }
+
+/* 方块朝向（放置时根据玩家视角确定，0:+X 1:-X 2:+Z 3:-Z 4:+Y 5:-Y） */
+function facingFromDir(dx, dy, dz) {
+  if (dy === 1) return 4;
+  if (dy === -1) return 5;
+  if (dx === 1) return 0;
+  if (dx === -1) return 1;
+  if (dz === 1) return 2;
+  return 3;
+}
+const FACING_VEC = [
+  [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0],
+];
+
 function getChunk(cx, cz) { return chunks.get(ckey(cx, cz)); }
 
 function getBlock(x, y, z) {
@@ -423,6 +523,7 @@ function setBlock(x, y, z, id) {
   if (!chunk) return;
   const lx = x - cx * CHUNK, lz = z - cz * CHUNK, ly = y;
   const li = cidx(lx, ly, lz);
+  const old = chunk.data[li];
   chunk.data[li] = id;
   chunk.dirty = true;
   let em = editsByChunk.get(ckey(cx, cz));
@@ -433,10 +534,310 @@ function setBlock(x, y, z, id) {
   if (lx === CHUNK - 1) markDirty(cx + 1, cz);
   if (lz === 0) markDirty(cx, cz - 1);
   if (lz === CHUNK - 1) markDirty(cx, cz + 1);
+  // 红石：旧方块移除状态，新方块初始化状态，并通知周围
+  if (old !== id) {
+    if (old && BLOCKS[old] && BLOCKS[old].redstone) rsDel(x, y, z);
+    if (id && BLOCKS[id] && BLOCKS[id].redstone && !rsGet(x, y, z)) {
+      rsSet(x, y, z, { power: 0, facing: 0, on: false });
+    }
+    rsOnBlockChange(x, y, z);
+    // 侦测器检测到相邻方块变化
+    notifyObservers(x, y, z);
+  }
 }
 function markDirty(cx, cz) {
   const c = chunks.get(ckey(cx, cz));
   if (c && c.generated) c.dirty = true;
+}
+function markBlockDirty(x, y, z) {
+  markDirty(Math.floor(x / CHUNK), Math.floor(z / CHUNK));
+  // 相邻区块也可能受影响
+  if ((x & (CHUNK - 1)) === 0) markDirty(Math.floor(x / CHUNK) - 1, Math.floor(z / CHUNK));
+  if ((x & (CHUNK - 1)) === CHUNK - 1) markDirty(Math.floor(x / CHUNK) + 1, Math.floor(z / CHUNK));
+  if ((z & (CHUNK - 1)) === 0) markDirty(Math.floor(x / CHUNK), Math.floor(z / CHUNK) - 1);
+  if ((z & (CHUNK - 1)) === CHUNK - 1) markDirty(Math.floor(x / CHUNK), Math.floor(z / CHUNK) + 1);
+}
+
+/* ============================ 红石引擎 ============================ */
+// 是否是可被红石信号"充能"的方块（非空气、非液体）
+function isRsConductor(id) {
+  return id !== AIR && id !== WATER && !(BLOCKS[id] && BLOCKS[id].cross);
+}
+// 该方块是否输出强充能（红石块、激活的拉杆等）
+function isStrongPowered(x, y, z) {
+  const id = getBlock(x, y, z);
+  const def = BLOCKS[id];
+  if (!def) return false;
+  if (def.alwaysPowered) return true;
+  const s = rsGet(x, y, z);
+  if (def.lever && s && s.on) return true;
+  return false;
+}
+// 计算某方块接收到的红石信号强度（忽略来自排除方向）
+function computeInputPower(x, y, z) {
+  const id = getBlock(x, y, z);
+  const def = BLOCKS[id];
+  let best = 0;
+  // 六个方向
+  for (let d = 0; d < 6; d++) {
+    const [dx, dy, dz] = RS_DIRS[d];
+    const nx = x + dx, ny = y + dy, nz = z + dz;
+    const nid = getBlock(nx, ny, nz);
+    const nd = BLOCKS[nid];
+    if (!nd) continue;
+    let p = 0;
+    if (nd.wire) {
+      const ns = rsGet(nx, ny, nz);
+      if (ns && ns.power > 0 && ns.power > best) best = ns.power;
+    } else if (nd.alwaysPowered) {
+      best = 15;
+    } else if (nd.lever || nd.button || nd.plate) {
+      const ns = rsGet(nx, ny, nz);
+      if (ns && ns.on) best = 15;
+    } else if (nd.torch) {
+      const ns = rsGet(nx, ny, nz);
+      if (ns && ns.on) best = 15;
+    } else if (nd.repeater || nd.comparator) {
+      const ns = rsGet(nx, ny, nz);
+      // 中继器/比较器只向 facing 方向输出
+      if (ns && ns.on && FACING_VEC[ns.facing] && FACING_VEC[ns.facing][0] === -dx && FACING_VEC[ns.facing][1] === -dy && FACING_VEC[ns.facing][2] === -dz) {
+        best = Math.max(best, ns.power || 15);
+      }
+    } else if (nd.observer) {
+      const ns = rsGet(nx, ny, nz);
+      if (ns && ns.on && FACING_VEC[ns.facing] && FACING_VEC[ns.facing][0] === -dx && FACING_VEC[ns.facing][1] === -dy && FACING_VEC[ns.facing][2] === -dz) {
+        best = 15;
+      }
+    } else if (nd.piston) {
+      // 活塞可被强充能方块驱动（弱充能忽略，简化：只认前方方块直接输出）
+    }
+  }
+  return best;
+}
+
+// 红石火把/中继器等的输入：仅考虑其"背面"（与 facing 相反）的输入
+function computeFacingInput(x, y, z, facing) {
+  const [dx, dy, dz] = FACING_VEC[facing];
+  const bx = x - dx, by = y - dy, bz = z - dz;
+  const nid = getBlock(bx, by, bz);
+  const nd = BLOCKS[nid];
+  if (!nd) return 0;
+  if (nd.wire) { const s = rsGet(bx, by, bz); return s ? s.power : 0; }
+  if (nd.alwaysPowered) return 15;
+  if (nd.lever || nd.button || nd.plate || nd.torch) { const s = rsGet(bx, by, bz); return (s && s.on) ? 15 : 0; }
+  // 背面的普通方块若被强充能
+  if (isStrongPowered(bx, by, bz)) return 15;
+  return 0;
+}
+
+// 更新一个红石组件的输出（返回是否发生变化）
+function updateRsComponent(x, y, z) {
+  const id = getBlock(x, y, z);
+  const def = BLOCKS[id];
+  if (!def || !def.redstone) return false;
+  let changed = false;
+  if (def.alwaysPowered) return false; // 恒定输出
+  if (def.wire) {
+    // 红石粉：直接读取输入
+    const p = computeInputPower(x, y, z);
+    const s = rsGet(x, y, z) || rsSet(x, y, z, { power: 0 });
+    if (s.power !== p) { s.power = p; changed = true; }
+  } else if (def.torch) {
+    const p = computeFacingInput(x, y, z, (rsGet(x, y, z) || { facing: 0 }).facing);
+    const s = rsGet(x, y, z) || rsSet(x, y, z, { facing: 0, on: false });
+    const on = p === 0; // 红石火把在输入为 0 时点亮
+    if (s.on !== on) { s.on = on; changed = true; }
+  } else if (def.repeater || def.comparator) {
+    const s = rsGet(x, y, z) || rsSet(x, y, z, { facing: 0, on: false, power: 0 });
+    const p = computeFacingInput(x, y, z, s.facing);
+    const on = p > 0;
+    if (s.on !== on) { s.on = on; s.power = on ? 15 : 0; changed = true; }
+  } else if (def.observer) {
+    const s = rsGet(x, y, z) || rsSet(x, y, z, { facing: 0, on: false });
+    // 侦测器由 tick 触发，这里仅维持
+  } else if (def.lamp) {
+    const p = computeInputPower(x, y, z);
+    const s = rsGet(x, y, z) || rsSet(x, y, z, { on: false });
+    const on = p > 0;
+    if (s.on !== on) { s.on = on; changed = true; }
+  } else if (def.tnt) {
+    // TNT 被充能即引爆（延迟一小段以模拟引信）
+    const p = computeInputPower(x, y, z);
+    const s = rsGet(x, y, z) || rsSet(x, y, z, { on: false });
+    if (p > 0 && !s.on) { s.on = true; rsSchedule(x, y, z, 'tnt_boom', 15); changed = true; }
+  } else if (def.piston) {
+    const p = computeInputPower(x, y, z);
+    const s = rsGet(x, y, z) || rsSet(x, y, z, { on: false, extended: false });
+    const on = p > 0;
+    if (s.on !== on) {
+      s.on = on;
+      changed = true;
+      // 延迟一个刻执行活塞推出/缩回
+      if (on) rsSchedule(x, y, z, 'extend', 2);
+      else rsSchedule(x, y, z, 'retract', 2);
+    }
+  }
+  if (changed) markBlockDirty(x, y, z);
+  return changed;
+}
+
+// 定时事件
+function rsSchedule(x, y, z, type, delay) {
+  rsTickQueue.push({ t: rsTime + delay, x, y, z, type });
+}
+
+// BFS 传播：从一组起点传播信号，更新所有受影响的组件
+function rsPropagate(startList) {
+  const queue = [...startList];
+  const seen = new Set();
+  while (queue.length) {
+    const [x, y, z] = queue.shift();
+    const k = rsKey(x, y, z);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    if (updateRsComponent(x, y, z)) {
+      // 变化后，邻居组件也可能受影响
+      for (const [dx, dy, dz] of RS_DIRS) {
+        const nx = x + dx, ny = y + dy, nz = z + dz;
+        const nid = getBlock(nx, ny, nz);
+        if (nid !== AIR && BLOCKS[nid] && BLOCKS[nid].redstone) queue.push([nx, ny, nz]);
+      }
+    }
+  }
+}
+
+// 方块变化时通知红石系统
+function rsOnBlockChange(x, y, z) {
+  const queue = [[x, y, z]];
+  for (const [dx, dy, dz] of RS_DIRS) {
+    queue.push([x + dx, y + dy, z + dz]);
+  }
+  rsPropagate(queue);
+}
+
+// 每刻执行：处理定时事件（活塞推出/缩回、按钮复位、侦测器）
+function rsTick() {
+  rsTime++;
+  const due = rsTickQueue.filter(e => e.t <= rsTime);
+  rsTickQueue = rsTickQueue.filter(e => e.t > rsTime);
+  for (const e of due) processRsEvent(e);
+}
+
+function processRsEvent(e) {
+  const { x, y, z, type } = e;
+  const id = getBlock(x, y, z);
+  const def = BLOCKS[id];
+  if (!def) return;
+  if (type === 'extend' && def.piston) {
+    const s = rsGet(x, y, z);
+    if (s && s.on && !s.extended) doPistonExtend(x, y, z, s.facing, def.sticky);
+  } else if (type === 'retract' && def.piston) {
+    const s = rsGet(x, y, z);
+    if (s && !s.on && s.extended) doPistonRetract(x, y, z, s.facing, def.sticky);
+  } else if (type === 'button_off') {
+    const s = rsGet(x, y, z);
+    if (s) { s.on = false; rsOnBlockChange(x, y, z); }
+  } else if (type === 'observer_off') {
+    const s = rsGet(x, y, z);
+    if (s) { s.on = false; rsOnBlockChange(x, y, z); }
+  } else if (type === 'tnt_boom') {
+    explodeTnt(x, y, z);
+  }
+}
+
+/* TNT 爆炸：清除周围球形区域内的可破坏方块，不破坏基岩 */
+function explodeTnt(x, y, z) {
+  setBlock(x, y, z, AIR);
+  const R = 3;
+  for (let dx = -R; dx <= R; dx++)
+    for (let dy = -R; dy <= R; dy++)
+      for (let dz = -R; dz <= R; dz++) {
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 > R * R) continue;
+        const tx = x + dx, ty = y + dy, tz = z + dz;
+        const id = getBlock(tx, ty, tz);
+        if (id === AIR || id === WATER || id === BEDROCK) continue;
+        if (BLOCKS[id] && BLOCKS[id].unbreakable) continue;
+        setBlock(tx, ty, tz, AIR);
+      }
+  // 触发音效（可复用破坏音）
+  playBreak(STONE);
+}
+
+/* 活塞推出：把 facing 方向前 1 格尝试推出 */
+function doPistonExtend(x, y, z, facing, sticky) {
+  const s = rsGet(x, y, z);
+  const [dx, dy, dz] = FACING_VEC[facing];
+  const tx = x + dx, ty = y + dy, tz = z + dz;
+  const target = getBlock(tx, ty, tz);
+  // 只能推可移动方块（非基岩、非活塞、非观测者简化）
+  const movable = target !== AIR && target !== WATER && target !== BEDROCK &&
+    !(BLOCKS[target] && (BLOCKS[target].piston || BLOCKS[target].unbreakable || BLOCKS[target].observer));
+  if (target === AIR || target === WATER) {
+    // 推空：只标记伸展状态（实际活塞头未渲染，简化处理）
+    s.extended = true;
+    markBlockDirty(x, y, z);
+  } else if (movable) {
+    // 找目标方块前的位置
+    const px = tx + dx, py = ty + dy, pz = tz + dz;
+    const dest = getBlock(px, py, pz);
+    if (dest === AIR || dest === WATER) {
+      setBlock(px, py, pz, target);
+      setBlock(tx, ty, tz, AIR);
+      s.extended = true;
+      markBlockDirty(x, y, z);
+      markBlockDirty(tx, ty, tz);
+      markBlockDirty(px, py, pz);
+      // 侦测器若被推动则触发
+      if (target === RS_OBSERVER) triggerObserver(px, py, pz);
+    }
+  }
+}
+
+function doPistonRetract(x, y, z, facing, sticky) {
+  const s = rsGet(x, y, z);
+  const [dx, dy, dz] = FACING_VEC[facing];
+  const tx = x + dx, ty = y + dy, tz = z + dz;
+  s.extended = false;
+  markBlockDirty(x, y, z);
+  // 粘性活塞缩回：把前方 1 格拉回
+  if (sticky) {
+    const target = getBlock(tx, ty, tz);
+    if (target !== AIR && target !== WATER && target !== BEDROCK && !(BLOCKS[target] && (BLOCKS[target].piston || BLOCKS[target].observer))) {
+      const px = x + dx * 2, py = y + dy * 2, pz = z + dz * 2;
+      const dest = getBlock(px, py, pz);
+      if (dest === AIR || dest === WATER) {
+        setBlock(px, py, pz, target);
+        setBlock(tx, ty, tz, AIR);
+        markBlockDirty(tx, ty, tz);
+        markBlockDirty(px, py, pz);
+      }
+    }
+  }
+}
+
+function triggerObserver(x, y, z) {
+  const s = rsGet(x, y, z);
+  if (!s) return;
+  s.on = true;
+  markBlockDirty(x, y, z);
+  rsSchedule(x, y, z, 'observer_off', 2);
+  rsOnBlockChange(x, y, z);
+}
+
+// 方块变化时，通知相邻的侦测器（侦测器检测其朝向面对的那一面）
+function notifyObservers(x, y, z) {
+  for (let d = 0; d < 6; d++) {
+    const [dx, dy, dz] = RS_DIRS[d];
+    const nx = x + dx, ny = y + dy, nz = z + dz;
+    const nid = getBlock(nx, ny, nz);
+    if (nid === RS_OBSERVER) {
+      const s = rsGet(nx, ny, nz);
+      if (s && FACING_VEC[s.facing] && FACING_VEC[s.facing][0] === -dx && FACING_VEC[s.facing][1] === -dy && FACING_VEC[s.facing][2] === -dz) {
+        triggerObserver(nx, ny, nz);
+      }
+    }
+  }
 }
 
 /* ============================ 世界生成 ============================ */
@@ -653,7 +1054,9 @@ function shouldRenderFace(cur, nb) {
   if (cur === LEAVES && nb === LEAVES) return false;
   if (cur === WATER && nb === WATER) return false;
   if (cur === GLASS && nb === GLASS) return false;
-  return !!(b && b.transparent);
+  // 邻居为透明或 cutout（树叶等）时不遮挡：当前方块面应被渲染
+  // 否则会形成与树叶相接的方块面透明、可透视到天空的 bug
+  return !!(b && (b.transparent || b.cutout));
 }
 
 function meshChunk(chunk) {
@@ -675,6 +1078,12 @@ function meshChunk(chunk) {
         const px = lx, py = ly, pz = lz;
         const def = BLOCKS[id];
         if (!def) continue;
+        // 红石粉：渲染为贴地的扁平十字（非方块），仅视觉，不参与碰撞
+        if (def.wire) {
+          const s = rsGet(wx, wy, wz) || { power: 0 };
+          addWire(builders.cutout, px, py, pz, s.power > 0 ? T.rs_wire_on : T.rs_wire_off);
+          continue;
+        }
         if (def.cross) {
           addCross(builders.cutout, px, py, pz, def.top);
           continue;
@@ -683,11 +1092,30 @@ function meshChunk(chunk) {
         const isGlass = id === GLASS;
         const isCutout = !!def.cutout;
         const target = isWater ? builders.water : isGlass ? builders.glass : isCutout ? builders.cutout : builders.opaque;
+        // 红石方块动态纹理（根据状态选 on/off）
+        const rsS = (def.redstone && !def.cross) ? (rsGet(wx, wy, wz) || { on: false }) : null;
         for (const face of FACES) {
           const nx = face.n[0], ny = face.n[1], nz = face.n[2];
           const nb = getBlock(wx + nx, wy + ny, wz + nz);
           if (!shouldRenderFace(id, nb)) continue;
-          const tile = face.d === 1 ? (ny > 0 ? def.top : def.bottom) : def.side;
+          let tile = face.d === 1 ? (ny > 0 ? def.top : def.bottom) : def.side;
+          // 水下的草方块/雪草方块：所有可见面渲染为泥土（被水浸泡退化为泥土观感）
+          if (id === GRASS || id === SNOW_GRASS) {
+            const above = getBlock(wx, wy + 1, wz);
+            if (above === WATER) tile = T.dirt;
+          }
+          // 红石方块动态纹理
+          if (rsS) {
+            if (id === RS_LAMP) {
+              tile = rsS.on ? T.rs_lamp_on : T.rs_lamp_off;
+            } else if (id === RS_REPEATER) {
+              tile = rsS.on ? T.rs_repeater_on : T.rs_repeater_off;
+            } else if (id === RS_WIRE) {
+              tile = rsS.power > 0 ? T.rs_wire_on : T.rs_wire_off;
+            } else if (id === RS_TORCH) {
+              tile = rsS.on ? T.rs_torch_on : T.rs_torch_off;
+            }
+          }
           const uvRect = tileUV(tile);
           let topYOffset = 0;
           if (isWater && ny > 0) topYOffset = -0.125;
@@ -750,6 +1178,27 @@ function addCross(builder, bx, by, bz, tile) {
   );
 }
 
+// 红石粉：贴地扁平十字（略高于地面，避免 z-fighting）
+function addWire(builder, bx, by, bz, tile) {
+  const uvRect = tileUV(tile);
+  const { u0, u1, v0, v1 } = uvRect;
+  const y = by + 0.02;
+  const hw = 0.5; // 半宽
+  const l = 0.9;
+  // 沿 X 的横向贴片（南北向）
+  builder.quad(
+    [bx + 0.5 - hw, y, bz + 0.5 - 0.05], [bx + 0.5 + hw, y, bz + 0.5 - 0.05],
+    [bx + 0.5 + hw, y, bz + 0.5 + 0.05], [bx + 0.5 - hw, y, bz + 0.5 + 0.05],
+    [0, 1, 0], [u0, v0], [u1, v0], [u1, v1], [u0, v1], l, l, l, l
+  );
+  // 沿 Z 的横向贴片（东西向）
+  builder.quad(
+    [bx + 0.5 - 0.05, y, bz + 0.5 - hw], [bx + 0.5 + 0.05, y, bz + 0.5 - hw],
+    [bx + 0.5 + 0.05, y, bz + 0.5 + hw], [bx + 0.5 - 0.05, y, bz + 0.5 + hw],
+    [0, 1, 0], [u0, v0], [u1, v0], [u1, v1], [u0, v1], l, l, l, l
+  );
+}
+
 function buildChunkMesh(chunk, builders) {
   if (chunk.group) {
     scene.remove(chunk.group);
@@ -765,17 +1214,50 @@ function buildChunkMesh(chunk, builders) {
   for (const [key, mat] of specs) {
     const g = builders[key].toGeometry();
     if (!g) continue;
+    g.computeBoundingBox();
     const mesh = new THREE.Mesh(g, mat);
     mesh.position.set(chunk.cx * CHUNK, 0, chunk.cz * CHUNK);
+    // 让三.js 自动视锥剔除该 mesh（不手动改 frustumCulled）
+    mesh.frustumCulled = true;
     group.add(mesh);
   }
+  // 组包围盒（世界坐标），用于快速判定该区块是否在相机视锥内
+  group.userData.worldBox = new THREE.Box3(
+    new THREE.Vector3(chunk.cx * CHUNK, 0, chunk.cz * CHUNK),
+    new THREE.Vector3((chunk.cx + 1) * CHUNK, HEIGHT, (chunk.cz + 1) * CHUNK)
+  );
   scene.add(group);
   chunk.group = group;
   chunk.dirty = false;
 }
 
+/* 区块世界包围盒是否与相机视锥相交（快速剔除） */
+function chunkInFrustum(chunk) {
+  if (!camera) return true;
+  chunkBox.min.set(chunk.cx * CHUNK, 0, chunk.cz * CHUNK);
+  chunkBox.max.set((chunk.cx + 1) * CHUNK, HEIGHT, (chunk.cz + 1) * CHUNK);
+  return viewFrustum.intersectsBox(chunkBox);
+}
+
+/* 每帧更新视锥体（由投影矩阵 × 视图矩阵得到） */
+function updateViewFrustum() {
+  viewMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  viewFrustum.setFromProjectionMatrix(viewMatrix);
+}
+
 /* ============================ 玩家碰撞 ============================ */
 const PHW = 0.3, PHH = 1.8, EYE = 1.62;
+
+/* 判断某个世界坐标（玩家眼睛/身体中心）是否位于水中 */
+function isWaterAt(wx, wy, wz) {
+  return getBlock(Math.floor(wx), Math.floor(wy), Math.floor(wz)) === WATER;
+}
+function playerInWater() {
+  // 仅当玩家眼睛（头部）浸入水中才算入水；
+  // 头部露出水面即视为出水，恢复正常重力，避免在水面处卡住不上不下
+  return isWaterAt(player.x, player.y + EYE, player.z);
+}
+
 function boxCollides(px, py, pz) {
   const x0 = Math.floor(px - PHW), x1 = Math.floor(px + PHW);
   const y0 = Math.floor(py), y1 = Math.floor(py + PHH);
@@ -786,9 +1268,14 @@ function boxCollides(px, py, pz) {
   return false;
 }
 function movePlayer(dt) {
-  const speed = player.flying ? 11 : 4.4;
-  const sprint = keys.has('ControlLeft') || keys.has('ControlRight');
+  const inWater = playerInWater();
+  // 水中行走阻力：减速至约 40%，且无法冲刺
+  const baseSpeed = player.flying ? 11 : 4.4;
+  const speed = inWater ? baseSpeed * 0.4 : baseSpeed;
+  const sprint = !inWater && (keys.has('ControlLeft') || keys.has('ControlRight'));
   const k = 1 - Math.exp(-11 * dt);
+  // 水中水平加速度响应也放慢，体现粘滞感
+  const hk = inWater ? 1 - Math.exp(-4.5 * dt) : k;
 
   if (isTouch) {
     // 触控：摇杆直接驱动水平速度
@@ -806,19 +1293,32 @@ function movePlayer(dt) {
     const ml = Math.hypot(mx, mz);
     if (ml > 1) { mx /= ml; mz /= ml; }
     const sp = speed * (sprint ? 1.5 : 1);
-    player.vx += (mx * sp - player.vx) * k;
-    player.vz += (mz * sp - player.vz) * k;
+    player.vx += (mx * sp - player.vx) * hk;
+    player.vz += (mz * sp - player.vz) * hk;
   }
 
   if (player.flying) {
     const up = (keys.has('Space') ? 1 : 0) - (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 1 : 0);
     player.vy += (up * speed - player.vy) * k;
-    // 踩到实体方块即结束飞行
-    if (player.onGround) setFlying(false, true);
   } else {
-    player.vy -= 26 * dt;
-    if (player.vy < -40) player.vy = -40;
-    if (player.onGround && (keys.has('Space') || touch.jump)) { player.vy = 8.6; player.onGround = false; touch.jump = false; }
+    // 水中物理：重力与终端速度降低；出水后自动恢复正常重力
+    const wantSwim = (keys.has('Space') || touch.jump);
+    if (inWater) {
+      if (wantSwim) {
+        // 游泳上浮：快速朝目标速度收敛，足以浮出水面
+        player.vy += (5.0 - player.vy) * Math.min(1, 8 * dt);
+        if (player.vy > 5.0) player.vy = 5.0;
+      } else {
+        // 不按空格：缓慢下沉（终端 -2.5）
+        player.vy += (-2.5 - player.vy) * Math.min(1, 4 * dt);
+        if (player.vy < -2.5) player.vy = -2.5;
+      }
+    } else {
+      // 陆地：正常重力
+      player.vy -= 26 * dt;
+      if (player.vy < -40) player.vy = -40;
+      if (player.onGround && wantSwim) { player.vy = 8.6; player.onGround = false; touch.jump = false; }
+    }
   }
 
   // X 轴
@@ -828,6 +1328,7 @@ function movePlayer(dt) {
   player.z += player.vz * dt;
   if (boxCollides(player.x, player.y, player.z)) { player.z -= player.vz * dt; player.vz = 0; }
   // Y 轴
+  const wasDescending = player.vy < 0;
   player.y += player.vy * dt;
   if (boxCollides(player.x, player.y, player.z)) {
     if (player.vy <= 0) player.onGround = true;
@@ -835,8 +1336,9 @@ function movePlayer(dt) {
   } else {
     player.onGround = false;
   }
-  // 飞行状态下若已着地（踩到实体方块）则自动结束飞行
-  if (player.flying && player.onGround && !(keys.has('Space') || touch.jump)) {
+  // 飞行状态下：只有"向下飞行并踩到实体方块"才结束飞行；
+  // 刚开启飞行时（即使原来站在地面）不会立即关闭。
+  if (player.flying && player.onGround && wasDescending) {
     setFlying(false, true);
   }
 }
@@ -886,6 +1388,12 @@ let renderer, camera, scene;
 let matOpaque, matCutout, matWater, matGlass;
 let highlightMesh, skyMesh, sunMesh, clouds = [];
 let atlasTexture;
+// 性能：视锥剔除用包围盒 + 自适应网格构建预算
+const chunkBox = new THREE.Box3();
+const viewFrustum = new THREE.Frustum();
+const viewMatrix = new THREE.Matrix4();
+const chunkMeshBox = new THREE.Box3(new THREE.Vector3(-0.5, 0, -0.5), new THREE.Vector3(CHUNK + 0.5, HEIGHT, CHUNK + 0.5));
+let lastMeshFrame = 0; // 记录上次网格化所在帧，用于分散构建
 
 function initThree() {
   const canvas = document.getElementById('gameCanvas');
@@ -941,21 +1449,26 @@ function initThree() {
   sunMesh.lookAt(new THREE.Vector3(0, 0, 0));
   scene.add(sunMesh);
 
-  // 云（覆盖率约 30%）：使用水平放置的平面（默认面向 +Z，绕 X 旋转 -90° 使其水平），
-  // 避免云朵在头顶以"片状贴图"边缘呈现。
-  const cloudTex = makeCloudTexture();
-  const cloudCount = 26;
+  // 云（方块体积云，仿原版）：用 InstancedMesh 由单位立方体拼成蓬松云朵，
+  // 仅作装饰渲染，不参与方块碰撞/世界数据运算（云不是方块）。
+  const cloudGeo = new THREE.BoxGeometry(1, 1, 1);
+  const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+  const cloudCount = 40;
   for (let i = 0; i < cloudCount; i++) {
-    const m = new THREE.Mesh(
-      new THREE.PlaneGeometry(50 + Math.random() * 70, 20 + Math.random() * 18),
-      new THREE.MeshBasicMaterial({ map: cloudTex, transparent: true, depthWrite: false, opacity: 0.5, fog: false, side: THREE.DoubleSide })
-    );
-    m.userData.offset = new THREE.Vector3((Math.random() - 0.5) * 640, 82 + Math.random() * 18, (Math.random() - 0.5) * 640);
-    m.position.copy(m.userData.offset);
-    // 水平放置：PlaneGeometry 法线是 +Z，绕 X 轴转 -90° 后法线朝上
-    m.rotation.set(-Math.PI / 2, 0, (Math.random() - 0.5) * Math.PI);
-    clouds.push(m);
-    scene.add(m);
+    const cells = generateCloudCells();
+    const inst = new THREE.InstancedMesh(cloudGeo, cloudMat, cells.length);
+    const dummy = new THREE.Object3D();
+    for (let j = 0; j < cells.length; j++) {
+      dummy.position.set(cells[j][0], cells[j][1], cells[j][2]);
+      dummy.updateMatrix();
+      inst.setMatrixAt(j, dummy.matrix);
+    }
+    inst.instanceMatrix.needsUpdate = true;
+    // 云分布在更大范围，避免过于拥挤
+    inst.userData.offset = new THREE.Vector3((Math.random() - 0.5) * 1400, 88 + Math.random() * 16, (Math.random() - 0.5) * 1400);
+    inst.position.copy(inst.userData.offset);
+    clouds.push(inst);
+    scene.add(inst);
   }
 
   // 灯光
@@ -1000,6 +1513,48 @@ function makeCloudTexture() {
   }
   return new THREE.CanvasTexture(c);
 }
+
+/* 生成一朵方块云的体素单元（本地坐标，单位方块，y 相对云底） */
+function generateCloudCells() {
+  const cells = [];
+  const seed = Math.floor(Math.random() * 1e9);
+  const rng = mulberry32(seed);
+  // 云朵尺寸：随机长宽，整体更大
+  const lenX = 12 + Math.floor(rng() * 12);   // 12..23
+  const lenZ = 8 + Math.floor(rng() * 8);     // 8..15
+  const add = (x, y, z) => cells.push([x, y, z]);
+  // 底部长方形（近似椭圆边缘裁剪）
+  for (let x = 0; x < lenX; x++) {
+    for (let z = 0; z < lenZ; z++) {
+      const nx = (x - (lenX - 1) / 2) / ((lenX - 1) / 2);
+      const nz = (z - (lenZ - 1) / 2) / ((lenZ - 1) / 2);
+      if (nx * nx + nz * nz > 1.2 + rng() * 0.2) continue;
+      add(x, 0, z);
+      // 第二层中间加厚
+      if (nx * nx + nz * nz < 0.55) add(x, 1, z);
+      // 第三层更靠中心加厚
+      if (nx * nx + nz * nz < 0.3) add(x, 2, z);
+    }
+  }
+  // 顶部凸起
+  const bumps = 4 + Math.floor(rng() * 6);
+  for (let b = 0; b < bumps; b++) {
+    const bx = Math.floor(rng() * lenX);
+    const bz = Math.floor(rng() * lenZ);
+    add(bx, 3, bz);
+    if (rng() < 0.4) add(bx, 4, bz);
+  }
+  // 去重
+  const seen = new Set();
+  const unique = [];
+  for (const c of cells) {
+    const key = c[0] + ',' + c[1] + ',' + c[2];
+    if (!seen.has(key)) { seen.add(key); unique.push(c); }
+  }
+  // 平移到以原点为中心
+  const cx = (lenX - 1) / 2, cz = (lenZ - 1) / 2;
+  return unique.map(([x, y, z]) => [x - cx, y, z - cz]);
+}
 function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -1032,6 +1587,9 @@ function onGLContextRestored() {
 /* ============================ 区块流式加载 ============================ */
 function updateChunks() {
   const pcx = Math.floor(player.x / CHUNK), pcz = Math.floor(player.z / CHUNK);
+  // 确保相机矩阵与视锥体最新（相机位置由上一帧末尾设置）
+  camera.updateMatrixWorld();
+  updateViewFrustum();
   // 卸载远处区块
   for (const [k, chunk] of chunks) {
     const d = Math.max(Math.abs(chunk.cx - pcx), Math.abs(chunk.cz - pcz));
@@ -1046,7 +1604,9 @@ function updateChunks() {
     for (let dz = -renderDistance; dz <= renderDistance; dz++)
       wanted.push([pcx + dx, pcz + dz]);
   wanted.sort((a, b) => (Math.max(Math.abs(a[0] - pcx), Math.abs(a[1] - pcz))) - (Math.max(Math.abs(b[0] - pcx), Math.abs(b[1] - pcz))));
-  let genBudget = 1, meshBudget = 3;
+  let genBudget = 1;
+  // 自适应网格预算：低 FPS 时减少每帧网格化数量，避免加载区块卡顿
+  let meshBudget = fps > 40 ? 3 : (fps > 20 ? 1 : 0);
   for (const [cx, cz] of wanted) {
     const k = ckey(cx, cz);
     let chunk = chunks.get(k);
@@ -1055,7 +1615,11 @@ function updateChunks() {
       chunks.set(k, chunk);
     }
     if (!chunk.generated && genBudget > 0) { generateChunk(chunk); genBudget--; markDirty(cx - 1, cz); markDirty(cx + 1, cz); markDirty(cx, cz - 1); markDirty(cx, cz + 1); }
-    if (chunk.generated && chunk.dirty && meshBudget > 0) { meshChunk(chunk); meshBudget--; }
+    // 网格化：优先处理视锥内的区块；视锥外的区块延后，避免无谓构建
+    if (chunk.generated && chunk.dirty && meshBudget > 0 && chunkInFrustum(chunk)) {
+      meshChunk(chunk);
+      meshBudget--;
+    }
   }
   scene.fog.near = renderDistance * CHUNK * 0.45;
   scene.fog.far = renderDistance * CHUNK * 0.95;
@@ -1103,6 +1667,11 @@ function showToast(msg) {
 
 /* ============================ 聊天与指令 ============================ */
 function addChatLine(text, kind) {
+  // 保存聊天记录到持久化历史（最多 100 条）
+  chatHistory.push({ text, kind, t: Date.now() });
+  while (chatHistory.length > 100) chatHistory.shift();
+  saveChatHistory();
+  // 渲染该条消息
   const line = document.createElement('div');
   line.className = 'chat-line';
   if (kind === 'cmd') {
@@ -1116,8 +1685,39 @@ function addChatLine(text, kind) {
   }
   el.chatLog.appendChild(line);
   while (el.chatLog.children.length > 40) el.chatLog.removeChild(el.chatLog.firstChild);
-  // 数秒后自动淡出并移除
+  // 数秒后自动淡出并移除（仅移除 DOM，历史仍在 chatHistory 中）
   setTimeout(() => { if (line.parentNode) line.parentNode.removeChild(line); }, 6000);
+}
+
+const CHAT_KEY = 'luminya_mc_chat';
+let chatHistory = [];
+function loadChatHistory() {
+  try {
+    const raw = localStorage.getItem(CHAT_KEY);
+    if (raw) chatHistory = JSON.parse(raw);
+  } catch (e) { chatHistory = []; }
+}
+function saveChatHistory() {
+  try { localStorage.setItem(CHAT_KEY, JSON.stringify(chatHistory)); } catch (e) { /* 忽略 */ }
+}
+function restoreChatHistory() {
+  // 把保存的历史重新渲染到聊天框
+  el.chatLog.innerHTML = '';
+  const recent = chatHistory.slice(-40);
+  for (const { text, kind } of recent) {
+    const line = document.createElement('div');
+    line.className = 'chat-line';
+    if (kind === 'cmd') {
+      line.innerHTML = `<span class="chat-sys">${escapeHtml(text)}</span>`;
+    } else if (kind === 'err') {
+      line.innerHTML = `<span class="chat-err">${escapeHtml(text)}</span>`;
+    } else if (kind === 'player') {
+      line.innerHTML = `<span class="chat-name">玩家</span> ${escapeHtml(text)}</span>`;
+    } else {
+      line.innerHTML = `<span class="chat-sys">${escapeHtml(text)}</span>`;
+    }
+    el.chatLog.appendChild(line);
+  }
 }
 function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1194,8 +1794,18 @@ function executeCommand(line) {
       addChatLine('当前为创造模式，无昼夜循环', 'cmd');
       break;
     }
+    case 'rechunk':
+    case 'reloadchunks':
+    case 'rerender': {
+      // 重新渲染所有已加载区块（标记 dirty 后由主循环重建网格）
+      for (const [, chunk] of chunks) {
+        if (chunk.generated) chunk.dirty = true;
+      }
+      addChatLine('已请求重新渲染所有区块', 'cmd');
+      break;
+    }
     case 'help': {
-      addChatLine('指令: /tp <x y z> · /give <方块> [数量] · /fly · /seed · /help', 'cmd');
+      addChatLine('指令: /tp <x y z> · /give <方块> [数量] · /fly · /seed · /rechunk · /help', 'cmd');
       break;
     }
     default:
@@ -1413,6 +2023,10 @@ function clearWorld() {
   }
   chunks.clear();
   editsByChunk.clear();
+  rsState.clear();
+  rsTickQueue = [];
+  rsTime = 0;
+  rsAccum = 0;
   if (highlightMesh) highlightMesh.visible = false;
   if (renderer) renderer.renderLists && renderer.renderLists.dispose();
 }
@@ -1426,6 +2040,10 @@ function startGame(saveData, name, seed) {
   }
   chunks.clear();
   editsByChunk.clear();
+  rsState.clear();
+  rsTickQueue = [];
+  rsTime = 0;
+  rsAccum = 0;
   if (saveData) {
     player = {
       x: saveData.player.pos[0], y: saveData.player.pos[1], z: saveData.player.pos[2],
@@ -1456,6 +2074,7 @@ function startGame(saveData, name, seed) {
   gameState = 'playing';
   renderHotbar(); renderInventory(); renderCreative();
   updateCursorVisual();
+  restoreChatHistory();
   // 初始加载区块（异步，带进度）
   initialLoad(() => {
     el.loadingScreen.classList.add('hidden');
@@ -1654,18 +2273,31 @@ function renderSlotList() {
 const keys = new Set();
 let isTouch = false;
 const touch = { move: { x: 0, y: 0 }, look: { x: 0, y: 0 }, jump: false, fly: false, place: false, breaking: false };
-let lastSpaceTime = 0;
+let lastSpaceTapTime = 0;
+let spacePressed = false;   // 空格是否物理按下（keyup 前为 true），用于区分真实按击与长按
+let lastFlyToggle = 0;      // 上次飞行切换时间，防止双击判定与空中长按误触
 let chatOpen = false;
 let chatIsCommand = false;
 
-function handleSpaceDoubleTap() {
+function handleSpaceTap() {
+  // 只在"真实按下"（非自动重复）时调用；由 keydown 的 e.repeat 过滤保证
   const now = performance.now();
-  if (now - lastSpaceTime < 300) {
-    lastSpaceTime = 0;
-    setFlying(true);
+  if (spacePressed) return;         // 已经按住：长按/自动重复，不算一次新点击
+  spacePressed = true;
+  const diff = now - lastSpaceTapTime;
+  if (diff < 350) {
+    lastSpaceTapTime = 0;
+    // 双击空格：开启/关闭飞行；并加冷却，防止空中长按快速重复触发
+    if (now - lastFlyToggle > 500) {
+      lastFlyToggle = now;
+      setFlying(!player.flying);
+    }
   } else {
-    lastSpaceTime = now;
+    lastSpaceTapTime = now;
   }
+}
+function handleSpaceRelease() {
+  spacePressed = false;
 }
 
 function bindInput() {
@@ -1697,15 +2329,18 @@ function bindInput() {
       if (ni >= 0) { hotbarSel = ni; renderHotbar(); }
       if (e.code === 'Space') {
         e.preventDefault();
-        // 双击空格开启飞行
-        if (!player.flying) handleSpaceDoubleTap();
+        // 双击空格开启/关闭飞行（忽略自动重复，长按不触发）
+        if (!e.repeat) handleSpaceTap();
       }
       // 聊天/指令
       if (e.code === 'KeyT') { e.preventDefault(); openChat(false); }
       if (e.code === 'Slash') { e.preventDefault(); openChat(true); }
     }
   });
-  document.addEventListener('keyup', (e) => keys.delete(e.code));
+  document.addEventListener('keyup', (e) => {
+    keys.delete(e.code);
+    if (e.code === 'Space') handleSpaceRelease();
+  });
   document.addEventListener('mousemove', (e) => {
     if (document.pointerLockElement === canvas && gameState === 'playing' && !inventoryOpen) {
       player.yaw -= e.movementX * 0.0023 * sensitivity;
@@ -1724,7 +2359,7 @@ function bindInput() {
     if (!isTouch && document.pointerLockElement !== canvas) return;
     ensureAudio();
     if (e.button === 0) breakBlock();
-    else if (e.button === 2) placeBlock();
+    else if (e.button === 2) interactBlock();
   });
   document.addEventListener('contextmenu', (e) => { if (gameState === 'playing') e.preventDefault(); });
   document.addEventListener('wheel', (e) => {
@@ -1825,6 +2460,28 @@ function breakBlock() {
   playBreak(id);
 }
 
+// 右键交互：拉杆/按钮等切换状态，否则放置方块
+function interactBlock() {
+  const origin = new THREE.Vector3(player.x, player.y + EYE, player.z);
+  const hit = raycast(origin, cameraDir(), REACH);
+  if (!hit) return;
+  const id = getBlock(hit.x, hit.y, hit.z);
+  const def = BLOCKS[id];
+  if (def) {
+    if (def.lever) {
+      const s = rsGet(hit.x, hit.y, hit.z);
+      if (s) { s.on = !s.on; markBlockDirty(hit.x, hit.y, hit.z); rsOnBlockChange(hit.x, hit.y, hit.z); playPlace(); }
+      return;
+    }
+    if (def.button) {
+      const s = rsGet(hit.x, hit.y, hit.z);
+      if (s && !s.on) { s.on = true; markBlockDirty(hit.x, hit.y, hit.z); rsSchedule(hit.x, hit.y, hit.z, 'button_off', 20); rsOnBlockChange(hit.x, hit.y, hit.z); playPlace(); }
+      return;
+    }
+  }
+  placeBlock();
+}
+
 function placeBlock() {
   const item = inventory[hotbarSel];
   if (!item) { showToast('请先选择物品'); return; }
@@ -1844,6 +2501,11 @@ function placeBlock() {
   // 花草等 cross 方块只能放在实体方块上
   if (blockDef.cross && !isSolid(getBlock(px, py - 1, pz))) { showToast('只能放在方块上面'); return; }
   setBlock(px, py, pz, id);
+  // 红石方块：设置朝向（facing = 面朝玩家放置的方向的反方向）
+  if (blockDef.redstone) {
+    const facing = facingFromDir(-hit.face[0], -hit.face[1], -hit.face[2]);
+    rsSet(px, py, pz, { facing, on: false, power: 0 });
+  }
   if (item.count > 0) { item.count--; if (item.count <= 0) inventory[hotbarSel] = null; }
   renderHotbar(); renderInventory();
   playPlace();
@@ -1982,6 +2644,7 @@ let fov = 75;
 let debugInfoEnabled = false;
 let autoSaveEnabled = true;
 const SETTINGS_KEY = 'luminya_mc_settings';
+let rsAccum = 0;  // 红石刻计时器
 
 function animate(now) {
   requestAnimationFrame(animate);
@@ -2003,14 +2666,24 @@ function animate(now) {
     updateChunks();
     updateHighlight();
     updateDebug();
+    // 红石刻：约每 100ms 一个刻（10 tick/s）
+    rsAccum += dt;
+    while (rsAccum >= 0.1) { rsAccum -= 0.1; rsTick(); }
     // 自动保存
     if (autoSaveEnabled && now - lastAutoSave > 30000 && activeSaveName) { lastAutoSave = now; saveGame(true); }
   }
   // 粒子更新（暂停时也更新，避免视觉冻结不自然）
   updateParticles(dt);
 
+  // 水下渲染：入水时切换为蓝雾近距离，出水恢复
+  updateWaterEffect(dt);
+
   camera.position.set(player.x, player.y + EYE, player.z);
   camera.rotation.set(player.pitch, player.yaw, 0);
+  // 更新相机矩阵与视锥体，供区块剔除使用
+  camera.updateMatrixWorld();
+  camera.updateProjectionMatrix();
+  updateViewFrustum();
 
   // 天空/太阳/云跟随玩家，保证始终可见
   skyMesh.position.set(player.x, player.y, player.z);
@@ -2040,6 +2713,36 @@ function updateHighlight() {
 }
 const FACING_CN = ['南', '西', '北', '东'];
 let fpsHistory = [];
+
+/* ============================ 水下渲染效果 ============================ */
+let waterFogTarget = 0;   // 0 = 正常，1 = 水下
+let waterFogCurrent = 0;
+function updateWaterEffect(dt) {
+  const underwater = playerInWater();
+  waterFogTarget = underwater ? 1 : 0;
+  // 平滑过渡，避免入水/出水瞬间闪烁
+  const speed = 6;
+  if (Math.abs(waterFogTarget - waterFogCurrent) < 0.001) {
+    waterFogCurrent = waterFogTarget;
+  } else {
+    waterFogCurrent += (waterFogTarget - waterFogCurrent) * Math.min(1, speed * dt);
+  }
+  if (waterFogCurrent > 0.001) {
+    // 水下蓝雾
+    const far = Math.max(18, renderDistance * CHUNK * 0.95 * (1 - waterFogCurrent * 0.82));
+    scene.fog.color.setHex(0x2a5fa8);
+    scene.fog.near = far * 0.15;
+    scene.fog.far = far;
+    if (waterFogCurrent < 0.5) {
+      // 过渡期间混合颜色
+      scene.fog.color.setHex(0xbfd7ee).lerp(new THREE.Color(0x2a5fa8), waterFogCurrent * 2);
+    }
+  } else {
+    scene.fog.color.setHex(0xbfd7ee);
+    scene.fog.near = renderDistance * CHUNK * 0.45;
+    scene.fog.far = renderDistance * CHUNK * 0.95;
+  }
+}
 
 function updateDebug() {
   if (!debugInfoEnabled) return;
@@ -2147,6 +2850,7 @@ function init() {
   el.errorScreen = $('#errorScreen');
 
   loadSettings();
+  loadChatHistory();
   buildAtlas();
   try {
     initThree();
