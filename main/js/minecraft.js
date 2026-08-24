@@ -2779,7 +2779,7 @@ function drawDebugChart() {
   }
   ctx.stroke();
   // 参考线
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.strokeStyle = 'rgba(20,34,48,0.15)';
   ctx.lineWidth = 1;
   for (const pct of [0.5, 1]) {
     ctx.beginPath();

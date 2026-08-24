@@ -1,20 +1,21 @@
-/* ===== Minecraft Web — 样式表 ===== */
+/* ===== Minecraft Web — 样式表（强制浅色模式） ===== */
 
 :root {
-  --mc-bg: #0d0f14;
-  --mc-panel: rgba(24, 26, 32, 0.92);
-  --mc-panel-soft: rgba(35, 38, 46, 0.92);
-  --mc-border: rgba(255, 255, 255, 0.08);
-  --mc-border-strong: rgba(255, 255, 255, 0.16);
-  --mc-text: #e8eaf0;
-  --mc-text-dim: #9aa2b1;
-  --mc-accent: #54c85a;
-  --mc-accent-dark: #3da344;
-  --mc-gold: #f2c14e;
-  --mc-danger: #e25555;
-  --mc-slot: #1a1c23;
-  --mc-slot-hover: #262a33;
-  --mc-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  --mc-bg: #e6edf4;
+  --mc-panel: rgba(255, 255, 255, 0.95);
+  --mc-panel-soft: rgba(248, 250, 252, 0.95);
+  --mc-border: rgba(20, 34, 48, 0.10);
+  --mc-border-strong: rgba(20, 34, 48, 0.18);
+  --mc-text: #1e2a36;
+  --mc-text-dim: #5a6b7c;
+  --mc-accent: #35a040;
+  --mc-accent-dark: #2b8435;
+  --mc-gold: #d99a1f;
+  --mc-danger: #d64545;
+  --mc-slot: #f1f4f8;
+  --mc-slot-hover: #e3e9f0;
+  --mc-shadow: 0 12px 40px rgba(20, 34, 48, 0.18);
+  --mc-overlay: rgba(228, 235, 242, 0.72);
   --font-pixel: 'Press Start 2P', 'Noto Sans SC', monospace;
   --font-ui: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -69,8 +70,8 @@ button {
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(1200px 600px at 50% -10%, #1b2a1f 0%, transparent 60%),
-    linear-gradient(180deg, #101319 0%, #0d0f14 100%);
+    radial-gradient(1200px 600px at 50% -10%, #d8efd9 0%, transparent 60%),
+    linear-gradient(180deg, #eef4f8 0%, #e6edf4 100%);
 }
 .loading-inner { text-align: center; }
 .loading-logo {
@@ -86,14 +87,14 @@ button {
   margin: 20px 0 30px;
   color: var(--mc-text);
   letter-spacing: 2px;
-  text-shadow: 0 0 24px rgba(84, 200, 90, 0.35);
+  text-shadow: 0 0 24px rgba(53, 160, 64, 0.25);
 }
 .loading-bar {
   width: 320px;
   max-width: 80vw;
   height: 10px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(20, 34, 48, 0.08);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -118,7 +119,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(8, 10, 14, 0.9);
+  background: rgba(228, 235, 242, 0.9);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -145,7 +146,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(8, 10, 14, 0.72);
+  background: var(--mc-overlay);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -184,13 +185,13 @@ button {
   font-size: 15px;
   font-weight: 600;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.65);
   border: 1px solid var(--mc-border);
   color: var(--mc-text);
   transition: all 0.16s ease;
 }
 .menu-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.9);
   border-color: var(--mc-border-strong);
   transform: translateY(-1px);
 }
@@ -198,9 +199,9 @@ button {
 .menu-btn--primary {
   background: linear-gradient(135deg, var(--mc-accent-dark), var(--mc-accent));
   border-color: transparent;
-  color: #0b120c;
+  color: #ffffff;
 }
-.menu-btn--primary:hover { filter: brightness(1.08); }
+.menu-btn--primary:hover { filter: brightness(1.05); }
 .menu-tip {
   margin-top: 28px;
   font-size: 12px;
@@ -216,7 +217,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(8, 10, 14, 0.6);
+  background: rgba(228, 235, 242, 0.6);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
@@ -259,7 +260,7 @@ button {
   padding: 11px 14px;
   font-size: 15px;
   color: var(--mc-text);
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--mc-border-strong);
   border-radius: 10px;
   outline: none;
@@ -327,7 +328,7 @@ button {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.6);
   border: 1px solid var(--mc-border);
   border-radius: 12px;
   gap: 12px;
@@ -339,11 +340,11 @@ button {
   padding: 7px 12px;
   font-size: 13px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--mc-border);
 }
-.slot-item .slot-actions button:hover { background: rgba(255, 255, 255, 0.16); }
-.slot-item .slot-actions .slot-delete { color: var(--mc-danger); border-color: rgba(226, 85, 85, 0.35); }
+.slot-item .slot-actions button:hover { background: rgba(255, 255, 255, 0.95); }
+.slot-item .slot-actions .slot-delete { color: var(--mc-danger); border-color: rgba(214, 69, 69, 0.4); }
 .slot-empty {
   text-align: center;
   color: var(--mc-text-dim);
@@ -364,12 +365,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  mix-blend-mode: difference;
 }
 .crosshair::before, .crosshair::after {
   content: '';
   position: absolute;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(30, 42, 54, 0.85);
 }
 .crosshair::before { width: 2px; height: 100%; }
 .crosshair::after { width: 100%; height: 2px; }
@@ -383,11 +383,11 @@ button {
   gap: 6px;
   font-size: 12px;
   font-family: 'Noto Sans SC', monospace;
-  color: #eaf2ea;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  color: #1e2a36;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
   pointer-events: none;
-  background: rgba(12, 14, 19, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(20, 34, 48, 0.10);
   border-radius: 10px;
   padding: 10px 12px;
   backdrop-filter: blur(2px);
@@ -400,7 +400,7 @@ button {
 #debugChart {
   display: block;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.5);
   image-rendering: pixelated;
 }
 
@@ -423,8 +423,8 @@ button {
   justify-content: flex-end;
 }
 .chat-line {
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  color: #1e2a36;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
   line-height: 1.4;
   word-break: break-word;
   animation: chat-fade 6s forwards;
@@ -433,22 +433,22 @@ button {
   0%, 70% { opacity: 1; }
   100% { opacity: 0; }
 }
-.chat-line .chat-name { color: #f2c14e; font-weight: 600; }
-.chat-line .chat-sys { color: #9aa2b1; }
-.chat-line .chat-err { color: #e25555; }
+.chat-line .chat-name { color: #b57a10; font-weight: 600; }
+.chat-line .chat-sys { color: #5a6b7c; }
+.chat-line .chat-err { color: #c23b3b; }
 .chat-bar {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 6px;
   pointer-events: auto;
-  background: rgba(12, 14, 19, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--mc-border-strong);
   border-radius: 8px;
   padding: 8px 10px;
 }
 .chat-prompt {
-  color: #f2c14e;
+  color: #b57a10;
   font-weight: 700;
 }
 .chat-input {
@@ -456,7 +456,7 @@ button {
   background: none;
   border: none;
   outline: none;
-  color: #fff;
+  color: #1e2a36;
   font-size: 14px;
   font-family: 'Noto Sans SC', monospace;
 }
@@ -467,7 +467,7 @@ button {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(18, 20, 26, 0.7);
+  background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--mc-border-strong);
   color: var(--mc-text);
   font-size: 15px;
@@ -476,7 +476,7 @@ button {
   justify-content: center;
   transition: background 0.15s ease;
 }
-.hud-btn:hover { background: rgba(255, 255, 255, 0.14); }
+.hud-btn:hover { background: rgba(255, 255, 255, 0.95); }
 .hud-btn--inventory { bottom: 92px; right: 18px; }
 .hud-btn--menu { top: 14px; right: 18px; }
 
@@ -492,8 +492,8 @@ button {
   display: flex;
   gap: 4px;
   padding: 5px;
-  background: rgba(12, 14, 19, 0.72);
-  border: 2px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.78);
+  border: 2px solid rgba(20, 34, 48, 0.16);
   border-radius: 12px;
   backdrop-filter: blur(4px);
 }
@@ -502,7 +502,7 @@ button {
   width: 48px;
   height: 48px;
   background: var(--mc-slot);
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(20, 34, 48, 0.10);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -511,7 +511,7 @@ button {
 .slot:hover { background: var(--mc-slot-hover); }
 .slot.selected {
   border-color: var(--mc-gold);
-  box-shadow: 0 0 0 2px rgba(242, 193, 78, 0.35);
+  box-shadow: 0 0 0 2px rgba(217, 154, 31, 0.4);
 }
 .slot img {
   width: 36px;
@@ -527,7 +527,7 @@ button {
   font-size: 12px;
   font-weight: 700;
   color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   pointer-events: none;
 }
 .slot .slot-index {
@@ -539,7 +539,7 @@ button {
   pointer-events: none;
 }
 .slot.dragging { opacity: 0.5; }
-.slot.drag-over { border-color: var(--mc-accent); box-shadow: 0 0 0 2px rgba(84, 200, 90, 0.4); }
+.slot.drag-over { border-color: var(--mc-accent); box-shadow: 0 0 0 2px rgba(53, 160, 64, 0.45); }
 
 /* ===== 光标选中方块信息 ===== */
 .block-info {
@@ -548,14 +548,15 @@ button {
   left: 50%;
   transform: translateX(-50%);
   padding: 6px 14px;
-  background: rgba(18, 20, 26, 0.78);
+  background: rgba(255, 255, 255, 0.82);
   border: 1px solid var(--mc-border-strong);
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--mc-text);
   pointer-events: none;
   white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 
 /* ===== 物品悬停气泡 ===== */
@@ -563,11 +564,12 @@ button {
   position: fixed;
   z-index: 80;
   padding: 7px 12px;
-  background: rgba(12, 14, 19, 0.96);
+  background: rgba(255, 255, 255, 0.97);
   border: 1px solid var(--mc-border-strong);
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--mc-text);
   pointer-events: none;
   white-space: nowrap;
   box-shadow: var(--mc-shadow);
@@ -580,8 +582,9 @@ button {
   bottom: 116px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(18, 20, 26, 0.9);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--mc-border-strong);
+  color: var(--mc-text);
   padding: 10px 18px;
   border-radius: 10px;
   font-size: 14px;
@@ -600,7 +603,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(8, 10, 14, 0.5);
+  background: rgba(228, 235, 242, 0.5);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
@@ -621,15 +624,17 @@ button {
   font-weight: 700;
   font-size: 16px;
   margin-bottom: 16px;
+  color: var(--mc-text);
 }
 .inventory-close {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(20, 34, 48, 0.08);
   font-size: 14px;
+  color: var(--mc-text);
 }
-.inventory-close:hover { background: rgba(255, 255, 255, 0.16); }
+.inventory-close:hover { background: rgba(20, 34, 48, 0.16); }
 .inventory-body {
   display: flex;
   gap: 24px;
@@ -675,14 +680,14 @@ button {
   align-items: center;
   justify-content: center;
   font-size: 22px;
-  background: rgba(226, 85, 85, 0.12);
-  border: 2px dashed rgba(226, 85, 85, 0.45);
+  background: rgba(214, 69, 69, 0.12);
+  border: 2px dashed rgba(214, 69, 69, 0.45);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .trash-slot:hover, .trash-slot.drag-over {
-  background: rgba(226, 85, 85, 0.28);
+  background: rgba(214, 69, 69, 0.25);
   border-color: var(--mc-danger);
 }
 .trash-label { font-size: 12px; color: var(--mc-text-dim); }
@@ -705,16 +710,17 @@ button {
 .creative-grid .slot { width: 46px; height: 46px; cursor: pointer; }
 .creative-grid .slot img { width: 34px; height: 34px; }
 .creative-grid::-webkit-scrollbar { width: 6px; }
-.creative-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+.creative-grid::-webkit-scrollbar-thumb { background: rgba(20, 34, 48, 0.25); border-radius: 3px; }
 
 .inventory-tooltip {
   position: fixed;
   z-index: 70;
   padding: 8px 12px;
-  background: rgba(12, 14, 19, 0.95);
+  background: rgba(255, 255, 255, 0.97);
   border: 1px solid var(--mc-border-strong);
   border-radius: 8px;
   font-size: 13px;
+  color: var(--mc-text);
   pointer-events: none;
   white-space: nowrap;
   box-shadow: var(--mc-shadow);
@@ -734,8 +740,8 @@ button {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(20, 34, 48, 0.08);
+  border: 2px solid rgba(20, 34, 48, 0.25);
   pointer-events: auto;
 }
 .touch-joystick-knob {
@@ -745,7 +751,7 @@ button {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(20, 34, 48, 0.3);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -770,8 +776,8 @@ button {
   width: 56px;
   height: 56px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(20, 34, 48, 0.22);
   color: var(--mc-text);
   font-size: 14px;
   font-weight: 600;
@@ -779,10 +785,10 @@ button {
   align-items: center;
   justify-content: center;
 }
-.touch-btn:active { background: rgba(255, 255, 255, 0.24); }
-.touch-btn--break { background: rgba(226, 85, 85, 0.25); }
-.touch-btn--place { background: rgba(84, 200, 90, 0.25); }
-.touch-btn--jump { background: rgba(242, 193, 78, 0.25); }
+.touch-btn:active { background: rgba(255, 255, 255, 0.95); }
+.touch-btn--break { background: rgba(214, 69, 69, 0.3); }
+.touch-btn--place { background: rgba(53, 160, 64, 0.3); }
+.touch-btn--jump { background: rgba(217, 154, 31, 0.3); }
 
 /* ===== 响应式 ===== */
 @media (max-width: 760px) {
