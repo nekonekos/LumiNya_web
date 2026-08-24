@@ -94,11 +94,11 @@
         {
           "icon": "⛏️",
           "thumbClass": "thumb--coral",
-          "title": "LumiSer · 原版生存服",
-          "desc": "一个 Minecraft 服务器，我和朋友们一起玩的地方。",
-          "tags": ["Minecraft", "服务器", "2024"],
-          "action": "了解更多",
-          "link": "#"
+          "title": "LumiCraft · 网页版Minecraft",
+          "desc": "一个纯前端网页版的 Minecraft 游戏。",
+          "tags": ["Minecraft", "网页游戏", "2026"],
+          "action": "游玩",
+          "link": "/minecraft"
         }
       ]
     },
