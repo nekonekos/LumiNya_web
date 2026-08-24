@@ -2,7 +2,7 @@
   "bookName": "测试小说",
   "author": "LumiNya",
   "description": "这是一个测试性描述，用于展示小说的基本信息和章节列表。",
-  "cover": "/books/novel1/cover.jpg",
+  "cover": "/books/novel1/cover.webp",
   "wordCount": 520000,
   "status": "连载中",
   "chapters": [
