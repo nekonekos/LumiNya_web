@@ -3,27 +3,13 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>小说阅读器</title>
+    <title>墨韵 · 小说阅读器</title>
 
     <style>
         /* ============================================================
-                   完整小说阅读器 · 样式设计
-                   ├── CSS 变量 (主题)
-                   ├── 全局重置 & 基础
-                   ├── 阅读器布局
-                   ├── 顶部导航栏
-                   ├── 正文区域
-                   ├── 底部控制栏
-                   ├── 侧滑目录 (含书籍信息)
-                   ├── 设置面板
-                   ├── 加载遮罩 & Toast
-                   ├── 滚动条美化
-                   └── 响应式适配
-                ============================================================ */
-
-        /* ---------- 1. CSS 变量 (主题) ---------- */
+           完整小说阅读器 · 样式设计（适配移动/桌面）
+           ============================================================ */
         :root {
-            /* 日间主题 (默认) */
             --bg-primary: #f5f0eb;
             --bg-secondary: #ffffff;
             --bg-nav: rgba(255, 252, 248, 0.94);
@@ -36,7 +22,6 @@
 
             --text-primary: #2c241c;
             --text-secondary: #6b5f55;
-            --text-inverse: #f5f0eb;
             --text-nav: #3d322a;
             --text-chapter-title: #2c241c;
             --text-chapter-active: #b8860b;
@@ -63,7 +48,6 @@
             --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        /* 夜间主题 */
         [data-theme="night"] {
             --bg-primary: #1a1614;
             --bg-secondary: #231f1c;
@@ -77,7 +61,6 @@
 
             --text-primary: #ddd6ce;
             --text-secondary: #9a8f85;
-            --text-inverse: #1a1614;
             --text-nav: #ddd6ce;
             --text-chapter-title: #ddd6ce;
             --text-chapter-active: #e8b84a;
@@ -90,7 +73,6 @@
             --shadow-sidebar: -4px 0 32px rgba(0, 0, 0, 0.3);
         }
 
-        /* 护眼主题 */
         [data-theme="eye"] {
             --bg-primary: #c7e0c7;
             --bg-secondary: #dceadc;
@@ -104,7 +86,6 @@
 
             --text-primary: #2d3d2d;
             --text-secondary: #4d6b4d;
-            --text-inverse: #c7e0c7;
             --text-nav: #2d3d2d;
             --text-chapter-title: #2d3d2d;
             --text-chapter-active: #3d7a3d;
@@ -117,7 +98,6 @@
             --shadow-sidebar: -4px 0 32px rgba(45, 61, 45, 0.06);
         }
 
-        /* ---------- 2. 全局重置 ---------- */
         *,
         *::before,
         *::after {
@@ -148,7 +128,6 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        /* ---------- 3. 阅读器布局 ---------- */
         .reader-container {
             display: flex;
             flex-direction: column;
@@ -162,7 +141,7 @@
             overflow: hidden;
         }
 
-        /* ---------- 4. 顶部导航栏 ---------- */
+        /* ----- 顶部导航 ----- */
         .header {
             display: flex;
             align-items: center;
@@ -274,7 +253,7 @@
             stroke-linejoin: round;
         }
 
-        /* ---------- 5. 正文区域 ---------- */
+        /* ----- 正文区域 ----- */
         .content-wrapper {
             flex: 1;
             overflow-y: auto;
@@ -344,7 +323,7 @@
             margin-bottom: 0;
         }
 
-        /* 底部加载提示条 (下拉加载下一章) */
+        /* 底部加载提示 (滚动翻章) */
         .load-tip {
             position: sticky;
             bottom: 0;
@@ -366,6 +345,7 @@
             margin-top: 20px;
             font-weight: 500;
             letter-spacing: 0.04em;
+            cursor: pointer;
         }
 
         .load-tip.show {
@@ -377,17 +357,6 @@
         .load-tip .icon {
             display: inline-block;
             margin-right: 6px;
-            animation: bounce-down 1.6s infinite;
-        }
-
-        @keyframes bounce-down {
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(6px);
-            }
         }
 
         .load-tip.loading .icon {
@@ -400,7 +369,6 @@
             }
         }
 
-        /* 空状态 / 占位 */
         .content-placeholder {
             display: flex;
             flex-direction: column;
@@ -413,12 +381,7 @@
             text-align: center;
         }
 
-        .content-placeholder .icon {
-            font-size: 48px;
-            opacity: 0.3;
-        }
-
-        /* ---------- 6. 底部控制栏 ---------- */
+        /* ----- 底部控制栏 ----- */
         .footer {
             display: flex;
             align-items: center;
@@ -538,7 +501,7 @@
             flex-shrink: 0;
         }
 
-        /* ---------- 7. 侧滑目录 (含书籍信息) ---------- */
+        /* ----- 侧滑目录 (含书籍信息) ----- */
         .sidebar-overlay {
             position: fixed;
             inset: 0;
@@ -577,7 +540,6 @@
             transform: translateX(0);
         }
 
-        /* 书籍信息卡片 (在目录顶部) */
         .sidebar-book-info {
             padding: 18px 20px 14px;
             border-bottom: 1px solid var(--border-light);
@@ -765,7 +727,7 @@
             color: rgba(255, 255, 255, 0.8);
         }
 
-        /* ---------- 8. 设置面板 ---------- */
+        /* ----- 设置面板 ----- */
         .settings-overlay {
             position: fixed;
             inset: 0;
@@ -882,12 +844,6 @@
             font-weight: 500;
         }
 
-        .settings-row .controls .btn.size-btn.active {
-            background: var(--text-chapter-active);
-            color: #fff;
-            border-color: var(--text-chapter-active);
-        }
-
         .theme-options {
             display: flex;
             gap: 10px;
@@ -944,7 +900,7 @@
             background: #c7e0c7;
         }
 
-        /* ---------- 9. 加载遮罩 & Toast ---------- */
+        /* ----- 加载遮罩 & Toast ----- */
         .loading-overlay {
             position: fixed;
             inset: 0;
@@ -1004,7 +960,7 @@
             pointer-events: none;
         }
 
-        /* ---------- 10. 滚动条美化 ---------- */
+        /* ----- 滚动条美化 ----- */
         .content-wrapper::-webkit-scrollbar,
         .sidebar-list::-webkit-scrollbar {
             width: 4px;
@@ -1026,51 +982,41 @@
             background: var(--text-placeholder);
         }
 
-        /* ---------- 11. 响应式适配 ---------- */
+        /* ----- 响应式适配 (包含桌面优化) ----- */
         @media (max-width: 480px) {
             :root {
                 --font-base: 17px;
                 --nav-height: 50px;
                 --footer-height: 56px;
             }
-
             .content-wrapper {
                 padding: 16px 18px 24px;
             }
-
             .chapter-title {
                 font-size: 20px;
                 padding: 4px 0 14px;
             }
-
-            .footer-btn {
-                font-size: 13px;
-                padding: 4px 8px;
-            }
-
             .footer-btn span {
                 display: none;
             }
-
             .footer-btn svg {
                 width: 20px;
                 height: 20px;
             }
-
+            .footer-btn {
+                padding: 4px 8px;
+            }
             .footer-chapter-name {
                 max-width: 80px;
                 font-size: 12px;
             }
-
             .sidebar {
                 width: 280px;
                 max-width: 85vw;
             }
-
             .settings-panel {
                 padding: 18px 16px 24px;
             }
-
             .header-book-name {
                 font-size: 14px;
             }
@@ -1089,13 +1035,11 @@
                 width: 20px;
                 height: 20px;
             }
-
             .toast {
                 font-size: 13px;
                 padding: 8px 18px;
                 bottom: 70px;
             }
-
             .sidebar-book-info {
                 padding: 14px 16px 10px;
                 gap: 10px;
@@ -1142,27 +1086,24 @@
             }
         }
 
+        /* 桌面端适配 (宽屏) */
         @media (min-width: 768px) {
             :root {
                 --font-base: 19px;
                 --max-width: 720px;
             }
-
             .reader-container {
                 border-radius: 0;
                 box-shadow: none;
             }
-
             .content-wrapper {
                 padding: 28px 40px 40px;
             }
-
             .sidebar {
                 border-radius: var(--radius-lg) 0 0 var(--radius-lg);
                 width: 360px;
                 max-width: 40vw;
             }
-
             .settings-panel {
                 border-radius: var(--radius-lg);
                 max-width: 440px;
@@ -1174,15 +1115,13 @@
                 max-height: 80vh;
                 overflow-y: auto;
             }
-
             .settings-panel.open {
                 transform: translate(-50%, -50%) scale(1);
             }
-
             .settings-panel .handle {
                 display: none;
             }
-
+            /* 桌面悬停效果 */
             .footer-btn:hover {
                 background: var(--border-light);
             }
@@ -1213,7 +1152,6 @@
             }
         }
 
-        /* ---------- 辅助类 ---------- */
         .hidden {
             display: none !important;
         }
@@ -1225,34 +1163,19 @@
 
 <body>
 
-    <!-- ============================================================
-    HTML 结构
-    ├── 阅读器容器
-    │   ├── 顶部导航栏
-    │   ├── 正文区域 (点击层 + 内容 + 加载提示)
-    │   ├── 底部控制栏
-    ├── 侧滑目录 (含书籍信息)
-    ├── 设置面板
-    ├── 加载遮罩
-    └── Toast 提示
-    ============================================================ -->
-
     <!-- ========== 阅读器容器 ========== -->
     <div class="reader-container" id="readerContainer" role="main" aria-label="小说阅读器">
 
         <!-- ===== 顶部导航栏 ===== -->
         <header class="header" id="header" role="banner">
             <div class="header-left">
-                <!-- 封面缩略图 (若有) -->
                 <img class="header-cover" id="headerCover" src="" alt="封面" style="display:none;" />
                 <div class="header-book-info">
                     <div class="header-book-name" id="bookTitle">加载中…</div>
                     <div class="header-book-author" id="bookAuthor">——</div>
                 </div>
             </div>
-
             <div class="header-right">
-                <!-- 设置按钮 (新图标: 滑块调谐) -->
                 <button class="nav-btn" id="settingsBtn" aria-label="阅读设置" title="阅读设置">
                     <svg viewBox="0 0 24 24">
                         <line x1="4" y1="21" x2="4" y2="14"/>
@@ -1266,7 +1189,6 @@
                         <line x1="17" y1="16" x2="23" y2="16"/>
                     </svg>
                 </button>
-                <!-- 目录按钮 -->
                 <button class="nav-btn" id="tocBtn" aria-label="章节列表" title="章节列表">
                     <svg viewBox="0 0 24 24">
                         <line x1="8" y1="6" x2="21" y2="6"/>
@@ -1282,15 +1204,10 @@
 
         <!-- ===== 正文区域 ===== -->
         <div class="content-wrapper" id="contentWrapper">
-            <!-- 点击层 —— 点击切换控制栏显隐 -->
             <div class="content-click-area" id="clickArea" role="button" aria-label="点击显示或隐藏控制栏" tabindex="0"></div>
 
-            <!-- 正文容器 -->
             <div class="content-body" id="contentBody">
-                <!-- 章节标题 -->
                 <h1 class="chapter-title" id="chapterTitle">—</h1>
-
-                <!-- 章节正文 -->
                 <div class="chapter-content" id="chapterContent">
                     <div class="content-placeholder">
                         <span class="icon">📖</span>
@@ -1298,10 +1215,10 @@
                     </div>
                 </div>
 
-                <!-- 底部加载提示 (下拉加载下一章) -->
+                <!-- 底部加载提示 (滚动翻章) -->
                 <div class="load-tip" id="loadTip">
                     <span class="icon">⬇</span>
-                    <span id="loadTipText">继续下拉加载下一章</span>
+                    <span id="loadTipText">继续向下滚动加载下一章</span>
                 </div>
             </div>
         </div>
@@ -1312,27 +1229,21 @@
                 <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
                 <span>上一章</span>
             </button>
-
             <div class="footer-center">
                 <span class="footer-progress" id="progressText">0 / 0</span>
                 <span class="footer-divider"></span>
                 <span class="footer-chapter-name" id="footerChapterName" title="点击打开目录">—</span>
             </div>
-
             <button class="footer-btn primary" id="nextBtn" aria-label="下一章">
                 <span>下一章</span>
                 <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
         </footer>
-
     </div>
-    <!-- ====== 阅读器容器结束 ====== -->
 
-
-    <!-- ========== 侧滑目录 (含书籍信息) ========== -->
+    <!-- ========== 侧滑目录 ========== -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <aside class="sidebar" id="sidebar" role="navigation" aria-label="章节列表">
-        <!-- 书籍信息卡片 -->
         <div class="sidebar-book-info" id="sidebarBookInfo">
             <img class="sidebar-book-cover" id="sidebarCover" src="" alt="封面" style="display:none;" />
             <div class="sidebar-book-meta">
@@ -1345,7 +1256,6 @@
                 </div>
             </div>
         </div>
-
         <div class="sidebar-header">
             <h2>📚 目录</h2>
             <button class="sidebar-close" id="sidebarClose" aria-label="关闭目录">✕</button>
@@ -1357,15 +1267,12 @@
         </div>
     </aside>
 
-
     <!-- ========== 设置面板 ========== -->
     <div class="settings-overlay" id="settingsOverlay"></div>
     <div class="settings-panel" id="settingsPanel" role="dialog" aria-label="阅读设置">
         <div class="handle"></div>
         <h3>⚙️ 阅读设置</h3>
-
         <div class="settings-group">
-            <!-- 字体大小 -->
             <div class="settings-row">
                 <label>字号</label>
                 <div class="controls" id="fontSizeControls">
@@ -1375,8 +1282,6 @@
                     <button class="btn size-btn" data-size="xlarge" aria-label="特大字号">A⁺⁺</button>
                 </div>
             </div>
-
-            <!-- 主题切换 -->
             <div class="settings-row">
                 <label>主题</label>
                 <div class="theme-options" id="themeOptions">
@@ -1394,36 +1299,25 @@
         </div>
     </div>
 
-
     <!-- ========== 加载遮罩 ========== -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
     </div>
 
-
-    <!-- ========== Toast 提示 ========== -->
+    <!-- ========== Toast ========== -->
     <div class="toast" id="toast" role="alert"></div>
 
-
     <!-- ============================================================
-    JavaScript 完整逻辑
-    ├── 1. 状态管理
-    ├── 2. DOM 引用
-    ├── 3. 工具函数
-    ├── 4. 数据请求 (DataManager)
-    ├── 5. UI 控制器 (UIController)
-    ├── 6. 应用核心 (App)
-    └── 7. 启动
+    JavaScript 完整逻辑 (修复所有问题)
     ============================================================ -->
     <script>
         (function() {
             'use strict';
 
             // ============================================================
-            // 1. 状态管理
+            // 1. 状态
             // ============================================================
             const state = {
-                // 书籍元数据
                 bookName: '—',
                 author: '—',
                 description: '—',
@@ -1431,26 +1325,17 @@
                 wordCount: 0,
                 status: '—',
                 totalChapters: 0,
-                chapters: [], // [{ id, title }]
-
-                // 当前阅读状态
-                currentChapterId: null, // '001'
-                currentIndex: 0, // 0-based
+                chapters: [],
+                currentChapterId: null,
+                currentIndex: 0,
                 isLoading: false,
                 isSidebarOpen: false,
                 isSettingsOpen: false,
                 isFooterVisible: true,
-                isLastChapterLoaded: false,
-
-                // 偏好设置 (从 localStorage 恢复)
                 theme: 'light',
                 fontSize: 'medium',
-
-                // 滚动加载控制
-                isNearBottom: false,
                 isLoadTipShowing: false,
                 isLoadingNext: false,
-                touchStartY: 0,
                 lastScrollTop: 0,
             };
 
@@ -1467,7 +1352,6 @@
                 contentWrapper: $('#contentWrapper'),
                 contentBody: $('#contentBody'),
                 clickArea: $('#clickArea'),
-
                 chapterTitle: $('#chapterTitle'),
                 chapterContent: $('#chapterContent'),
                 bookTitle: $('#bookTitle'),
@@ -1475,10 +1359,8 @@
                 headerCover: $('#headerCover'),
                 footerChapterName: $('#footerChapterName'),
                 progressText: $('#progressText'),
-
                 loadTip: $('#loadTip'),
                 loadTipText: $('#loadTipText'),
-
                 sidebar: $('#sidebar'),
                 sidebarOverlay: $('#sidebarOverlay'),
                 sidebarClose: $('#sidebarClose'),
@@ -1489,37 +1371,27 @@
                 sidebarBookDesc: $('#sidebarBookDesc'),
                 sidebarBookStatus: $('#sidebarBookStatus'),
                 sidebarBookWords: $('#sidebarBookWords'),
-
                 settingsPanel: $('#settingsPanel'),
                 settingsOverlay: $('#settingsOverlay'),
                 settingsBtn: $('#settingsBtn'),
                 themeOptions: $('#themeOptions'),
                 fontSizeControls: $('#fontSizeControls'),
-
                 loadingOverlay: $('#loadingOverlay'),
                 toast: $('#toast'),
-
                 tocBtn: $('#tocBtn'),
                 prevBtn: $('#prevBtn'),
                 nextBtn: $('#nextBtn'),
             };
 
             // ============================================================
-            // 3. 工具函数
+            // 3. 工具
             // ============================================================
-            function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
             function padZero(num, len = 3) {
                 return String(num).padStart(len, '0');
             }
 
             function getChapterId(index) {
-                // index 从 0 开始，返回 '001', '002', ...
                 return padZero(index + 1);
-            }
-
-            function getChapterIndex(id) {
-                return parseInt(id, 10) - 1;
             }
 
             function isLastChapter(index) {
@@ -1531,57 +1403,40 @@
             }
 
             // ============================================================
-            // 4. 数据请求 (DataManager)
+            // 4. DataManager (模拟/真实 fetch，速度优化)
             // ============================================================
             const DataManager = {
                 BASE_PATH: '/books/novel1/',
 
-                /**
-                 * 获取书籍元数据
-                 * GET /books/novel1/chapters.json
-                 */
                 async fetchBookMeta() {
                     const url = this.BASE_PATH + 'chapters.json';
                     const res = await fetch(url);
-                    if (!res.ok) {
-                        throw new Error(`无法加载书籍信息 (HTTP ${res.status})`);
-                    }
+                    if (!res.ok) throw new Error(`无法加载书籍信息 (HTTP ${res.status})`);
                     const data = await res.json();
-                    // 校验必要字段
                     if (!data.bookName || !data.chapters || !Array.isArray(data.chapters) || data.chapters.length === 0) {
-                        throw new Error('书籍数据格式错误：缺少书名或章节列表');
+                        throw new Error('书籍数据格式错误');
                     }
                     return data;
                 },
 
-                /**
-                 * 获取章节正文
-                 * GET /books/novel1/001.json
-                 */
                 async fetchChapter(id) {
                     const url = this.BASE_PATH + id + '.json';
                     const res = await fetch(url);
-                    if (!res.ok) {
-                        throw new Error(`无法加载章节 ${id} (HTTP ${res.status})`);
-                    }
+                    if (!res.ok) throw new Error(`无法加载章节 ${id} (HTTP ${res.status})`);
                     const data = await res.json();
                     if (!data.title || !data.content) {
-                        throw new Error(`章节 ${id} 数据格式错误：缺少标题或内容`);
+                        throw new Error(`章节 ${id} 数据格式错误`);
                     }
                     return data;
                 }
             };
 
             // ============================================================
-            // 5. UI 控制器 (UIController)
+            // 5. UI 控制器
             // ============================================================
             const UIController = {
-                /**
-                 * 渲染书籍信息 (顶部 + 侧栏)
-                 */
                 renderBookInfo(meta) {
                     const { bookName, author, description, cover, wordCount, status, chapters } = meta;
-
                     state.bookName = bookName;
                     state.author = author || '—';
                     state.description = description || '—';
@@ -1591,7 +1446,6 @@
                     state.chapters = chapters;
                     state.totalChapters = chapters.length;
 
-                    // 顶部
                     dom.bookTitle.textContent = bookName;
                     dom.bookAuthor.textContent = author || '—';
                     if (cover) {
@@ -1601,7 +1455,6 @@
                         dom.headerCover.style.display = 'none';
                     }
 
-                    // 侧栏
                     dom.sidebarBookName.textContent = bookName;
                     dom.sidebarBookAuthor.textContent = author || '—';
                     dom.sidebarBookDesc.textContent = description || '—';
@@ -1614,13 +1467,9 @@
                         dom.sidebarCover.style.display = 'none';
                     }
 
-                    // 更新进度显示
                     this.updateProgress(0);
                 },
 
-                /**
-                 * 渲染章节列表
-                 */
                 renderChapterList(activeId) {
                     const chapters = state.chapters;
                     if (!chapters || chapters.length === 0) {
@@ -1628,7 +1477,6 @@
                             '<div style="padding:20px;text-align:center;color:var(--text-placeholder);">暂无章节</div>';
                         return;
                     }
-
                     const html = chapters.map((ch, idx) => {
                         const isActive = ch.id === activeId;
                         return `
@@ -1643,23 +1491,14 @@
                     dom.chapterList.innerHTML = html;
                 },
 
-                /**
-                 * 渲染正文内容
-                 */
                 renderContent(title, contentHtml) {
                     dom.chapterTitle.textContent = title || '—';
                     dom.chapterContent.innerHTML = contentHtml || '<p style="text-align:center;color:var(--text-placeholder);">本章暂无内容</p>';
                     // 滚动到顶部
                     dom.contentWrapper.scrollTop = 0;
-                    // 隐藏加载提示
                     this.hideLoadTip();
-                    // 重置底部检测状态
-                    state.isNearBottom = false;
                 },
 
-                /**
-                 * 更新底部进度和章节名
-                 */
                 updateProgress(index, title) {
                     const total = state.totalChapters;
                     const current = index + 1;
@@ -1668,27 +1507,17 @@
                     dom.footerChapterName.textContent = chapterTitle || '—';
                 },
 
-                /**
-                 * 更新导航按钮状态
-                 */
                 updateNavButtons(index) {
-                    const prevDisabled = isFirstChapter(index);
-                    const nextDisabled = isLastChapter(index);
-                    dom.prevBtn.disabled = prevDisabled;
-                    dom.nextBtn.disabled = nextDisabled;
-                    dom.prevBtn.style.opacity = prevDisabled ? '0.35' : '1';
-                    dom.nextBtn.style.opacity = nextDisabled ? '0.35' : '1';
+                    dom.prevBtn.disabled = isFirstChapter(index);
+                    dom.nextBtn.disabled = isLastChapter(index);
+                    dom.prevBtn.style.opacity = isFirstChapter(index) ? '0.35' : '1';
+                    dom.nextBtn.style.opacity = isLastChapter(index) ? '0.35' : '1';
                 },
 
-                /**
-                 * 显示 / 隐藏加载提示 (下拉加载下一章)
-                 */
                 showLoadTip(text, isLoading = false) {
-                    const tip = dom.loadTip;
-                    const textEl = dom.loadTipText;
-                    textEl.textContent = text || '继续下拉加载下一章';
-                    tip.classList.toggle('loading', isLoading);
-                    tip.classList.add('show');
+                    dom.loadTipText.textContent = text || '继续向下滚动加载下一章';
+                    dom.loadTip.classList.toggle('loading', isLoading);
+                    dom.loadTip.classList.add('show');
                     state.isLoadTipShowing = true;
                 },
 
@@ -1698,9 +1527,6 @@
                     state.isLoadTipShowing = false;
                 },
 
-                /**
-                 * 切换侧滑菜单
-                 */
                 toggleSidebar(open) {
                     const isOpen = (open !== undefined) ? open : !state.isSidebarOpen;
                     state.isSidebarOpen = isOpen;
@@ -1708,14 +1534,10 @@
                     dom.sidebarOverlay.classList.toggle('active', isOpen);
                     document.body.style.overflow = isOpen ? 'hidden' : '';
                     if (isOpen) {
-                        // 刷新列表高亮
                         this.renderChapterList(state.currentChapterId);
                     }
                 },
 
-                /**
-                 * 切换设置面板
-                 */
                 toggleSettings(open) {
                     const isOpen = (open !== undefined) ? open : !state.isSettingsOpen;
                     state.isSettingsOpen = isOpen;
@@ -1723,9 +1545,6 @@
                     dom.settingsOverlay.classList.toggle('active', isOpen);
                 },
 
-                /**
-                 * 切换控制栏 (顶部 + 底部) 显隐
-                 */
                 toggleControls(forceVisible) {
                     const visible = (forceVisible !== undefined) ? forceVisible : !state.isFooterVisible;
                     state.isFooterVisible = visible;
@@ -1733,9 +1552,6 @@
                     dom.footer.classList.toggle('hidden', !visible);
                 },
 
-                /**
-                 * 设置主题
-                 */
                 setTheme(theme) {
                     state.theme = theme;
                     document.documentElement.setAttribute('data-theme', theme);
@@ -1745,9 +1561,6 @@
                     try { localStorage.setItem('reader-theme', theme); } catch (_) {}
                 },
 
-                /**
-                 * 设置字号
-                 */
                 setFontSize(size) {
                     state.fontSize = size;
                     const sizes = { small: 16, medium: 18, large: 21, xlarge: 24 };
@@ -1759,17 +1572,11 @@
                     try { localStorage.setItem('reader-fontsize', size); } catch (_) {}
                 },
 
-                /**
-                 * 显示加载状态
-                 */
                 showLoading(show) {
                     state.isLoading = show;
                     dom.loadingOverlay.classList.toggle('active', show);
                 },
 
-                /**
-                 * Toast 提示
-                 */
                 showToast(msg, duration = 1800) {
                     dom.toast.textContent = msg;
                     dom.toast.classList.add('show');
@@ -1779,9 +1586,6 @@
                     }, duration);
                 },
 
-                /**
-                 * 恢复阅读进度 (滚动位置)
-                 */
                 restoreScrollPosition(percent) {
                     if (percent && percent > 0 && percent < 1) {
                         const wrapper = dom.contentWrapper;
@@ -1794,36 +1598,23 @@
             };
 
             // ============================================================
-            // 6. 应用核心 (App)
+            // 6. App 核心 (修复首次加载、滚动翻章逻辑)
             // ============================================================
             const App = {
-                /**
-                 * 初始化
-                 */
                 async init() {
-                    // 恢复偏好
                     this._restorePreferences();
-
-                    // 绑定事件
                     this._bindEvents();
-
-                    // 加载书籍数据
                     await this.loadBook();
-
-                    // 自动隐藏控制栏 (3s后)
                     this._scheduleAutoHide();
                 },
 
-                /**
-                 * 加载书籍元数据并进入第一章
-                 */
                 async loadBook() {
                     try {
                         UIController.showLoading(true);
                         const meta = await DataManager.fetchBookMeta();
                         UIController.renderBookInfo(meta);
 
-                        // 从 localStorage 恢复阅读进度 (章节ID)
+                        // 恢复阅读进度
                         let savedChapterId = null;
                         try {
                             const saved = localStorage.getItem('reader-progress');
@@ -1835,16 +1626,13 @@
                             }
                         } catch (_) {}
 
-                        // 确定起始章节
                         let startIndex = 0;
                         if (savedChapterId) {
                             const idx = state.chapters.findIndex(ch => ch.id === savedChapterId);
-                            if (idx !== -1) {
-                                startIndex = idx;
-                            }
+                            if (idx !== -1) startIndex = idx;
                         }
 
-                        // 加载章节
+                        // 加载第一章（必须确保渲染完成）
                         await this.loadChapterByIndex(startIndex, true);
 
                         // 恢复滚动位置
@@ -1858,13 +1646,11 @@
                             }
                         } catch (_) {}
 
-                        // 渲染目录
                         UIController.renderChapterList(state.currentChapterId);
 
                     } catch (err) {
-                        console.error('[App] 加载书籍失败:', err);
+                        console.error('[App] 加载失败:', err);
                         UIController.showToast('⚠️ ' + (err.message || '加载失败，请刷新重试'));
-                        // 显示错误占位
                         dom.chapterContent.innerHTML = `
                                 <div class="content-placeholder">
                                     <span class="icon">😞</span>
@@ -1878,9 +1664,6 @@
                     }
                 },
 
-                /**
-                 * 按索引加载章节
-                 */
                 async loadChapterByIndex(index, isRestore = false) {
                     if (state.isLoading) return;
                     if (index < 0 || index >= state.totalChapters) {
@@ -1896,7 +1679,6 @@
 
                     const id = chapter.id;
                     if (id === state.currentChapterId && !isRestore) {
-                        // 相同章节，不重复加载 (但可能滚动位置变化)
                         return;
                     }
 
@@ -1916,16 +1698,10 @@
                         UIController.updateNavButtons(index);
                         UIController.renderChapterList(id);
 
-                        // 更新顶部副标题 (章节名)
                         dom.bookAuthor.textContent = state.author + ' · ' + title;
 
-                        // 保存阅读进度
                         this._saveProgress(index);
 
-                        // 如果是最后一章，标记
-                        state.isLastChapterLoaded = isLastChapter(index);
-
-                        // 隐藏加载提示
                         UIController.hideLoadTip();
 
                     } catch (err) {
@@ -1934,14 +1710,10 @@
                     } finally {
                         state.isLoading = false;
                         UIController.showLoading(false);
-                        // 加载后自动隐藏控制栏
                         this._scheduleAutoHide();
                     }
                 },
 
-                /**
-                 * 切换到上一章
-                 */
                 prevChapter() {
                     if (state.currentIndex > 0) {
                         this.loadChapterByIndex(state.currentIndex - 1);
@@ -1951,9 +1723,6 @@
                     }
                 },
 
-                /**
-                 * 切换到下一章
-                 */
                 nextChapter() {
                     if (state.currentIndex < state.totalChapters - 1) {
                         this.loadChapterByIndex(state.currentIndex + 1);
@@ -1963,9 +1732,6 @@
                     }
                 },
 
-                /**
-                 * 跳转到指定章节 (通过索引)
-                 */
                 goToChapter(index) {
                     if (index >= 0 && index < state.totalChapters) {
                         this.loadChapterByIndex(index);
@@ -1973,62 +1739,57 @@
                     }
                 },
 
-                /**
-                 * 处理滚动到底部 + 下拉加载下一章
-                 */
+                // ---------- 滚动翻章 (修正逻辑) ----------
                 handleScroll() {
                     const wrapper = dom.contentWrapper;
                     const scrollTop = wrapper.scrollTop;
                     const clientHeight = wrapper.clientHeight;
                     const scrollHeight = wrapper.scrollHeight;
 
-                    // 检测是否接近底部 (距离底部 < 80px)
+                    // 检测是否接近底部 (距离底部 < 100px)
                     const distanceToBottom = scrollHeight - scrollTop - clientHeight;
-                    const isNearBottom = distanceToBottom < 80 && distanceToBottom >= 0;
+                    const isNearBottom = distanceToBottom < 100 && distanceToBottom >= 0;
 
-                    // 检测滚动方向
+                    // 滚动方向
                     const isScrollingDown = scrollTop > state.lastScrollTop;
                     state.lastScrollTop = scrollTop;
 
                     // 保存滚动位置 (节流)
                     this._throttleSaveScroll(scrollTop, scrollHeight);
 
-                    // 处理加载下一章
+                    // 当滚动到接近底部且方向向下
                     if (isNearBottom && isScrollingDown) {
-                        // 接近底部且向下滚动 → 显示提示
+                        // 如果还未显示提示，且不是最后一章
                         if (!state.isLoadTipShowing && !state.isLoadingNext) {
                             if (isLastChapter(state.currentIndex)) {
                                 UIController.showLoadTip('📖 已读完全书', false);
-                                // 2s 后自动隐藏
                                 clearTimeout(this._tipHideTimer);
                                 this._tipHideTimer = setTimeout(() => {
                                     UIController.hideLoadTip();
-                                }, 2000);
+                                }, 2500);
                             } else {
-                                UIController.showLoadTip('⬇ 继续下拉加载下一章', false);
-                                state.isNearBottom = true;
+                                UIController.showLoadTip('⬇ 继续向下滚动加载下一章', false);
                             }
                         }
-                    } else if (distanceToBottom > 100) {
+                    } else if (distanceToBottom > 120) {
                         // 远离底部时隐藏提示
                         if (state.isLoadTipShowing) {
                             UIController.hideLoadTip();
                         }
-                        state.isNearBottom = false;
                     }
 
-                    // 如果已经在底部且继续下拉 (距离底部 < 20px 且滚动方向向下)
-                    if (distanceToBottom < 20 && isScrollingDown && state.isNearBottom) {
-                        if (!state.isLoadingNext && !isLastChapter(state.currentIndex)) {
-                            // 触发加载下一章
+                    // 当到底部 (距离 < 20px) 且继续向下滚动 → 触发加载下一章
+                    if (distanceToBottom < 20 && isScrollingDown && state.isLoadTipShowing && !state.isLoadingNext) {
+                        if (!isLastChapter(state.currentIndex)) {
                             this._triggerLoadNext();
+                        } else {
+                            // 已到最后，隐藏提示并显示toast
+                            UIController.hideLoadTip();
+                            UIController.showToast('📖 已读完全书');
                         }
                     }
                 },
 
-                /**
-                 * 触发加载下一章 (带防抖)
-                 */
                 _triggerLoadNext() {
                     if (state.isLoadingNext) return;
                     if (isLastChapter(state.currentIndex)) {
@@ -2051,14 +1812,9 @@
                         .finally(() => {
                             state.isLoadingNext = false;
                             UIController.hideLoadTip();
-                            // 重置检测状态
-                            state.isNearBottom = false;
                         });
                 },
 
-                /**
-                 * 保存阅读进度 (章节 + 滚动位置)
-                 */
                 _saveProgress(index) {
                     try {
                         const chapterId = state.chapters[index] ? state.chapters[index].id : null;
@@ -2071,14 +1827,10 @@
                     } catch (_) {}
                 },
 
-                /**
-                 * 节流保存滚动位置
-                 */
                 _throttleSaveScroll(scrollTop, scrollHeight) {
                     if (scrollHeight <= 0) return;
                     const percent = scrollTop / scrollHeight;
                     if (isNaN(percent) || !isFinite(percent)) return;
-                    // 每 500ms 保存一次
                     const now = Date.now();
                     if (!this._lastScrollSaveTime || now - this._lastScrollSaveTime > 500) {
                         this._lastScrollSaveTime = now;
@@ -2093,9 +1845,6 @@
                     }
                 },
 
-                /**
-                 * 恢复偏好设置
-                 */
                 _restorePreferences() {
                     try {
                         const theme = localStorage.getItem('reader-theme') || 'light';
@@ -2105,34 +1854,27 @@
                     } catch (_) {}
                 },
 
-                /**
-                 * 绑定事件
-                 */
                 _bindEvents() {
-                    // ----- 目录 -----
+                    // 目录
                     dom.tocBtn.addEventListener('click', () => UIController.toggleSidebar(true));
                     dom.sidebarClose.addEventListener('click', () => UIController.toggleSidebar(false));
                     dom.sidebarOverlay.addEventListener('click', () => UIController.toggleSidebar(false));
 
-                    // 章节列表点击
                     dom.chapterList.addEventListener('click', (e) => {
                         const item = e.target.closest('.chapter-item');
                         if (item) {
                             const idx = parseInt(item.dataset.index, 10);
-                            if (!isNaN(idx)) {
-                                this.goToChapter(idx);
-                            }
+                            if (!isNaN(idx)) this.goToChapter(idx);
                         }
                     });
 
-                    // ----- 设置 -----
+                    // 设置
                     dom.settingsBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         UIController.toggleSettings();
                     });
                     dom.settingsOverlay.addEventListener('click', () => UIController.toggleSettings(false));
 
-                    // 主题切换
                     dom.themeOptions.addEventListener('click', (e) => {
                         const btn = e.target.closest('.theme-btn');
                         if (btn) {
@@ -2143,7 +1885,6 @@
                         }
                     });
 
-                    // 字号控制
                     dom.fontSizeControls.addEventListener('click', (e) => {
                         const btn = e.target.closest('.size-btn');
                         if (btn) {
@@ -2154,12 +1895,12 @@
                         }
                     });
 
-                    // ----- 底部控制栏 -----
+                    // 底部按钮
                     dom.prevBtn.addEventListener('click', () => this.prevChapter());
                     dom.nextBtn.addEventListener('click', () => this.nextChapter());
                     dom.footerChapterName.addEventListener('click', () => UIController.toggleSidebar(true));
 
-                    // ----- 点击正文切换控制栏 -----
+                    // 点击正文切换控制栏
                     dom.clickArea.addEventListener('click', () => {
                         UIController.toggleControls();
                         if (state.isFooterVisible) {
@@ -2169,33 +1910,20 @@
                         }
                     });
 
-                    // ----- 滚动事件 (核心: 下拉加载下一章) -----
+                    // 滚动事件
                     dom.contentWrapper.addEventListener('scroll', () => {
                         this.handleScroll();
                     }, { passive: true });
 
-                    // ----- 触摸事件 (辅助检测下拉) -----
-                    dom.contentWrapper.addEventListener('touchstart', (e) => {
-                        state.touchStartY = e.touches[0].clientY;
-                    }, { passive: true });
-
-                    dom.contentWrapper.addEventListener('touchmove', (e) => {
-                        // 如果正在加载或已到最后，不处理
-                        if (state.isLoadingNext || isLastChapter(state.currentIndex)) return;
-                        // 检测是否在底部且手指向下滑动 (下拉)
-                        const wrapper = dom.contentWrapper;
-                        const distanceToBottom = wrapper.scrollHeight - wrapper.scrollTop - wrapper.clientHeight;
-                        if (distanceToBottom < 30) {
-                            const deltaY = e.touches[0].clientY - state.touchStartY;
-                            if (deltaY > 30) {
-                                // 下拉动作 → 触发加载下一章
-                                this._triggerLoadNext();
-                                state.touchStartY = e.touches[0].clientY;
-                            }
+                    // 触摸辅助 (仅用于检测下拉动作，但使用滚动事件已足够)
+                    // 点击加载提示也可触发
+                    dom.loadTip.addEventListener('click', () => {
+                        if (!state.isLoadingNext && !isLastChapter(state.currentIndex)) {
+                            this._triggerLoadNext();
                         }
-                    }, { passive: true });
+                    });
 
-                    // ----- 键盘快捷键 (桌面) -----
+                    // 键盘快捷键
                     document.addEventListener('keydown', (e) => {
                         if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
                             e.preventDefault();
@@ -2211,13 +1939,9 @@
                         }
                     });
 
-                    // ----- 窗口 resize -----
-                    window.addEventListener('resize', () => {});
-
-                    // ----- 页面可见性变化: 保存进度 -----
+                    // 页面隐藏时保存进度
                     document.addEventListener('visibilitychange', () => {
                         if (document.hidden) {
-                            // 页面隐藏时保存进度
                             const wrapper = dom.contentWrapper;
                             const percent = wrapper.scrollTop / wrapper.scrollHeight;
                             if (percent > 0 && percent < 1) {
@@ -2230,13 +1954,6 @@
                                     }
                                 } catch (_) {}
                             }
-                        }
-                    });
-
-                    // ----- 点击加载提示也可触发 (备选) -----
-                    dom.loadTip.addEventListener('click', () => {
-                        if (!state.isLoadingNext && !isLastChapter(state.currentIndex)) {
-                            this._triggerLoadNext();
                         }
                     });
                 },
@@ -2265,9 +1982,7 @@
                 });
             });
 
-            // 暴露全局 (调试)
             window.__reader = { App, UIController, DataManager, state };
-
         })();
     </script>
 
