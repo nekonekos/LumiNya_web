@@ -62,7 +62,7 @@
     const escapeHtml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const escapeAttr = (text) => text.replace(/"/g, '&quot;');
 
-    const fileIcons = { json: '{}', html: '</>', xml: '</>', md: 'M↓', txt: '≡' };
+    const fileIcons = { json: '{}', html: '<h>', xml: '<x>', md: 'M↓', txt: '≡' };
     const fileClasses = { json: 'ficon-json', html: 'ficon-html', xml: 'ficon-xml', md: 'ficon-md', txt: 'ficon-txt' };
     const langLabels = { json: 'JSON', html: 'HTML', xml: 'XML', md: 'Markdown', txt: '纯文本' };
 

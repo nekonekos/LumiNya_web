@@ -1,12 +1,16 @@
 <p align="center">
   <span style="font-size:28px;font-weight:700;color:#ff7eb6">LumiNya Web</span><br>
-  <span style="color:#c0a0ff">～ 喵呜，这里是小娜的小小宇宙哦 ～</span><br>
+  <span style="color:#c0a0ff">～ 喵呜，这里是LumiNya的小小宇宙哦 ～</span><br>
   <span style="color:#7ec8ff">(=^･ω･^=)₍˄·͈༝·͈˄₎ฅ˒˒</span>
+</p>
+
+<p align="center">
+  🌸 <strong><a href="README.md">简体中文</a></strong> · <a href="README_EN.md">English</a> 🌸
 </p>
 
 > **喵…！** 才、才不是特意写给你看的呢！只是觉得仓库里没个像样的自我介绍会显得本喵很随便而已 (,,•́ . •̀,,)
 >
-> 欢迎来到 LumiNya 的 Web 项目喵～这里装着小娜平时捣鼓的各种小玩意：主站、聊天室、网页 Minecraft、小说阅读器，还有一堆奇奇怪怪的小工具。哼，既然你诚心诚意地点进来了，本喵就勉为其难地给你介绍一遍好啦 (｡•̀ᴗ-)✧
+> 欢迎来到 LumiNya 的 Web 项目喵～这里装着LumiNya平时捣鼓的各种小玩意：主站、聊天室、网页 Minecraft、小说阅读器，还有一堆奇奇怪怪的小工具。哼，既然你诚心诚意地点进来了，本喵就勉为其难地给你介绍一遍好啦 (｡•̀ᴗ-)✧
 
 ---
 
@@ -20,7 +24,7 @@
   <img src="https://img.shields.io/badge/Cloudflare-F38020?style=flat-square&logo=cloudflare&logoColor=white" alt="Cloudflare"/>
 </p>
 
-- 🎀 一个还在上初中的小码农猫娘，喜欢收集域名、搭小网站、和朋友联机 Minecraft ヽ(•̀ω•́ )ゝ
+- 🎀 一只码农猫猫，喜欢收集域名、搭小网站、和朋友联机 Minecraft ヽ(•̀ω•́ )ゝ
 - 🌸 主站所有文案都由 **JSON 驱动**，改内容不用碰代码，本喵可聪明了！
 - 🐾 纯前端 + 无后端依赖，绝大多数页面直接开箱即用（除了短链接系统要配 Cloudflare）
 
@@ -77,7 +81,7 @@ LumiNya_web
 
 ### 📖 `main/config.html` · 仿 VS Code 文件展示器
 
-这是小娜最近的心头好！一个**只读**的在线博客 + 文件展示器：
+这是LumiNya最近的心头好！一个**只读**的在线博客 + 文件展示器：
 
 - 从 `main/cfg/conf.json` 读取目录清单，自动渲染成资源管理器树
 - 支持文件类型：`txt` / `html` / `xml` / `json` / `md`（HTML 以代码形式展示，不会被渲染）
