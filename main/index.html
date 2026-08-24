@@ -34,6 +34,26 @@
 
     <div class="container" id="pageContent"></div>
 
+    <!-- Cookie 同意弹窗：仅首次访问展示，同意后按 updated 版本记录不再弹出 -->
+    <div class="cookie-banner" id="cookieBanner" role="dialog" aria-live="polite" aria-label="Cookie 使用提示" hidden>
+        <div class="cookie-banner__icon">🍪</div>
+        <div class="cookie-banner__body">
+            <p class="cookie-banner__title">我们使用 Cookie</p>
+            <p class="cookie-banner__text">
+                本站会使用 Cookie 来记住你的偏好、统计访问数据并优化体验。
+                继续使用即表示你同意我们的
+                <a href="./privacy.html" target="_blank" rel="noopener">隐私政策</a>
+                与
+                <a href="./terms.html" target="_blank" rel="noopener">使用条款</a>。
+            </p>
+        </div>
+        <div class="cookie-banner__actions">
+            <a class="cookie-banner__link" href="./privacy.html" target="_blank" rel="noopener">隐私政策</a>
+            <a class="cookie-banner__link" href="./terms.html" target="_blank" rel="noopener">使用条款</a>
+            <button class="cookie-banner__accept" id="cookieAccept" type="button">知道了，同意</button>
+        </div>
+    </div>
+
     <div class="container" id="legacyContent" style="display:none;">
         <!-- ===== Header ===== -->
         <header>
@@ -761,6 +781,72 @@
                         </div>
                     `;
                 });
+        })();
+    </script>
+
+    <script>
+        (function () {
+            var STORAGE_KEY = 'luminya-consent';
+            var banner = document.getElementById('cookieBanner');
+            var acceptBtn = document.getElementById('cookieAccept');
+            if (!banner || !acceptBtn) return;
+
+            function readStored() {
+                try {
+                    var raw = localStorage.getItem(STORAGE_KEY);
+                    return raw ? JSON.parse(raw) : null;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function isCurrent(record, privacyUpdated, termsUpdated) {
+                return !!record &&
+                    record.privacy === privacyUpdated &&
+                    record.terms === termsUpdated;
+            }
+
+            function show() {
+                banner.hidden = false;
+            }
+
+            function hide() {
+                banner.hidden = true;
+            }
+
+            function persist() {
+                return Promise.all([
+                    fetch('./privacy.json').then(function (r) { return r.json(); }),
+                    fetch('./terms.json').then(function (r) { return r.json(); })
+                ]).then(function (results) {
+                    return {
+                        privacy: (results[0].meta && results[0].meta.updated) || '',
+                        terms: (results[1].meta && results[1].meta.updated) || ''
+                    };
+                });
+            }
+
+            function init() {
+                var record = readStored();
+                persist().then(function (current) {
+                    if (isCurrent(record, current.privacy, current.terms)) {
+                        hide();
+                    } else {
+                        show();
+                    }
+                    acceptBtn.addEventListener('click', function () {
+                        try {
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+                        } catch (e) {}
+                        hide();
+                    });
+                }).catch(function () {
+                    // 策略文件加载失败时不弹窗，避免阻塞浏览
+                    hide();
+                });
+            }
+
+            init();
         })();
     </script>
 

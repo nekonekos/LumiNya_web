@@ -107,7 +107,7 @@
                 <div class="legal-hero-icon">${escapeHtml(meta.icon || '📄')}</div>
                 <h1>${escapeHtml(meta.heading || meta.title || '')}</h1>
                 <p class="subhead">${escapeHtml(meta.subtitle || '')}</p>
-                <div class="legal-updated">${escapeHtml(meta.updated || '')}</div>
+                <div class="legal-updated">${escapeHtml(meta.updated ? '最后更新：' + meta.updated : '')}</div>
             </div>
             <div class="legal-body">
                 <p class="legal-intro">${renderInline(data.intro || '')}</p>
