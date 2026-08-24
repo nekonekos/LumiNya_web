@@ -252,6 +252,17 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .hl-md-code { color: var(--green); }
 .hl-md-bullet { color: var(--blue); font-weight: 700; }
 .hl-md-link { color: var(--blue); text-decoration: underline; }
+.hl-md-url {
+  color: #4dd0e1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(77, 208, 225, .45);
+  transition: color .15s ease, text-decoration-color .15s ease;
+}
+.hl-md-url:hover {
+  color: #7ce4f2;
+  text-decoration-color: currentColor;
+}
 
 /* ===== 欢迎页 ===== */
 .welcome { max-width: 880px; margin: 0 auto; padding: 36px 42px 80px; }
@@ -377,6 +388,11 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .light-theme .editor-footer { background: #e6eaf0; }
 .light-theme .tree-file.active { background: #e8edf4; }
 .light-theme .tab.active { background: #fff; }
+.light-theme .hl-md-url {
+  color: #0d7d9b;
+  text-decoration-color: rgba(13, 125, 155, .4);
+}
+.light-theme .hl-md-url:hover { color: #0a5d75; }
 
 /* ===== 移动端 ===== */
 @media (max-width: 700px) {

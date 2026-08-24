@@ -60,8 +60,9 @@
     const CONFIG_URL = './cfg/conf.json';
     const $ = (selector) => document.querySelector(selector);
     const escapeHtml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const escapeAttr = (text) => text.replace(/"/g, '&quot;');
 
-    const fileIcons = { json: '{ }', html: '<>', xml: '<>', md: 'M↓', txt: '≡' };
+    const fileIcons = { json: '{}', html: '</>', xml: '</>', md: 'M↓', txt: '≡' };
     const fileClasses = { json: 'ficon-json', html: 'ficon-html', xml: 'ficon-xml', md: 'ficon-md', txt: 'ficon-txt' };
     const langLabels = { json: 'JSON', html: 'HTML', xml: 'XML', md: 'Markdown', txt: '纯文本' };
 
@@ -216,7 +217,13 @@
         .replace(/`([^`]+)`/g, '<span class="hl-md-code">$1</span>')
         .replace(/\*\*([^*]+)\*\*/g, '<span class="hl-md-bold">$1</span>')
         .replace(/(^|[^*])\*([^*]+)\*/g, '$1<span class="hl-md-italic">$2</span>')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="hl-md-link">$1</span>');
+        .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (match, label, href) => {
+          if (/^https?:\/\//i.test(href)) {
+            return `<a class="hl-md-url" href="${escapeAttr(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+          }
+          return `<span class="hl-md-link">${label}</span>`;
+        })
+        .replace(/(https:\/\/[^\s<>"']+)/g, '<a class="hl-md-url" href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
     }
 
     function renderCode(lang, text) {
