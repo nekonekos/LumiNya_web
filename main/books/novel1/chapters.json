@@ -1,7 +1,7 @@
 {
-  "bookName": "测试小说",
-  "author": "LumiNya",
-  "description": "这是一个测试性描述，用于展示小说的基本信息和章节列表。",
+  "bookName": "作者不知道怎么取名的小说",
+  "author": "月陌",
+  "description": "作者不知道怎么描述",
   "cover": "/books/novel1/cover.webp",
   "wordCount": 1200,
   "status": "连载中",
