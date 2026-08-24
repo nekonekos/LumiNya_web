@@ -83,6 +83,18 @@
     }
     function closeModal() { $('#modalBackdrop').hidden = true; }
 
+    // 从 URL 查询参数中读取目标文件（支持 ?file= 与 ?path= 两种写法）
+    function getUrlFileParam() {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get('file') ?? params.get('path');
+      if (!raw) return null;
+      try { return decodeURIComponent(raw); } catch { return raw; }
+    }
+
+    function fileExists(path) {
+      return (manifest?.files || []).some((file) => file.path === path);
+    }
+
     function typeOfPath(path) {
       const ext = path.split('.').pop().toLowerCase();
       return ['txt', 'html', 'xml', 'json', 'md'].includes(ext) ? ext : 'txt';
@@ -256,6 +268,57 @@
       $('#langLabel').textContent = '欢迎页';
     }
 
+    function renderNotFound(requestedPath) {
+      const view = $('#codeView');
+      view.classList.remove('is-welcome');
+      const wrap = document.createElement('div');
+      wrap.className = 'not-found';
+      wrap.innerHTML = `
+        <div class="nf-symbol">⚠</div>
+        <h1>文件未找到</h1>
+        <p class="nf-desc">没有这个文件或路径不正确</p>
+        <p class="nf-path">${escapeHtml(requestedPath || '')}</p>
+        <div class="nf-available">
+          <h2>可用的文件</h2>
+          <ul class="not-found-list"></ul>
+        </div>
+        <div class="nf-actions"><button type="button" class="nf-button primary" id="nfBackBtn">返回欢迎页</button></div>`;
+      const list = wrap.querySelector('.not-found-list');
+      (manifest.files || []).forEach((file) => {
+        const lang = typeOfPath(file.path);
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.innerHTML = `<span class="ficon ${fileClasses[lang] || ''}">${fileIcons[lang] || '·'}</span><span>${escapeHtml(file.path)}</span>`;
+        btn.addEventListener('click', () => openFile(file.path));
+        li.append(btn);
+        list.append(li);
+      });
+      wrap.querySelector('#nfBackBtn').addEventListener('click', () => {
+        activePath = '__welcome__';
+        renderWelcome();
+        renderTabs();
+        setActiveTree(null);
+        $('#crumbName').textContent = '欢迎页';
+      });
+      view.replaceChildren(wrap);
+      $('#crumbName').textContent = '文件未找到';
+      $('#lineCount').textContent = '文件未找到';
+      $('#langLabel').textContent = '404';
+    }
+
+    // 处理初始 URL 参数：存在则打开，不存在则给出清晰 fallback
+    function handleInitialFile() {
+      const requested = getUrlFileParam();
+      if (!requested) return;
+      if (fileExists(requested)) {
+        openFile(requested);
+      } else {
+        renderNotFound(requested);
+        showToast('没有这个文件或路径不正确', 'error');
+      }
+    }
+
     function renderTabs() {
       const bar = $('#tabbar'); bar.innerHTML = '';
       tabs.forEach((path) => {
@@ -284,7 +347,8 @@
         $('#crumbName').textContent = path.split('/').pop();
         closeSidebar();
       } catch (error) {
-        showToast('读取失败：' + error.message, 'error');
+        renderNotFound(path);
+        showToast('没有这个文件或路径不正确', 'error');
       }
     }
 
@@ -305,6 +369,7 @@
         renderTree();
         renderWelcome();
         $('#tabbar').innerHTML = '';
+        handleInitialFile();
       } catch (error) {
         $('#connectionText').textContent = '目录清单读取失败';
         $('#fileTree').innerHTML = '<div class="loading error">无法读取 cfg/conf.json</div>';
