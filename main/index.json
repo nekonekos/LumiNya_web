@@ -185,8 +185,8 @@
       { "label": "🗂️ 归档旧版", "href": "./archive/legacy/index.html" }
     ],
     "legalLinks": [
-      { "label": "隐私政策", "href": "#" },
-      { "label": "使用条款", "href": "#" }
+      { "label": "隐私政策", "href": "./privacy.html" },
+      { "label": "使用条款", "href": "./terms.html" }
     ],
     "copyright": "© 2026 LumiNya · 个人网站"
   }

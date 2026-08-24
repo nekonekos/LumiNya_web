@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="LumiNya 个人网站的使用条款" />
+    <title>使用条款 · LumiNya</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/legal.css" />
+</head>
+<body class="legal-page">
+
+    <!-- 装饰性模糊图形 -->
+    <div class="blob blob--1"></div>
+    <div class="blob blob--2"></div>
+    <div class="blob blob--3"></div>
+
+    <div class="container" id="legalContent"></div>
+
+    <!-- 回退内容：JSON 加载失败时展示 -->
+    <template id="fallback">
+        <div class="legal-hero">
+            <div class="legal-hero-icon">📜</div>
+            <h1>使用条款</h1>
+            <p class="subhead">使用本网站及相关服务前，请先阅读以下约定</p>
+            <div class="legal-updated">最后更新：2026年8月24日</div>
+        </div>
+        <div class="legal-body">
+            <p class="legal-intro">欢迎使用 LumiNya 个人网站及相关服务。使用本服务即表示你同意接受本协议的全部约定。</p>
+            <section class="legal-section">
+                <h2>账号管理</h2>
+                <p>你应保证注册信息的真实、准确、完整，并对账号下的一切行为负责。因保管不善导致的损失，我们不承担责任。</p>
+            </section>
+            <section class="legal-section">
+                <h2>用户行为规范</h2>
+                <p>你不得发布违法信息、干扰服务运行、从事未获许可的商业推广，或其他违反法律法规、公序良俗的行为。</p>
+            </section>
+            <section class="legal-section">
+                <h2>知识产权与免责声明</h2>
+                <p>本网站内容的知识产权归 LumiNya 或其许可方所有。本服务按「现状」提供，不提供任何明示或默示的担保。</p>
+            </section>
+            <div class="legal-contact">
+                <p>如你对本使用条款有任何疑问，请联系：</p>
+                <a href="mailto:contact@luminya.cc">contact@luminya.cc</a>
+            </div>
+        </div>
+    </template>
+
+    <script src="./js/legal.js" data-legal-json="./terms.json" data-legal-page="terms"></script>
+</body>
+</html>

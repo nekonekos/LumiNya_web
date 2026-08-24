@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="LumiNya 个人网站的隐私政策" />
+    <title>隐私政策 · LumiNya</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/legal.css" />
+</head>
+<body class="legal-page">
+
+    <!-- 装饰性模糊图形 -->
+    <div class="blob blob--1"></div>
+    <div class="blob blob--2"></div>
+    <div class="blob blob--3"></div>
+
+    <div class="container" id="legalContent"></div>
+
+    <!-- 回退内容：JSON 加载失败时展示 -->
+    <template id="fallback">
+        <div class="legal-hero">
+            <div class="legal-hero-icon">🔒</div>
+            <h1>隐私政策</h1>
+            <p class="subhead">我们如何收集、使用、存储和保护你的信息</p>
+            <div class="legal-updated">最后更新：2026年8月24日</div>
+        </div>
+        <div class="legal-body">
+            <p class="legal-intro">我们高度重视你的个人信息保护。本隐私政策说明了我们如何收集、使用、存储和保护你的信息。</p>
+            <section class="legal-section">
+                <h2>信息收集</h2>
+                <p>我们遵循合法、正当、必要原则收集信息，包括你主动提供的信息、自动收集的信息以及 Cookie 信息。我们不会收集你的敏感个人信息，除非你主动提供并同意。</p>
+            </section>
+            <section class="legal-section">
+                <h2>信息使用与共享</h2>
+                <p>我们仅将信息用于提供、维护和改进本服务，回复你的咨询，以及遵守法律法规要求。我们不会出售、出租或非法共享你的个人信息。</p>
+            </section>
+            <section class="legal-section">
+                <h2>你的权利</h2>
+                <p>你对个人信息享有查阅、复制、更正、删除、撤回同意等权利。如你是未满 14 周岁的未成年人，使用本服务前应取得监护人的同意。</p>
+            </section>
+            <div class="legal-contact">
+                <p>如你对本隐私政策有任何疑问，请联系：</p>
+                <a href="mailto:contact@luminya.cc">contact@luminya.cc</a>
+            </div>
+        </div>
+    </template>
+
+    <script src="./js/legal.js" data-legal-json="./privacy.json" data-legal-page="privacy"></script>
+</body>
+</html>
