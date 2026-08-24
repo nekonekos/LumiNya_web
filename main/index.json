@@ -85,11 +85,11 @@
         {
           "icon": "📝",
           "thumbClass": "thumb--green",
-          "title": "小娜的博客",
-          "desc": "记录我学习编程的经过和日常的想法。",
-          "tags": ["博客", "成长记录", "2025"],
+          "title": "LumiNya VS code",
+          "desc": "一个记录学习和生活的仿编辑器博客，分享一些代码项目。",
+          "tags": ["博客", "代码分享", "2026"],
           "action": "去逛逛",
-          "link": "#"
+          "link": "/config"
         },
         {
           "icon": "⛏️",
