@@ -1,0 +1,13 @@
+{
+  "bookName": "测试小说",
+  "author": "LumiNya",
+  "description": "这是一个测试性描述，用于展示小说的基本信息和章节列表。",
+  "cover": "/books/novel1/cover.jpg",
+  "wordCount": 520000,
+  "status": "连载中",
+  "chapters": [
+    { "id": "001", "title": "测试章节01" },
+    { "id": "002", "title": "测试章节02" },
+    { "id": "003", "title": "测试章节03" }
+  ]
+}
