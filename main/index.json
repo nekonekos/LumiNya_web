@@ -154,7 +154,7 @@
       "items": [
         { "icon": "✉️", "label": "邮箱", "value": "contact@luminya.cc", "href": "mailto:contact@luminya.cc" },
         { "icon": "💬", "label": "微信", "value": "LumiNya_Dev", "href": "#" },
-        { "icon": "🐙", "label": "GitHub", "value": "github.com/nekonekos", "href": "https://github.com/nekonekos" },
+        { "icon": "🐙", "label": "GitHub", "value": "github.com/nekonekos", "href": "/jump?url=https://github.com/nekonekos" },
         { "icon": "📍", "label": "所在地", "value": "中国 · 广州", "href": "#" }
       ]
     }

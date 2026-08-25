@@ -15,7 +15,7 @@
     <div class="blob blob--3"></div>
 
     <div class="container" id="pageContent">
-        <div class="section-wrapper">
+        <div class="section-wrapper visible">
             <div class="section-content">
                 <p style="text-align:center; padding:1.5rem 0;">正在检查目标地址…</p>
             </div>
@@ -70,7 +70,7 @@
 
             function renderPage(data, targetUrl, allowed) {
                 const wrapper = document.createElement('div');
-                wrapper.className = 'section-wrapper';
+                wrapper.className = 'section-wrapper visible';
                 wrapper.innerHTML = `
                     <header>
                         <a href="./index.html" class="logo">${escapeHtml(data.site.logoPrefix || 'Lumi')}<span>${escapeHtml(data.site.logoAccent || 'Nya')}</span></a>
@@ -166,7 +166,7 @@
                 })
                 .catch(function () {
                     pageContent.innerHTML = `
-                        <div class="section-wrapper">
+                        <div class="section-wrapper visible">
                             <div class="section-content">
                                 <p style="text-align:center; padding:1.5rem 0;">跳转配置加载失败，请稍后重试。</p>
                             </div>
