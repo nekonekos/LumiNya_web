@@ -1,3 +1,6 @@
+# wrangler.toml
+keep_vars = true
+
 name = "luminya-shop"
 main = "src/index.js"
 compatibility_date = "2026-08-20"
@@ -5,7 +8,7 @@ compatibility_date = "2026-08-20"
 [[d1_databases]]
 binding = "DB"
 database_name = "luminya-shop"
-database_id = "897e57a2-1ee5-43ac-bb1a-66a5663c9007"
+database_id = "Your-database_id"
 
 [vars]
 # 站点信息（前端也会读取 /api/site）
@@ -14,11 +17,11 @@ SITE_ANNOUNCEMENT = ""
 
 # 管理员种子账号：首次请求时若不存在管理员则自动创建。
 # 部署后请务必通过 `wrangler secret put` 覆盖为强密码，或直接放在 secret 中。
-ADMIN_EMAIL = "admin@luminya.cc"
+ADMIN_EMAIL = "Your-admin-email"
 ADMIN_PASSWORD = "change-me-now"
 
 # JWT 签名密钥：务必使用 `wrangler secret put JWT_SECRET` 覆盖。
-JWT_SECRET = "dev-only-insecure-secret-change-me"
+JWT_SECRET = "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 # 支付宝「AI 付」预留配置（真实凭证后续填入 secret）
 ALIPAY_APP_ID = ""
