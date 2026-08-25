@@ -1,18 +1,37 @@
 # wrangler.toml
-# 此文件仅用于标识 Worker 基本信息和公开变量。
-# 所有敏感信息（D1 绑定、ADMIN_PASSWORD、JWT_SECRET 等）都已在 Cloudflare 仪表盘中设置，
-# 不会受此文件影响。
+# 所有敏感值（密码 / JWT 密钥 / 支付宝密钥）均使用占位符，
+# 真实值请通过 `wrangler secret put <名称>` 设置，secrets 会覆盖本文件中的同名占位符。
+# 千万不要把真实密钥提交到 git。
 
 name = "luminya-shop"
 main = "src/index.js"
 compatibility_date = "2026-08-20"
 
-# 公开变量（非敏感）
+# D1 数据库绑定
+[[d1_databases]]
+binding = "DB"
+database_name = "luminya-shop"
+database_id = "897e57a2-1ee5-43ac-bb1a-66a5663c9007"
+
 [vars]
+# ---- 站点信息（非敏感） ----
 SITE_NAME = "LumiNya Shop"
 SITE_ANNOUNCEMENT = ""
 
-# 注意：
-# 1. 没有 [[d1_databases]] 配置 → 不会覆盖仪表盘中的 D1 绑定
-# 2. 没有 ADMIN_* 或 JWT_SECRET → 不会覆盖仪表盘中的 Secrets
-# 3. keep_vars 已移除 → 因为没必要，且 Pages 环境可能不生效
+# ---- 管理员种子账号 ----
+# 邮箱非敏感，可保留真实值
+ADMIN_EMAIL = "admin@luminya.cc"
+# 密码占位符：真实值用 `wrangler secret put ADMIN_PASSWORD` 设置
+ADMIN_PASSWORD = "REPLACE_WITH_ADMIN_PASSWORD"
+
+# ---- JWT 签名密钥 ----
+# 占位符：真实值用 `wrangler secret put JWT_SECRET` 设置（建议 32 字节以上随机串）
+JWT_SECRET = "REPLACE_WITH_JWT_SECRET"
+
+# ---- 支付宝「AI 付」预留配置 ----
+ALIPAY_APP_ID = "REPLACE_WITH_ALIPAY_APP_ID"
+ALIPAY_PRIVATE_KEY = "REPLACE_WITH_ALIPAY_PRIVATE_KEY"
+ALIPAY_PUBLIC_KEY = "REPLACE_WITH_ALIPAY_PUBLIC_KEY"
+# 支付回调地址（按实际部署域名调整）
+ALIPAY_NOTIFY_URL = "https://api.shop.luminya.cc/api/pay/notify"
+ALIPAY_RETURN_URL = "https://shop.luminya.cc/pay-result.html"
