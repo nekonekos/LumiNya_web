@@ -1,31 +1,18 @@
 # wrangler.toml
-keep_vars = true
+# 此文件仅用于标识 Worker 基本信息和公开变量。
+# 所有敏感信息（D1 绑定、ADMIN_PASSWORD、JWT_SECRET 等）都已在 Cloudflare 仪表盘中设置，
+# 不会受此文件影响。
 
 name = "luminya-shop"
 main = "src/index.js"
 compatibility_date = "2026-08-20"
 
-[[d1_databases]]
-binding = "DB"
-database_name = "luminya-shop"
-database_id = "Your-database_id"
-
+# 公开变量（非敏感）
 [vars]
-# 站点信息（前端也会读取 /api/site）
 SITE_NAME = "LumiNya Shop"
 SITE_ANNOUNCEMENT = ""
 
-# 管理员种子账号：首次请求时若不存在管理员则自动创建。
-# 部署后请务必通过 `wrangler secret put` 覆盖为强密码，或直接放在 secret 中。
-ADMIN_EMAIL = "Your-admin-email"
-ADMIN_PASSWORD = "change-me-now"
-
-# JWT 签名密钥：务必使用 `wrangler secret put JWT_SECRET` 覆盖。
-JWT_SECRET = "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-
-# 支付宝「AI 付」预留配置（真实凭证后续填入 secret）
-ALIPAY_APP_ID = ""
-ALIPAY_PRIVATE_KEY = ""
-ALIPAY_PUBLIC_KEY = ""
-ALIPAY_NOTIFY_URL = ""
-ALIPAY_RETURN_URL = ""
+# 注意：
+# 1. 没有 [[d1_databases]] 配置 → 不会覆盖仪表盘中的 D1 绑定
+# 2. 没有 ADMIN_* 或 JWT_SECRET → 不会覆盖仪表盘中的 Secrets
+# 3. keep_vars 已移除 → 因为没必要，且 Pages 环境可能不生效
