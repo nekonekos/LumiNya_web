@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>商品详情 · LumiNya Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/shop.css" />
+</head>
+<body>
+    <div class="container">
+        <div id="pageContent"></div>
+    </div>
+
+    <script src="./js/shop.js"></script>
+    <script>
+        (async function () {
+            await initCommon();
+            const id = new URLSearchParams(location.search).get('id');
+            const content = document.getElementById('pageContent');
+            if (!id) {
+                content.innerHTML = '<div class="empty-state">商品不存在</div>';
+                return;
+            }
+
+            let product = null;
+            let selectedVariant = null;
+            let qty = 1;
+            let images = [];
+            let currentImage = 0;
+
+            try {
+                const data = await api(`/products/${encodeURIComponent(id)}`);
+                product = data.product;
+                images = product.images && product.images.length ? product.images : [''];
+                render();
+            } catch (e) {
+                content.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+                return;
+            }
+
+            function currentUnitPrice() {
+                return selectedVariant ? selectedVariant.price : product.price;
+            }
+            function currentStock() {
+                return selectedVariant ? selectedVariant.stock : product.stock;
+            }
+
+            function render() {
+                document.title = `${product.title} · LumiNya Shop`;
+                const variants = product.variants || [];
+                const hasVariants = variants.length > 0;
+
+                const variantHTML = hasVariants
+                    ? `<div class="variant-list">${variants.map(v => `
+                        <button class="variant-item ${!v.stock ? 'disabled' : ''}" data-vid="${escapeHtml(v.id)}" ${!v.stock ? 'disabled' : ''}>
+                            ${escapeHtml(v.name || '默认')} · ${formatPrice(v.price)}
+                        </button>`).join('')}</div>`
+                    : '';
+
+                const thumbs = images.length > 1
+                    ? `<div class="thumbs">${images.map((img, i) => `
+                        <div class="t ${i === currentImage ? 'active' : ''}" data-i="${i}">
+                          ${img ? `<img src="${escapeHtml(img)}" alt="" />` : '🛍️'}
+                        </div>`).join('')}</div>`
+                    : '';
+
+                content.innerHTML = `
+                    <div class="product-detail">
+                        <div class="gallery">
+                            <div class="main-img">${images[currentImage] ? `<img src="${escapeHtml(images[currentImage])}" alt="${escapeHtml(product.title)}" />` : '🛍️'}</div>
+                            ${thumbs}
+                        </div>
+                        <div class="detail-info">
+                            <h1 class="title">${escapeHtml(product.title)}</h1>
+                            <p class="summary">${escapeHtml(product.summary || '')}</p>
+                            <div class="price" id="price">${formatPrice(product.price)}</div>
+                            <div class="stock" id="stock">库存 ${product.stock}</div>
+                            ${variantHTML}
+                            <div class="qty-row">
+                                <span>数量</span>
+                                <div class="qty-stepper">
+                                    <button id="qtyMinus">−</button>
+                                    <span class="qty-num" id="qtyNum">1</span>
+                                    <button id="qtyPlus">+</button>
+                                </div>
+                            </div>
+                            <div class="detail-actions">
+                                <button class="btn btn--primary" id="buyNow">立即购买</button>
+                                <button class="btn btn--outline" id="addCart">加入购物车</button>
+                            </div>
+                            <div class="detail-desc">${escapeHtml(product.description || '暂无描述')}</div>
+                        </div>
+                    </div>
+                `;
+
+                // 规格选择
+                if (hasVariants) {
+                    content.querySelectorAll('.variant-item').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            if (btn.disabled) return;
+                            selectedVariant = variants.find(v => v.id === btn.dataset.vid);
+                            content.querySelectorAll('.variant-item').forEach(b => b.classList.remove('active'));
+                            btn.classList.add('active');
+                            refreshPriceStock();
+                        });
+                    });
+                }
+
+                // 缩略图
+                content.querySelectorAll('.thumbs .t').forEach(t => {
+                    t.addEventListener('click', () => {
+                        currentImage = parseInt(t.dataset.i, 10);
+                        const main = content.querySelector('.main-img');
+                        main.innerHTML = images[currentImage] ? `<img src="${escapeHtml(images[currentImage])}" alt="" />` : '🛍️';
+                        content.querySelectorAll('.thumbs .t').forEach(x => x.classList.remove('active'));
+                        t.classList.add('active');
+                    });
+                });
+
+                // 数量
+                document.getElementById('qtyMinus').addEventListener('click', () => setQty(qty - 1));
+                document.getElementById('qtyPlus').addEventListener('click', () => setQty(qty + 1));
+
+                document.getElementById('addCart').addEventListener('click', () => {
+                    if (currentStock() < qty) return toast('库存不足', 'err');
+                    addToCart(product, selectedVariant, qty);
+                    toast('已加入购物车');
+                });
+
+                document.getElementById('buyNow').addEventListener('click', () => {
+                    if (currentStock() < qty) return toast('库存不足', 'err');
+                    if (!isLoggedIn()) {
+                        toast('请先登录', 'err');
+                        setTimeout(() => { location.href = 'login.html?redirect=checkout.html'; }, 600);
+                        return;
+                    }
+                    // 立即购买：直接写入购物车后跳转结算
+                    Store.cart = Store.cart.filter(i => !i.buynow);
+                    addToCart(product, selectedVariant, qty);
+                    const key = selectedVariant ? `${product.id}:${selectedVariant.id}` : product.id;
+                    const item = Store.cart.find(i => i.key === key);
+                    if (item) item.buynow = true;
+                    saveCart();
+                    location.href = 'checkout.html?buynow=1';
+                });
+            }
+
+            function refreshPriceStock() {
+                const priceEl = document.getElementById('price');
+                const stockEl = document.getElementById('stock');
+                priceEl.textContent = formatPrice(currentUnitPrice());
+                const stock = currentStock();
+                stockEl.textContent = `库存 ${stock}`;
+                stockEl.className = `stock ${stock <= 0 ? 'out' : ''}`;
+            }
+
+            function setQty(n) {
+                qty = Math.max(1, Math.min(n, Math.max(currentStock(), 1)));
+                document.getElementById('qtyNum').textContent = qty;
+            }
+        })();
+    </script>
+</body>
+</html>

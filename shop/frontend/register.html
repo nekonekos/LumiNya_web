@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>注册 · LumiNya Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/shop.css" />
+</head>
+<body>
+    <div class="container">
+        <div id="pageContent"></div>
+    </div>
+
+    <script src="./js/shop.js"></script>
+    <script>
+        (async function () {
+            await initCommon();
+            const redirect = new URLSearchParams(location.search).get('redirect') || 'index.html';
+            const content = document.getElementById('pageContent');
+
+            content.innerHTML = `
+                <div class="form-card">
+                    <h2>注册</h2>
+                    <p class="hint">创建你的 LumiNya Shop 账号</p>
+                    <div class="form-field"><label>昵称</label><input id="name" placeholder="选填" /></div>
+                    <div class="form-field"><label>邮箱</label><input id="email" type="email" placeholder="you@example.com" /></div>
+                    <div class="form-field"><label>密码</label><input id="password" type="password" placeholder="至少 6 位" /></div>
+                    <div class="form-field"><label>确认密码</label><input id="password2" type="password" placeholder="再输一遍" /></div>
+                    <div class="form-error" id="formError"></div>
+                    <button class="btn btn--primary" id="registerBtn" style="width:100%;">注册</button>
+                    <div class="form-switch">已有账号？<a href="login.html?redirect=${encodeURIComponent(redirect)}">去登录</a></div>
+                </div>`;
+
+            document.getElementById('registerBtn').addEventListener('click', async () => {
+                const display_name = document.getElementById('name').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const password = document.getElementById('password').value;
+                const password2 = document.getElementById('password2').value;
+                const errEl = document.getElementById('formError');
+                errEl.textContent = '';
+
+                if (!email || !password) { errEl.textContent = '请输入邮箱和密码'; return; }
+                if (password !== password2) { errEl.textContent = '两次密码不一致'; return; }
+                if (password.length < 6) { errEl.textContent = '密码至少 6 位'; return; }
+
+                const btn = document.getElementById('registerBtn');
+                btn.disabled = true;
+                try {
+                    const { token, user } = await api('/auth/register', { method: 'POST', body: { email, password, display_name } });
+                    setToken(token);
+                    setUser(user);
+                    toast('注册成功');
+                    setTimeout(() => { location.href = redirect; }, 500);
+                } catch (e) {
+                    errEl.textContent = e.message;
+                    btn.disabled = false;
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

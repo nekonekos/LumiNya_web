@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LumiNya Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/shop.css" />
+</head>
+<body>
+    <div class="container">
+        <div id="pageContent"></div>
+    </div>
+
+    <script src="./js/shop.js"></script>
+    <script>
+        (async function () {
+            await initCommon();
+            const cfg = Store.config;
+            const hero = cfg.hero || {};
+            const heroButtons = (hero.buttons || []).map(b =>
+                `<a href="${escapeHtml(b.href)}" class="btn ${escapeHtml(b.className || '')}">${escapeHtml(b.label)}</a>`
+            ).join('');
+
+            const content = document.getElementById('pageContent');
+            content.innerHTML = `
+                ${(cfg.site.announcement) ? `<div class="announcement">${escapeHtml(cfg.site.announcement)}</div>` : ''}
+                <section class="hero">
+                    <div class="hero-content">
+                        <h1>${escapeHtml(hero.title || '')}</h1>
+                        <p class="subhead">${escapeHtml(hero.subhead || '')}</p>
+                        <p class="bio">${escapeHtml(hero.bio || '')}</p>
+                        <div class="btn-group">${heroButtons}</div>
+                    </div>
+                    <div class="hero-visual">
+                        <div class="hero-badge">
+                            🛍️
+                            <span class="name">LumiNya</span>
+                            <span class="role">Shop</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="section-wrapper" id="products">
+                    <div class="section-header">
+                        <h2 class="section-title">全部商品</h2>
+                        <p class="section-subtitle">挑一件喜欢的东西吧</p>
+                    </div>
+                    <div class="section-divider">
+                        <span class="line"></span><span class="dot"></span><span class="line"></span>
+                    </div>
+                    <div class="category-bar" id="categoryBar">
+                        <button class="category-chip active" data-cat="">全部</button>
+                    </div>
+                    <div class="products-grid" id="productsGrid"></div>
+                </div>
+            `;
+
+            let currentCategory = '';
+
+            // 加载分类
+            try {
+                const { categories } = await api('/categories');
+                const bar = document.getElementById('categoryBar');
+                categories.forEach(c => {
+                    const btn = document.createElement('button');
+                    btn.className = 'category-chip';
+                    btn.dataset.cat = c.id;
+                    btn.textContent = c.name;
+                    bar.appendChild(btn);
+                });
+                bar.addEventListener('click', (e) => {
+                    const chip = e.target.closest('.category-chip');
+                    if (!chip) return;
+                    currentCategory = chip.dataset.cat;
+                    bar.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    loadProducts();
+                });
+            } catch (e) { /* 分类加载失败不阻塞 */ }
+
+            async function loadProducts() {
+                const grid = document.getElementById('productsGrid');
+                grid.innerHTML = '<div class="empty-state">加载中…</div>';
+                try {
+                    const qs = currentCategory ? `?category=${encodeURIComponent(currentCategory)}` : '';
+                    const { results } = await api(`/products${qs}`);
+                    if (!results.length) {
+                        grid.innerHTML = '<div class="empty-state">暂时没有商品</div>';
+                        return;
+                    }
+                    grid.innerHTML = results.map(productCardHTML).join('');
+                    grid.querySelectorAll('.product-card').forEach(card => {
+                        card.addEventListener('click', () => {
+                            window.location.href = `product.html?id=${encodeURIComponent(card.dataset.id)}`;
+                        });
+                    });
+                } catch (e) {
+                    grid.innerHTML = `<div class="empty-state">加载失败：${escapeHtml(e.message)}</div>`;
+                }
+            }
+
+            await loadProducts();
+        })();
+    </script>
+</body>
+</html>

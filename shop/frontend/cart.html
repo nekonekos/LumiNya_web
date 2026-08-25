@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>购物车 · LumiNya Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/shop.css" />
+</head>
+<body>
+    <div class="container">
+        <div id="pageContent"></div>
+    </div>
+
+    <script src="./js/shop.js"></script>
+    <script>
+        (async function () {
+            await initCommon();
+            const content = document.getElementById('pageContent');
+
+            function render() {
+                if (!Store.cart.length) {
+                    content.innerHTML = `
+                        <div class="section-wrapper">
+                            <div class="section-header"><h2 class="section-title">购物车</h2></div>
+                            <div class="section-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+                            <div class="empty-state">购物车是空的，去 <a href="index.html#products">逛逛</a> 吧</div>
+                        </div>`;
+                    return;
+                }
+
+                const rows = Store.cart.map(item => `
+                    <div class="cart-item" data-key="${escapeHtml(item.key)}">
+                        <div class="thumb">${item.image ? `<img src="${escapeHtml(item.image)}" alt="" />` : '🛍️'}</div>
+                        <div class="info">
+                            <div class="name">${escapeHtml(item.title)}</div>
+                            ${item.sku_name ? `<div class="sku">${escapeHtml(item.sku_name)}</div>` : ''}
+                            <div class="unit">${formatPrice(item.unit_price)} × ${item.qty}</div>
+                        </div>
+                        <div class="subtotal">${formatPrice(item.unit_price * item.qty)}</div>
+                        <button class="remove" data-key="${escapeHtml(item.key)}" title="移除">✕</button>
+                    </div>`).join('');
+
+                const subtotal = Store.cart.reduce((s, i) => s + i.unit_price * i.qty, 0);
+
+                content.innerHTML = `
+                    <div class="section-wrapper">
+                        <div class="section-header"><h2 class="section-title">购物车</h2></div>
+                        <div class="section-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+                        <div class="cart-list">${rows}</div>
+                        <div class="cart-summary">
+                            <div class="row"><span>商品小计</span><span>${formatPrice(subtotal)}</span></div>
+                            <div class="row total"><span>合计</span><span>${formatPrice(subtotal)}</span></div>
+                            <button class="btn btn--primary" id="checkoutBtn">去结算</button>
+                        </div>
+                    </div>`;
+
+                content.querySelectorAll('.remove').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        removeFromCart(btn.dataset.key);
+                        render();
+                    });
+                });
+
+                document.getElementById('checkoutBtn').addEventListener('click', () => {
+                    if (!isLoggedIn()) {
+                        toast('请先登录', 'err');
+                        setTimeout(() => { location.href = 'login.html?redirect=checkout.html'; }, 600);
+                        return;
+                    }
+                    location.href = 'checkout.html';
+                });
+            }
+
+            render();
+        })();
+    </script>
+</body>
+</html>

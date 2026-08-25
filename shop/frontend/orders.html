@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>我的订单 · LumiNya Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/shop.css" />
+</head>
+<body>
+    <div class="container">
+        <div id="pageContent"></div>
+    </div>
+
+    <script src="./js/shop.js"></script>
+    <script>
+        (async function () {
+            await initCommon();
+
+            if (!isLoggedIn()) {
+                toast('请先登录', 'err');
+                setTimeout(() => { location.href = 'login.html?redirect=orders.html'; }, 600);
+                return;
+            }
+
+            const content = document.getElementById('pageContent');
+            content.innerHTML = `
+                <div class="section-wrapper">
+                    <div class="section-header"><h2 class="section-title">我的订单</h2></div>
+                    <div class="section-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+                    <div id="orderList"><div class="empty-state">加载中…</div></div>
+                </div>`;
+
+            try {
+                const { orders } = await api('/orders');
+                const list = document.getElementById('orderList');
+                if (!orders.length) {
+                    list.innerHTML = '<div class="empty-state">还没有订单</div>';
+                    return;
+                }
+                list.innerHTML = orders.map(o => `
+                    <div class="order-card" data-id="${escapeHtml(o.id)}">
+                        <div class="head">
+                            <span class="order-no">${escapeHtml(o.order_no)}</span>
+                            <span class="order-time">${formatTime(o.created_at)}</span>
+                            ${statusBadge(o.status)}
+                        </div>
+                        <div class="items">${escapeHtml(summarizeItems(o.items))}</div>
+                        <div class="total">合计 ${formatPrice(o.total)}${o.shipping_fee ? `（含运费 ${formatPrice(o.shipping_fee)}）` : ''}</div>
+                    </div>`).join('');
+
+                list.querySelectorAll('.order-card').forEach(card => {
+                    card.addEventListener('click', async () => {
+                        const id = card.dataset.id;
+                        try {
+                            const { order } = await api(`/orders/${encodeURIComponent(id)}`);
+                            showOrderDetail(order);
+                        } catch (e) {
+                            toast(e.message, 'err');
+                        }
+                    });
+                });
+            } catch (e) {
+                document.getElementById('orderList').innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+            }
+
+            function summarizeItems(items) {
+                if (!items || !items.length) return '';
+                const first = items[0];
+                const more = items.length > 1 ? ` 等 ${items.length} 件` : '';
+                return `${first.title}${first.sku_name ? ' · ' + first.sku_name : ''} × ${first.qty}${more}`;
+            }
+
+            function showOrderDetail(order) {
+                const codes = (order.codes || []).map(c => `
+                    <div class="code-box">${c.kind === 'resource' ? '🔗 资源链接：' : '🔑 激活码：'}${escapeHtml(c.code)}</div>`).join('');
+
+                const itemsHTML = (order.items || []).map(i => `
+                    <div class="cart-item">
+                        <div class="info">
+                            <div class="name">${escapeHtml(i.title)}</div>
+                            ${i.sku_name ? `<div class="sku">${escapeHtml(i.sku_name)}</div>` : ''}
+                            <div class="unit">${formatPrice(i.unit_price)} × ${i.qty}</div>
+                        </div>
+                    </div>`).join('');
+
+                content.innerHTML = `
+                    <div class="section-wrapper">
+                        <div class="section-header">
+                            <h2 class="section-title">订单详情</h2>
+                            <p class="section-subtitle">${escapeHtml(order.order_no)}</p>
+                        </div>
+                        <div class="section-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+                        <div class="order-card">
+                            <div class="head">
+                                <span>${statusBadge(order.status)}</span>
+                                <span class="order-time">下单时间 ${formatTime(order.created_at)}</span>
+                            </div>
+                            <div class="cart-list">${itemsHTML}</div>
+                            <div class="total" style="margin-top:0.8rem;">合计 ${formatPrice(order.total)}</div>
+                            ${codes ? `<h4 style="margin:1rem 0 0.4rem;">发货内容</h4>${codes}` : ''}
+                            ${order.remark ? `<p style="margin-top:0.8rem; color:var(--text-medium);">备注：${escapeHtml(order.remark)}</p>` : ''}
+                        </div>
+                        <button class="btn btn--outline" style="margin-top:1rem;" id="backBtn">← 返回列表</button>
+                    </div>`;
+
+                document.getElementById('backBtn').addEventListener('click', () => location.reload());
+            }
+        })();
+    </script>
+</body>
+</html>

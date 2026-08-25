@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>结算 · LumiNya Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/shop.css" />
+</head>
+<body>
+    <div class="container">
+        <div id="pageContent"></div>
+    </div>
+
+    <script src="./js/shop.js"></script>
+    <script>
+        (async function () {
+            await initCommon();
+
+            if (!isLoggedIn()) {
+                toast('请先登录', 'err');
+                setTimeout(() => { location.href = 'login.html?redirect=checkout.html'; }, 600);
+                return;
+            }
+
+            const content = document.getElementById('pageContent');
+            const params = new URLSearchParams(location.search);
+            const buynow = params.get('buynow') === '1';
+
+            // 立即购买时只结算标记 buynow 的商品
+            let items = buynow
+                ? Store.cart.filter(i => i.buynow)
+                : Store.cart;
+
+            if (!items.length) {
+                content.innerHTML = '<div class="empty-state">没有要结算的商品</div>';
+                return;
+            }
+
+            const hasPhysical = items.some(i => i.type === 'physical');
+
+            function render() {
+                const rows = items.map(item => `
+                    <div class="cart-item">
+                        <div class="thumb">${item.image ? `<img src="${escapeHtml(item.image)}" alt="" />` : '🛍️'}</div>
+                        <div class="info">
+                            <div class="name">${escapeHtml(item.title)}</div>
+                            ${item.sku_name ? `<div class="sku">${escapeHtml(item.sku_name)}</div>` : ''}
+                            <div class="unit">${formatPrice(item.unit_price)} × ${item.qty}</div>
+                        </div>
+                        <div class="subtotal">${formatPrice(item.unit_price * item.qty)}</div>
+                    </div>`).join('');
+
+                const subtotal = items.reduce((s, i) => s + i.unit_price * i.qty, 0);
+
+                content.innerHTML = `
+                    <div class="section-wrapper">
+                        <div class="section-header"><h2 class="section-title">确认订单</h2></div>
+                        <div class="section-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+                        <div class="cart-list">${rows}</div>
+                        <div class="cart-summary">
+                            <div class="row"><span>商品小计</span><span>${formatPrice(subtotal)}</span></div>
+                            <div class="row"><span>运费</span><span id="feeText">下单时计算</span></div>
+                            <div class="row total"><span>合计</span><span>下单时计算</span></div>
+                        </div>
+
+                        ${hasPhysical ? `
+                        <div class="form-card" style="max-width:none; margin-top:1.5rem;">
+                            <h3>收货地址</h3>
+                            <div class="form-field"><label>收货人</label><input id="addrName" placeholder="姓名" /></div>
+                            <div class="form-field"><label>手机号</label><input id="addrPhone" placeholder="手机号" /></div>
+                            <div class="form-field"><label>详细地址</label><textarea id="addrDetail" placeholder="省市区 + 详细地址"></textarea></div>
+                        </div>` : ''}
+
+                        <div class="form-card" style="max-width:none; margin-top:1.5rem;">
+                            <h3>订单备注</h3>
+                            <div class="form-field"><textarea id="remark" placeholder="选填"></textarea></div>
+                            <div class="form-error" id="formError"></div>
+                            <button class="btn btn--primary" id="submitBtn">提交订单</button>
+                        </div>
+                    </div>`;
+
+                document.getElementById('submitBtn').addEventListener('click', submitOrder);
+            }
+
+            async function submitOrder() {
+                const btn = document.getElementById('submitBtn');
+                const errEl = document.getElementById('formError');
+                btn.disabled = true;
+                errEl.textContent = '';
+
+                const address = {};
+                if (hasPhysical) {
+                    address.name = document.getElementById('addrName').value.trim();
+                    address.phone = document.getElementById('addrPhone').value.trim();
+                    address.detail = document.getElementById('addrDetail').value.trim();
+                    if (!address.name || !address.phone || !address.detail) {
+                        errEl.textContent = '请填写完整的收货地址';
+                        btn.disabled = false;
+                        return;
+                    }
+                }
+
+                const payload = {
+                    items: items.map(i => ({ product_id: i.product_id, variant_id: i.variant_id, qty: i.qty })),
+                    remark: document.getElementById('remark').value.trim(),
+                    address,
+                    pay_channel: 'alipay'
+                };
+
+                try {
+                    const { order } = await api('/orders', { method: 'POST', body: payload });
+                    // 创建支付（预留接口）
+                    let pay = null;
+                    try {
+                        const res = await api('/pay/create', { method: 'POST', body: { order_no: order.order_no } });
+                        pay = res.pay;
+                    } catch (e) { /* 支付接口占位，失败不阻断 */ }
+
+                    // 成功后清空已结算商品
+                    const settledKeys = new Set(items.map(i => i.key));
+                    Store.cart = Store.cart.filter(i => !settledKeys.has(i.key));
+                    saveCart();
+
+                    if (pay && pay.pay_url) {
+                        location.href = pay.pay_url;
+                    } else {
+                        // 支付接口尚未真实接入：引导至订单页
+                        toast('订单已创建，支付通道待接入');
+                        setTimeout(() => { location.href = 'orders.html'; }, 800);
+                    }
+                } catch (e) {
+                    errEl.textContent = e.message;
+                    btn.disabled = false;
+                }
+            }
+
+            render();
+        })();
+    </script>
+</body>
+</html>

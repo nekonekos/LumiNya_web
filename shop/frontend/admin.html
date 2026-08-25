@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>管理后台 · LumiNya Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/shop.css" />
+</head>
+<body>
+    <div class="container">
+        <div id="pageContent"></div>
+    </div>
+
+    <script src="./js/shop.js"></script>
+    <script>
+        (async function () {
+            await initCommon();
+            const content = document.getElementById('pageContent');
+
+            // ---- 登录视图 ----
+            function loginView() {
+                content.innerHTML = `
+                    <div class="form-card">
+                        <h2>管理后台登录</h2>
+                        <p class="hint">仅限管理员访问</p>
+                        <div class="form-field"><label>邮箱</label><input id="email" type="email" /></div>
+                        <div class="form-field"><label>密码</label><input id="password" type="password" /></div>
+                        <div class="form-error" id="formError"></div>
+                        <button class="btn btn--primary" id="loginBtn" style="width:100%;">登录</button>
+                        <div class="form-switch"><a href="index.html">← 返回商城</a></div>
+                    </div>`;
+                document.getElementById('loginBtn').addEventListener('click', async () => {
+                    const email = document.getElementById('email').value.trim();
+                    const password = document.getElementById('password').value;
+                    const errEl = document.getElementById('formError');
+                    errEl.textContent = '';
+                    if (!email || !password) { errEl.textContent = '请输入邮箱和密码'; return; }
+                    const btn = document.getElementById('loginBtn');
+                    btn.disabled = true;
+                    try {
+                        const { token, user } = await api('/admin/login', { method: 'POST', body: { email, password } });
+                        setToken(token);
+                        setUser(user);
+                        toast('登录成功');
+                        mainView();
+                    } catch (e) {
+                        errEl.textContent = e.message;
+                        btn.disabled = false;
+                    }
+                });
+            }
+
+            // ---- 主视图 ----
+            function mainView() {
+                content.innerHTML = `
+                    <div class="section-header"><h2 class="section-title">管理后台</h2></div>
+                    <div class="section-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+                    <div class="admin-layout">
+                        <nav class="admin-side" id="adminSide">
+                            <a href="#" data-view="dashboard" class="active">📊 数据看板</a>
+                            <a href="#" data-view="products">📦 商品管理</a>
+                            <a href="#" data-view="categories">🗂️ 分类管理</a>
+                            <a href="#" data-view="orders">🧾 订单管理</a>
+                            <a href="#" data-view="users">👥 用户管理</a>
+                            <a href="#" data-view="codes">🔑 激活码池</a>
+                            <a href="index.html">← 返回商城</a>
+                        </nav>
+                        <div class="admin-main" id="adminMain"></div>
+                    </div>`;
+
+                document.getElementById('adminSide').addEventListener('click', (e) => {
+                    const a = e.target.closest('a[data-view]');
+                    if (!a) return;
+                    e.preventDefault();
+                    document.querySelectorAll('.admin-side a').forEach(x => x.classList.remove('active'));
+                    a.classList.add('active');
+                    switchView(a.dataset.view);
+                });
+
+                switchView('dashboard');
+            }
+
+            function switchView(view) {
+                const views = {
+                    dashboard: renderDashboard,
+                    products: renderProducts,
+                    categories: renderCategories,
+                    orders: renderOrders,
+                    users: renderUsers,
+                    codes: renderCodes
+                };
+                (views[view] || renderDashboard)();
+            }
+
+            /* ---------- 看板 ---------- */
+            async function renderDashboard() {
+                const main = document.getElementById('adminMain');
+                main.innerHTML = '<div class="empty-state">加载中…</div>';
+                try {
+                    const { dashboard: d } = await api('/admin/dashboard');
+                    main.innerHTML = `
+                        <div class="stat-grid">
+                            <div class="stat-card"><div class="value">${d.orders_total}</div><div class="label">总订单</div></div>
+                            <div class="stat-card"><div class="value">${d.orders_today}</div><div class="label">今日订单</div></div>
+                            <div class="stat-card"><div class="value">${d.pending_orders}</div><div class="label">待支付</div></div>
+                            <div class="stat-card"><div class="value">${formatPrice(d.revenue)}</div><div class="label">已支付销售额</div></div>
+                            <div class="stat-card"><div class="value">${d.users_total}</div><div class="label">注册用户</div></div>
+                            <div class="stat-card"><div class="value">${d.products_total}</div><div class="label">商品数</div></div>
+                        </div>`;
+                } catch (e) {
+                    main.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+                }
+            }
+
+            /* ---------- 商品 ---------- */
+            async function renderProducts() {
+                const main = document.getElementById('adminMain');
+                main.innerHTML = `
+                    <div class="admin-toolbar">
+                        <button class="btn btn--primary btn--small" id="newProduct">+ 新建商品</button>
+                        <button class="btn btn--ghost btn--small" id="refreshProducts">刷新</button>
+                    </div>
+                    <div id="productsTableWrap"><div class="empty-state">加载中…</div></div>`;
+                document.getElementById('newProduct').addEventListener('click', () => openProductModal());
+                document.getElementById('refreshProducts').addEventListener('click', renderProducts);
+                await loadProductsTable();
+            }
+
+            async function loadProductsTable() {
+                const wrap = document.getElementById('productsTableWrap');
+                try {
+                    const { products } = await api('/admin/products');
+                    if (!products.length) { wrap.innerHTML = '<div class="empty-state">暂无商品</div>'; return; }
+                    wrap.innerHTML = `
+                        <table class="admin-table">
+                            <thead><tr><th>标题</th><th>类型</th><th>价格</th><th>库存</th><th>状态</th><th>操作</th></tr></thead>
+                            <tbody>${products.map(p => `
+                                <tr>
+                                    <td>${escapeHtml(p.title)}</td>
+                                    <td>${p.type === 'physical' ? '实物' : '虚拟'}</td>
+                                    <td>${formatPrice(p.price)}</td>
+                                    <td>${p.stock}</td>
+                                    <td>${statusText(p.status)}</td>
+                                    <td>
+                                        <button class="btn btn--ghost btn--small" data-edit="${escapeHtml(p.id)}">编辑</button>
+                                        <button class="btn btn--danger btn--small" data-del="${escapeHtml(p.id)}">删除</button>
+                                    </td>
+                                </tr>`).join('')}</tbody>
+                        </table>`;
+                    wrap.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openProductModal(b.dataset.edit)));
+                    wrap.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+                        if (!confirm('确认删除该商品？')) return;
+                        try {
+                            await api(`/admin/products/${encodeURIComponent(b.dataset.del)}`, { method: 'DELETE' });
+                            toast('已删除');
+                            loadProductsTable();
+                        } catch (e) { toast(e.message, 'err'); }
+                    }));
+                } catch (e) {
+                    wrap.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+                }
+            }
+
+            function statusText(s) {
+                return ({ draft: '草稿', on: '上架', off: '下架' })[s] || s;
+            }
+
+            async function openProductModal(id) {
+                let product = null, variants = [];
+                if (id) {
+                    try {
+                        const res = await api(`/admin/products/${encodeURIComponent(id)}`);
+                        product = res.product; variants = res.variants;
+                    } catch (e) { toast(e.message, 'err'); return; }
+                }
+                const cats = await loadCategoriesSelect();
+
+                const modal = document.createElement('div');
+                modal.className = 'modal-backdrop';
+                modal.innerHTML = `
+                    <div class="modal">
+                        <h3>${id ? '编辑商品' : '新建商品'}</h3>
+                        <div class="form-field"><label>标题</label><input id="fTitle" value="${escapeHtml(product?.title || '')}" /></div>
+                        <div class="form-field"><label>分类</label><select id="fCategory">${cats}</select></div>
+                        <div class="form-field"><label>类型</label>
+                            <select id="fType">
+                                <option value="virtual" ${product?.type !== 'physical' ? 'selected' : ''}>虚拟商品</option>
+                                <option value="physical" ${product?.type === 'physical' ? 'selected' : ''}>实物商品</option>
+                            </select>
+                        </div>
+                        <div class="form-field"><label>价格（元）</label><input id="fPrice" type="number" step="0.01" value="${product ? (product.price / 100) : ''}" /></div>
+                        <div class="form-field"><label>库存</label><input id="fStock" type="number" value="${product?.stock ?? 0}" /></div>
+                        <div class="form-field"><label>摘要</label><input id="fSummary" value="${escapeHtml(product?.summary || '')}" /></div>
+                        <div class="form-field"><label>描述</label><textarea id="fDesc">${escapeHtml(product?.description || '')}</textarea></div>
+                        <div class="form-field"><label>图片 URL（每行一个）</label><textarea id="fImages">${(product?.images || []).join('\n')}</textarea></div>
+                        <div class="form-field"><label>虚拟商品资源/下载链接</label><input id="fResource" value="${escapeHtml(product?.resource_url || '')}" /></div>
+                        <div class="form-field"><label>状态</label>
+                            <select id="fStatus">
+                                <option value="draft" ${product?.status === 'draft' ? 'selected' : ''}>草稿</option>
+                                <option value="on" ${product?.status === 'on' ? 'selected' : ''}>上架</option>
+                                <option value="off" ${product?.status === 'off' ? 'selected' : ''}>下架</option>
+                            </select>
+                        </div>
+                        <div class="form-error" id="formError"></div>
+                        <div class="btn-group">
+                            <button class="btn btn--primary" id="saveProduct">保存</button>
+                            <button class="btn btn--ghost" id="cancelProduct">取消</button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(modal);
+
+                modal.querySelector('#cancelProduct').addEventListener('click', () => modal.remove());
+                modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+                modal.querySelector('#saveProduct').addEventListener('click', async () => {
+                    const body = {
+                        title: modal.querySelector('#fTitle').value.trim(),
+                        category_id: modal.querySelector('#fCategory').value || null,
+                        type: modal.querySelector('#fType').value,
+                        price: Math.round(parseFloat(modal.querySelector('#fPrice').value || '0') * 100),
+                        stock: parseInt(modal.querySelector('#fStock').value || '0', 10),
+                        summary: modal.querySelector('#fSummary').value.trim(),
+                        description: modal.querySelector('#fDesc').value,
+                        images: modal.querySelector('#fImages').value.split('\n').map(s => s.trim()).filter(Boolean),
+                        resource_url: modal.querySelector('#fResource').value.trim(),
+                        status: modal.querySelector('#fStatus').value
+                    };
+                    const errEl = modal.querySelector('#formError');
+                    if (!body.title) { errEl.textContent = '标题不能为空'; return; }
+                    try {
+                        if (id) await api(`/admin/products/${encodeURIComponent(id)}`, { method: 'PUT', body });
+                        else await api('/admin/products', { method: 'POST', body });
+                        toast('已保存');
+                        modal.remove();
+                        loadProductsTable();
+                    } catch (e) { errEl.textContent = e.message; }
+                });
+            }
+
+            async function loadCategoriesSelect() {
+                try {
+                    const { categories } = await api('/admin/categories');
+                    return `<option value="">无分类</option>` + categories.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
+                } catch { return '<option value="">无分类</option>'; }
+            }
+
+            /* ---------- 分类 ---------- */
+            async function renderCategories() {
+                const main = document.getElementById('adminMain');
+                main.innerHTML = `
+                    <div class="admin-toolbar">
+                        <button class="btn btn--primary btn--small" id="newCat">+ 新建分类</button>
+                        <button class="btn btn--ghost btn--small" id="refreshCat">刷新</button>
+                    </div>
+                    <div id="catWrap"><div class="empty-state">加载中…</div></div>`;
+                document.getElementById('newCat').addEventListener('click', () => {
+                    const name = prompt('分类名称：');
+                    if (!name) return;
+                    api('/admin/categories', { method: 'POST', body: { name } })
+                        .then(() => { toast('已创建'); renderCategories(); })
+                        .catch(e => toast(e.message, 'err'));
+                });
+                document.getElementById('refreshCat').addEventListener('click', renderCategories);
+                await loadCats();
+            }
+
+            async function loadCats() {
+                const wrap = document.getElementById('catWrap');
+                try {
+                    const { categories } = await api('/admin/categories');
+                    if (!categories.length) { wrap.innerHTML = '<div class="empty-state">暂无分类</div>'; return; }
+                    wrap.innerHTML = `<table class="admin-table">
+                        <thead><tr><th>名称</th><th>标识</th><th>状态</th><th>操作</th></tr></thead>
+                        <tbody>${categories.map(c => `
+                            <tr>
+                                <td>${escapeHtml(c.name)}</td>
+                                <td>${escapeHtml(c.slug)}</td>
+                                <td>${c.enabled ? '启用' : '停用'}</td>
+                                <td><button class="btn btn--danger btn--small" data-del="${escapeHtml(c.id)}">删除</button></td>
+                            </tr>`).join('')}</tbody>
+                    </table>`;
+                    wrap.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+                        if (!confirm('确认删除该分类？')) return;
+                        try { await api(`/admin/categories/${encodeURIComponent(b.dataset.del)}`, { method: 'DELETE' }); toast('已删除'); loadCats(); }
+                        catch (e) { toast(e.message, 'err'); }
+                    }));
+                } catch (e) { wrap.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`; }
+            }
+
+            /* ---------- 订单 ---------- */
+            async function renderOrders() {
+                const main = document.getElementById('adminMain');
+                main.innerHTML = `
+                    <div class="admin-toolbar">
+                        <select id="statusFilter">
+                            <option value="">全部状态</option>
+                            ${['pending','paid','shipped','completed','cancelled','expired'].map(s => `<option value="${s}">${STATUS_TEXT[s]}</option>`).join('')}
+                        </select>
+                        <button class="btn btn--ghost btn--small" id="refreshOrders">刷新</button>
+                    </div>
+                    <div id="ordersWrap"><div class="empty-state">加载中…</div></div>`;
+                document.getElementById('refreshOrders').addEventListener('click', loadOrders);
+                document.getElementById('statusFilter').addEventListener('change', loadOrders);
+                await loadOrders();
+            }
+
+            async function loadOrders() {
+                const wrap = document.getElementById('ordersWrap');
+                const status = document.getElementById('statusFilter').value;
+                try {
+                    const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+                    const { orders } = await api(`/admin/orders${qs}`);
+                    if (!orders.length) { wrap.innerHTML = '<div class="empty-state">暂无订单</div>'; return; }
+                    wrap.innerHTML = `<table class="admin-table">
+                        <thead><tr><th>订单号</th><th>金额</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+                        <tbody>${orders.map(o => `
+                            <tr>
+                                <td>${escapeHtml(o.order_no)}</td>
+                                <td>${formatPrice(o.total)}</td>
+                                <td>${statusBadge(o.status)}</td>
+                                <td>${formatTime(o.created_at)}</td>
+                                <td><button class="btn btn--ghost btn--small" data-status="${escapeHtml(o.id)}">改状态</button></td>
+                            </tr>`).join('')}</tbody>
+                    </table>`;
+                    wrap.querySelectorAll('[data-status]').forEach(b => b.addEventListener('click', () => changeStatus(b.dataset.status)));
+                } catch (e) { wrap.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`; }
+            }
+
+            function changeStatus(id) {
+                const next = prompt('新状态（pending/paid/shipped/completed/cancelled/expired）：');
+                if (!next) return;
+                api(`/admin/orders/${encodeURIComponent(id)}/status`, { method: 'PUT', body: { status: next } })
+                    .then(() => { toast('已更新'); loadOrders(); })
+                    .catch(e => toast(e.message, 'err'));
+            }
+
+            /* ---------- 用户 ---------- */
+            async function renderUsers() {
+                const main = document.getElementById('adminMain');
+                main.innerHTML = '<div class="empty-state">加载中…</div>';
+                try {
+                    const { users } = await api('/admin/users');
+                    main.innerHTML = `<table class="admin-table">
+                        <thead><tr><th>邮箱</th><th>角色</th><th>昵称</th><th>状态</th><th>操作</th></tr></thead>
+                        <tbody>${users.map(u => `
+                            <tr>
+                                <td>${escapeHtml(u.email)}</td>
+                                <td>${u.role === 'admin' ? '管理员' : '用户'}</td>
+                                <td>${escapeHtml(u.display_name || '')}</td>
+                                <td>${u.disabled ? '已禁用' : '正常'}</td>
+                                <td>${u.role !== 'admin' ? `<button class="btn btn--ghost btn--small" data-id="${escapeHtml(u.id)}" data-disabled="${u.disabled}">${u.disabled ? '启用' : '禁用'}</button>` : '-'}</td>
+                            </tr>`).join('')}</tbody>
+                    </table>`;
+                    main.querySelectorAll('[data-id]').forEach(b => b.addEventListener('click', async () => {
+                        const disabled = b.dataset.disabled === '1' ? false : true;
+                        try {
+                            await api(`/admin/users/${encodeURIComponent(b.dataset.id)}`, { method: 'PUT', body: { disabled } });
+                            toast('已更新');
+                            renderUsers();
+                        } catch (e) { toast(e.message, 'err'); }
+                    }));
+                } catch (e) { main.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`; }
+            }
+
+            /* ---------- 激活码池 ---------- */
+            async function renderCodes() {
+                const main = document.getElementById('adminMain');
+                main.innerHTML = `
+                    <div class="admin-toolbar">
+                        <button class="btn btn--primary btn--small" id="addCodes">+ 导入激活码</button>
+                        <button class="btn btn--ghost btn--small" id="refreshCodes">刷新</button>
+                    </div>
+                    <div id="codesWrap"><div class="empty-state">加载中…</div></div>`;
+                document.getElementById('addCodes').addEventListener('click', addCodesModal);
+                document.getElementById('refreshCodes').addEventListener('click', loadCodes);
+                await loadCodes();
+            }
+
+            async function loadCodes() {
+                const wrap = document.getElementById('codesWrap');
+                try {
+                    const { codes } = await api('/admin/codes');
+                    if (!codes.length) { wrap.innerHTML = '<div class="empty-state">暂无激活码</div>'; return; }
+                    wrap.innerHTML = `<table class="admin-table">
+                        <thead><tr><th>商品</th><th>激活码</th><th>状态</th><th>操作</th></tr></thead>
+                        <tbody>${codes.map(c => `
+                            <tr>
+                                <td>${escapeHtml(c.product_id)}</td>
+                                <td><code>${escapeHtml(c.code)}</code></td>
+                                <td>${c.used ? '已发放' : '未使用'}</td>
+                                <td><button class="btn btn--danger btn--small" data-del="${escapeHtml(c.id)}">删除</button></td>
+                            </tr>`).join('')}</tbody>
+                    </table>`;
+                    wrap.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+                        if (!confirm('确认删除该激活码？')) return;
+                        try { await api(`/admin/codes/${encodeURIComponent(b.dataset.del)}`, { method: 'DELETE' }); toast('已删除'); loadCodes(); }
+                        catch (e) { toast(e.message, 'err'); }
+                    }));
+                } catch (e) { wrap.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`; }
+            }
+
+            async function addCodesModal() {
+                let products = [];
+                try { const res = await api('/admin/products'); products = res.products; } catch {}
+                const modal = document.createElement('div');
+                modal.className = 'modal-backdrop';
+                modal.innerHTML = `
+                    <div class="modal">
+                        <h3>导入激活码</h3>
+                        <div class="form-field"><label>商品</label>
+                            <select id="codeProduct">${products.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.title)}</option>`).join('')}</select>
+                        </div>
+                        <div class="form-field"><label>激活码（每行一个）</label><textarea id="codeText" placeholder="KEY-XXXX-1&#10;KEY-XXXX-2"></textarea></div>
+                        <div class="form-error" id="formError"></div>
+                        <div class="btn-group">
+                            <button class="btn btn--primary" id="saveCodes">导入</button>
+                            <button class="btn btn--ghost" id="cancelCodes">取消</button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(modal);
+                modal.querySelector('#cancelCodes').addEventListener('click', () => modal.remove());
+                modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+                modal.querySelector('#saveCodes').addEventListener('click', async () => {
+                    const body = {
+                        product_id: modal.querySelector('#codeProduct').value,
+                        codes: modal.querySelector('#codeText').value.split('\n').map(s => s.trim()).filter(Boolean)
+                    };
+                    const errEl = modal.querySelector('#formError');
+                    if (!body.product_id || !body.codes.length) { errEl.textContent = '请填写完整'; return; }
+                    try {
+                        await api('/admin/codes', { method: 'POST', body });
+                        toast('导入成功');
+                        modal.remove();
+                        loadCodes();
+                    } catch (e) { errEl.textContent = e.message; }
+                });
+            }
+
+            // 入口：已登录管理员直接进主视图，否则登录
+            if (isLoggedIn() && isAdmin()) {
+                try {
+                    await api('/auth/me');
+                    mainView();
+                } catch {
+                    setToken(''); setUser(null);
+                    loginView();
+                }
+            } else {
+                loginView();
+            }
+        })();
+    </script>
+</body>
+</html>

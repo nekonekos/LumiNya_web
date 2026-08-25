@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>支付结果 · LumiNya Shop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/shop.css" />
+</head>
+<body>
+    <div class="container">
+        <div id="pageContent"></div>
+    </div>
+
+    <script src="./js/shop.js"></script>
+    <script>
+        (async function () {
+            await initCommon();
+            const params = new URLSearchParams(location.search);
+            const status = params.get('status') || 'unknown';
+            const orderNo = params.get('order_no') || '';
+
+            const map = {
+                success: { icon: '✅', title: '支付成功', desc: '感谢购买，虚拟商品已自动发放到订单详情。' },
+                paid: { icon: '✅', title: '支付成功', desc: '订单已支付，可在我的订单查看。' },
+                pending: { icon: '⏳', title: '支付处理中', desc: '请稍候，确认到账后可刷新订单查看。' },
+                failed: { icon: '❌', title: '支付失败', desc: '支付未完成，可在我的订单重新发起。' },
+                unknown: { icon: '⏳', title: '支付结果确认中', desc: '请到我的订单查看最新状态。' }
+            };
+            const s = map[status] || map.unknown;
+
+            document.getElementById('pageContent').innerHTML = `
+                <div class="form-card" style="text-align:center;">
+                    <div style="font-size:4rem; line-height:1;">${s.icon}</div>
+                    <h2 style="margin-top:0.8rem;">${s.title}</h2>
+                    <p class="hint" style="margin-top:0.6rem;">${s.desc}</p>
+                    ${orderNo ? `<p class="hint" style="font-size:0.82rem;">订单号：${escapeHtml(orderNo)}</p>` : ''}
+                    <div class="btn-group" style="justify-content:center; margin-top:1.2rem;">
+                        <a href="orders.html" class="btn btn--primary">查看我的订单</a>
+                        <a href="index.html" class="btn btn--outline">继续逛逛</a>
+                    </div>
+                </div>`;
+        })();
+    </script>
+</body>
+</html>
