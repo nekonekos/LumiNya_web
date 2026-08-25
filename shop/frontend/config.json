@@ -26,7 +26,7 @@
     ]
   },
   "categories": [],
-  "apiBase": "",
+  "apiBase": "https://api.shop.luminya.cc",
   "contact": {
     "email": "contact@luminya.cc",
     "wechat": "LumiNya_Dev"
