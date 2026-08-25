@@ -75,12 +75,12 @@
       "subtitle": "课余时间捣鼓出来的",
       "items": [
         {
-          "icon": "🧰",
-          "title": "NyaTools · 在线工具箱",
-          "desc": "学习前端时做的几个小工具，有编码转换、倒计时什么的。",
-          "tags": ["小工具", "HTML/CSS/JS", "持续更新"],
-          "action": "体验一下",
-          "link": "#"
+          "icon": "🛍️",
+          "title": "LumiNya Shop · 在线网店",
+          "desc": "出售一些虚拟或实体资源，正在完善中，欢迎品鉴设计。",
+          "tags": ["网店商城", "Worker分布节点", "自研CMS管理系统"],
+          "action": "去购物",
+          "link": "/jump?url=shop.luminya.cc"
         },
         {
           "icon": "📝",
