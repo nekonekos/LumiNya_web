@@ -1,4 +1,4 @@
-name = "luminya-shop-api"
+name = "luminya-shop"
 main = "src/index.js"
 compatibility_date = "2026-08-20"
 
