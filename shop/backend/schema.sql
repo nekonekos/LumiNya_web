@@ -85,6 +85,16 @@ CREATE TABLE IF NOT EXISTS orders (
     pay_channel   TEXT NOT NULL DEFAULT '',    -- 'alipay'
     pay_ref       TEXT NOT NULL DEFAULT '',    -- 支付流水号占位
     paid_at       INTEGER,
+    -- 实物发货
+    tracking_company TEXT NOT NULL DEFAULT '', -- 快递公司
+    tracking_no   TEXT NOT NULL DEFAULT '',    -- 快递单号
+    shipped_at    INTEGER,                     -- 发货时间
+    -- 人工售后
+    after_sale_status    TEXT NOT NULL DEFAULT '', -- '' | applied 申请中 | processing 处理中 | resolved 已解决 | closed 已关闭
+    after_sale_reason    TEXT NOT NULL DEFAULT '',
+    after_sale_contact   TEXT NOT NULL DEFAULT '',
+    after_sale_note      TEXT NOT NULL DEFAULT '', -- 后台处理备注
+    after_sale_created_at INTEGER,
     created_at    INTEGER NOT NULL,
     updated_at    INTEGER NOT NULL
 );
@@ -97,6 +107,7 @@ CREATE TABLE IF NOT EXISTS order_items (
     variant_id TEXT,
     title      TEXT NOT NULL,
     sku_name   TEXT NOT NULL DEFAULT '',
+    type       TEXT NOT NULL DEFAULT 'virtual', -- 'virtual' | 'physical'（下单时商品类型快照）
     qty        INTEGER NOT NULL,
     unit_price INTEGER NOT NULL,
     created_at INTEGER NOT NULL
@@ -133,3 +144,16 @@ CREATE INDEX IF NOT EXISTS idx_variants_product     ON product_variants (product
 CREATE INDEX IF NOT EXISTS idx_items_order          ON order_items (order_id);
 CREATE INDEX IF NOT EXISTS idx_codes_product_used   ON activation_codes (product_id, used);
 CREATE INDEX IF NOT EXISTS idx_ordercodes_order     ON order_codes (order_id);
+
+-- ============================================================
+-- 存量数据库升级（仅对已创建过的旧库执行一次，全新库无需执行）
+-- ============================================================
+-- ALTER TABLE orders ADD COLUMN tracking_company TEXT NOT NULL DEFAULT '';
+-- ALTER TABLE orders ADD COLUMN tracking_no TEXT NOT NULL DEFAULT '';
+-- ALTER TABLE orders ADD COLUMN shipped_at INTEGER;
+-- ALTER TABLE orders ADD COLUMN after_sale_status TEXT NOT NULL DEFAULT '';
+-- ALTER TABLE orders ADD COLUMN after_sale_reason TEXT NOT NULL DEFAULT '';
+-- ALTER TABLE orders ADD COLUMN after_sale_contact TEXT NOT NULL DEFAULT '';
+-- ALTER TABLE orders ADD COLUMN after_sale_note TEXT NOT NULL DEFAULT '';
+-- ALTER TABLE orders ADD COLUMN after_sale_created_at INTEGER;
+-- ALTER TABLE order_items ADD COLUMN type TEXT NOT NULL DEFAULT 'virtual';

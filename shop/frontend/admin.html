@@ -291,6 +291,8 @@
             }
 
             /* ---------- 订单 ---------- */
+            const AS_TEXT = { applied: '申请中', processing: '处理中', resolved: '已解决', closed: '已关闭' };
+
             async function renderOrders() {
                 const main = document.getElementById('adminMain');
                 main.innerHTML = `
@@ -315,26 +317,152 @@
                     const { orders } = await api(`/admin/orders${qs}`);
                     if (!orders.length) { wrap.innerHTML = '<div class="empty-state">暂无订单</div>'; return; }
                     wrap.innerHTML = `<table class="admin-table">
-                        <thead><tr><th>订单号</th><th>金额</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
-                        <tbody>${orders.map(o => `
+                        <thead><tr><th>订单号</th><th>类型</th><th>金额</th><th>状态</th><th>售后</th><th>时间</th><th>操作</th></tr></thead>
+                        <tbody>${orders.map(o => {
+                            const physical = (o.items || []).some(i => i.type === 'physical');
+                            const asBadge = ['applied', 'processing'].includes(o.after_sale_status) ? '🔧待处理' : '';
+                            return `
                             <tr>
                                 <td>${escapeHtml(o.order_no)}</td>
+                                <td>${physical ? '实物' : '虚拟'}</td>
                                 <td>${formatPrice(o.total)}</td>
                                 <td>${statusBadge(o.status)}</td>
+                                <td>${asBadge}</td>
                                 <td>${formatTime(o.created_at)}</td>
-                                <td><button class="btn btn--ghost btn--small" data-status="${escapeHtml(o.id)}">改状态</button></td>
-                            </tr>`).join('')}</tbody>
+                                <td><button class="btn btn--ghost btn--small" data-detail="${escapeHtml(o.id)}">详情</button></td>
+                            </tr>`;
+                        }).join('')}</tbody>
                     </table>`;
-                    wrap.querySelectorAll('[data-status]').forEach(b => b.addEventListener('click', () => changeStatus(b.dataset.status)));
+                    wrap.querySelectorAll('[data-detail]').forEach(b => b.addEventListener('click', () => openOrderDetail(b.dataset.detail)));
                 } catch (e) { wrap.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`; }
             }
 
-            function changeStatus(id) {
-                const next = prompt('新状态（pending/paid/shipped/completed/cancelled/expired）：');
-                if (!next) return;
-                api(`/admin/orders/${encodeURIComponent(id)}/status`, { method: 'PUT', body: { status: next } })
-                    .then(() => { toast('已更新'); loadOrders(); })
-                    .catch(e => toast(e.message, 'err'));
+            async function openOrderDetail(id) {
+                let order;
+                try {
+                    const res = await api(`/admin/orders/${encodeURIComponent(id)}`);
+                    order = res.order;
+                } catch (e) { toast(e.message, 'err'); return; }
+
+                const physical = (order.items || []).some(i => i.type === 'physical');
+
+                const modal = showModal(`
+                    <h3>订单详情</h3>
+                    ${renderOrderDetailBody(order)}
+                    <div class="btn-group" style="margin-top:1.2rem;">
+                        <button class="btn btn--ghost" id="closeOrder">关闭</button>
+                        <span id="orderActionBar" style="display:contents;"></span>
+                    </div>`);
+
+                modal.querySelector('#closeOrder').addEventListener('click', () => modal.remove());
+                const actionBar = modal.querySelector('#orderActionBar');
+
+                if (order.status === 'pending') {
+                    actionBar.innerHTML = `
+                        <button class="btn btn--primary" id="markPaidBtn">标记已支付</button>
+                        <button class="btn btn--danger" id="cancelOrderBtn">取消订单</button>`;
+                    modal.querySelector('#markPaidBtn').addEventListener('click', () => setOrderStatus(id, 'paid', modal));
+                    modal.querySelector('#cancelOrderBtn').addEventListener('click', () => setOrderStatus(id, 'cancelled', modal));
+                } else if (order.status === 'paid') {
+                    if (physical) {
+                        actionBar.innerHTML = `<button class="btn btn--primary" id="shipBtn">发货（填写单号）</button>`;
+                        modal.querySelector('#shipBtn').addEventListener('click', () => openShipForm(id, modal));
+                    } else {
+                        actionBar.innerHTML = `<button class="btn btn--primary" id="completeBtn">标记已完成</button>`;
+                        modal.querySelector('#completeBtn').addEventListener('click', () => setOrderStatus(id, 'completed', modal));
+                    }
+                } else if (order.status === 'shipped') {
+                    actionBar.innerHTML = `<button class="btn btn--primary" id="completeBtn">标记已完成</button>`;
+                    modal.querySelector('#completeBtn').addEventListener('click', () => setOrderStatus(id, 'completed', modal));
+                }
+
+                if (['applied', 'processing'].includes(order.after_sale_status)) {
+                    actionBar.insertAdjacentHTML('beforeend', `<button class="btn btn--danger" id="resolveAfterSaleBtn">处理售后</button>`);
+                    modal.querySelector('#resolveAfterSaleBtn').addEventListener('click', () => openResolveAfterSale(id, modal));
+                }
+            }
+
+            function renderOrderDetailBody(o) {
+                const physical = (o.items || []).some(i => i.type === 'physical');
+                const addr = o.address || {};
+                const hasAddr = !!(addr.name && addr.detail);
+                const itemsHTML = (o.items || []).map(i => `
+                    <div class="cart-item">
+                        <div class="info">
+                            <div class="name">${escapeHtml(i.title)}</div>
+                            ${i.sku_name ? `<div class="sku">${escapeHtml(i.sku_name)}</div>` : ''}
+                            <div class="unit">${formatPrice(i.unit_price)} × ${i.qty}</div>
+                        </div>
+                    </div>`).join('');
+                const codesHTML = (o.codes || []).map(c => `
+                    <div class="code-box">${c.kind === 'resource' ? '🔗 资源链接：' : '🔑 激活码：'}${escapeHtml(c.code)}</div>`).join('');
+
+                return `
+                    <div class="info-box"><strong>订单号：</strong>${escapeHtml(o.order_no)}&nbsp;&nbsp;${statusBadge(o.status)}</div>
+                    <div class="info-box"><strong>下单时间：</strong>${formatTime(o.created_at)}${o.paid_at ? `&nbsp;&nbsp;<strong>支付时间：</strong>${formatTime(o.paid_at)}` : ''}${o.shipped_at ? `&nbsp;&nbsp;<strong>发货时间：</strong>${formatTime(o.shipped_at)}` : ''}</div>
+                    ${physical && hasAddr ? `<div class="info-box"><strong>收货人：</strong>${escapeHtml(addr.name)}（${escapeHtml(addr.phone || '')}）<br/><strong>收货地址：</strong>${escapeHtml(addr.detail)}</div>` : ''}
+                    ${o.tracking_no ? `<div class="info-box tracking-no"><strong>快递：</strong>${escapeHtml(o.tracking_company || '快递')} ${escapeHtml(o.tracking_no)}</div>` : ''}
+                    <div class="cart-list" style="margin:0.6rem 0;">${itemsHTML}</div>
+                    <div class="total" style="margin-bottom:0.4rem;">合计 ${formatPrice(o.total)}</div>
+                    ${codesHTML ? `<h4 style="margin:0.6rem 0 0.3rem;">发货内容</h4>${codesHTML}` : ''}
+                    ${o.after_sale_status ? `<div class="info-box"><strong>售后：</strong>${escapeHtml(AS_TEXT[o.after_sale_status] || o.after_sale_status)}${o.after_sale_reason ? `（说明：${escapeHtml(o.after_sale_reason)}）` : ''}${o.after_sale_contact ? `<br/><strong>联系方式：</strong>${escapeHtml(o.after_sale_contact)}` : ''}</div>` : ''}
+                    ${o.remark ? `<div class="info-box"><strong>备注：</strong>${escapeHtml(o.remark)}</div>` : ''}`;
+            }
+
+            async function setOrderStatus(id, status, modal) {
+                try {
+                    await api(`/admin/orders/${encodeURIComponent(id)}/status`, { method: 'PUT', body: { status } });
+                    toast('已更新');
+                    modal.remove();
+                    loadOrders();
+                } catch (e) { toast(e.message, 'err'); }
+            }
+
+            function openShipForm(id, modal) {
+                const shipModal = showModal(`
+                    <h3>发货</h3>
+                    <div class="form-field"><label>快递公司（选填）</label><input id="shipCompany" placeholder="例如：顺丰 / 圆通" /></div>
+                    <div class="form-field"><label>快递单号</label><input id="shipNo" placeholder="请输入快递单号" /></div>
+                    <div class="form-error" id="shipError"></div>
+                    <div class="btn-group">
+                        <button class="btn btn--primary" id="shipSubmit">确认发货</button>
+                        <button class="btn btn--ghost" id="shipCancel">取消</button>
+                    </div>`);
+                shipModal.querySelector('#shipCancel').addEventListener('click', () => shipModal.remove());
+                shipModal.querySelector('#shipSubmit').addEventListener('click', async () => {
+                    const tracking_no = shipModal.querySelector('#shipNo').value.trim();
+                    const tracking_company = shipModal.querySelector('#shipCompany').value.trim();
+                    const errEl = shipModal.querySelector('#shipError');
+                    if (!tracking_no) { errEl.textContent = '请填写快递单号'; return; }
+                    try {
+                        await api(`/admin/orders/${encodeURIComponent(id)}/ship`, { method: 'PUT', body: { tracking_no, tracking_company } });
+                        toast('已发货');
+                        shipModal.remove();
+                        modal.remove();
+                        loadOrders();
+                    } catch (e) { errEl.textContent = e.message; }
+                });
+            }
+
+            function openResolveAfterSale(id, modal) {
+                const resolveModal = showModal(`
+                    <h3>处理售后</h3>
+                    <div class="form-field"><label>处理备注</label><textarea id="resolveNote" placeholder="例如：已补发 / 已退款（线下）…"></textarea></div>
+                    <div class="btn-group">
+                        <button class="btn btn--primary" id="resolveSubmit">标记已解决</button>
+                        <button class="btn btn--ghost" id="resolveCancel">取消</button>
+                    </div>`);
+                resolveModal.querySelector('#resolveCancel').addEventListener('click', () => resolveModal.remove());
+                resolveModal.querySelector('#resolveSubmit').addEventListener('click', async () => {
+                    const note = resolveModal.querySelector('#resolveNote').value.trim();
+                    try {
+                        await api(`/admin/orders/${encodeURIComponent(id)}/after-sale`, { method: 'PUT', body: { note } });
+                        toast('售后已解决');
+                        resolveModal.remove();
+                        modal.remove();
+                        loadOrders();
+                    } catch (e) { toast(e.message, 'err'); }
+                });
             }
 
             /* ---------- 用户 ---------- */

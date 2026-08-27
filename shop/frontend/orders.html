@@ -25,6 +25,8 @@
                 return;
             }
 
+            const AS_STATUS_TEXT = { applied: '申请中', processing: '处理中', resolved: '已解决', closed: '已关闭' };
+
             const content = document.getElementById('pageContent');
             content.innerHTML = `
                 <div class="section-wrapper">
@@ -33,23 +35,102 @@
                     <div id="orderList"><div class="empty-state">加载中…</div></div>
                 </div>`;
 
-            try {
-                const { orders } = await api('/orders');
+            await loadOrders();
+
+            async function loadOrders() {
                 const list = document.getElementById('orderList');
-                if (!orders.length) {
-                    list.innerHTML = '<div class="empty-state">还没有订单</div>';
-                    return;
+                try {
+                    const { orders } = await api('/orders');
+                    if (!orders.length) {
+                        list.innerHTML = '<div class="empty-state">还没有订单</div>';
+                        return;
+                    }
+                    list.innerHTML = orders.map(orderCardHTML).join('');
+                    bindOrderActions(list);
+                } catch (e) {
+                    list.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
                 }
-                list.innerHTML = orders.map(o => `
+            }
+
+            function orderCardHTML(o) {
+                const items = o.items || [];
+                const physical = items.some(i => i.type === 'physical');
+                const address = o.address || {};
+                const hasAddr = !!(address.name && address.detail);
+                const canAfterSale = physical
+                    ? ['shipped', 'completed'].includes(o.status)
+                    : ['paid', 'shipped', 'completed'].includes(o.status);
+                const afterSaleApplied = ['applied', 'processing'].includes(o.after_sale_status);
+
+                const actions = [];
+                if (o.status === 'pending') {
+                    actions.push(`<button class="btn btn--primary btn--small" data-pay="${escapeHtml(o.id)}">去支付</button>`);
+                    actions.push(`<button class="btn btn--ghost btn--small" data-cancel="${escapeHtml(o.id)}">取消订单</button>`);
+                } else if (canAfterSale && !afterSaleApplied) {
+                    actions.push(`<button class="btn btn--ghost btn--small" data-aftersale="${escapeHtml(o.id)}">申请售后</button>`);
+                }
+
+                const infoBits = [];
+                if (physical && hasAddr) {
+                    infoBits.push(`<div class="info-box">📍 收货：${escapeHtml(address.name)} ${escapeHtml(address.phone || '')} ${escapeHtml(address.detail)}</div>`);
+                }
+                if (o.tracking_no) {
+                    infoBits.push(`<div class="info-box tracking-no">📦 ${escapeHtml(o.tracking_company || '快递')}：${escapeHtml(o.tracking_no)}</div>`);
+                }
+                if (afterSaleApplied) {
+                    infoBits.push('<div class="info-box">🛠️ 售后处理中</div>');
+                } else if (o.after_sale_status === 'resolved') {
+                    infoBits.push('<div class="info-box">✅ 售后已解决</div>');
+                }
+
+                return `
                     <div class="order-card" data-id="${escapeHtml(o.id)}">
                         <div class="head">
                             <span class="order-no">${escapeHtml(o.order_no)}</span>
                             <span class="order-time">${formatTime(o.created_at)}</span>
                             ${statusBadge(o.status)}
                         </div>
-                        <div class="items">${escapeHtml(summarizeItems(o.items))}</div>
+                        <div class="items">${escapeHtml(summarizeItems(items))}</div>
+                        ${infoBits.join('')}
                         <div class="total">合计 ${formatPrice(o.total)}${o.shipping_fee ? `（含运费 ${formatPrice(o.shipping_fee)}）` : ''}</div>
-                    </div>`).join('');
+                        ${actions.length ? `<div class="order-actions">${actions.join('')}</div>` : ''}
+                    </div>`;
+            }
+
+            function bindOrderActions(list) {
+                list.querySelectorAll('[data-pay]').forEach(btn => {
+                    btn.addEventListener('click', (e) => { e.stopPropagation(); payUnavailableModal(); });
+                });
+
+                list.querySelectorAll('[data-cancel]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const id = btn.dataset.cancel;
+                        const modal = showModal(`
+                            <h3>取消订单</h3>
+                            <p style="color:var(--text-medium); margin-bottom:1.2rem;">确认取消该订单？</p>
+                            <div class="btn-group">
+                                <button class="btn btn--primary" data-ok>确认取消</button>
+                                <button class="btn btn--ghost" data-close>再想想</button>
+                            </div>`);
+                        modal.querySelector('[data-close]').addEventListener('click', () => modal.remove());
+                        modal.querySelector('[data-ok]').addEventListener('click', async () => {
+                            modal.remove();
+                            try {
+                                await api(`/orders/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
+                                toast('订单已取消');
+                                await loadOrders();
+                            } catch (err) { toast(err.message, 'err'); }
+                        });
+                    });
+                });
+
+                list.querySelectorAll('[data-aftersale]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        openAfterSaleModal(btn.dataset.aftersale);
+                    });
+                });
 
                 list.querySelectorAll('.order-card').forEach(card => {
                     card.addEventListener('click', async () => {
@@ -57,13 +138,35 @@
                         try {
                             const { order } = await api(`/orders/${encodeURIComponent(id)}`);
                             showOrderDetail(order);
-                        } catch (e) {
-                            toast(e.message, 'err');
-                        }
+                        } catch (e) { toast(e.message, 'err'); }
                     });
                 });
-            } catch (e) {
-                document.getElementById('orderList').innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+            }
+
+            function openAfterSaleModal(id) {
+                const modal = showModal(`
+                    <h3>申请人工售后</h3>
+                    <p class="hint" style="margin-bottom:1rem;">请描述遇到的问题，客服将人工介入处理。</p>
+                    <div class="form-field"><label>售后说明</label><textarea id="asReason" placeholder="例如：商品未收到 / 激活码无法使用…"></textarea></div>
+                    <div class="form-field"><label>联系方式（选填）</label><input id="asContact" placeholder="手机号 / 邮箱 / 微信" /></div>
+                    <div class="form-error" id="asError"></div>
+                    <div class="btn-group">
+                        <button class="btn btn--primary" id="asSubmit">提交申请</button>
+                        <button class="btn btn--ghost" id="asCancel">取消</button>
+                    </div>`);
+                modal.querySelector('#asCancel').addEventListener('click', () => modal.remove());
+                modal.querySelector('#asSubmit').addEventListener('click', async () => {
+                    const reason = modal.querySelector('#asReason').value.trim();
+                    const contact = modal.querySelector('#asContact').value.trim();
+                    const errEl = modal.querySelector('#asError');
+                    if (!reason) { errEl.textContent = '请填写售后说明'; return; }
+                    try {
+                        await api(`/orders/${encodeURIComponent(id)}/after-sale`, { method: 'POST', body: { reason, contact } });
+                        toast('售后申请已提交');
+                        modal.remove();
+                        await loadOrders();
+                    } catch (e) { errEl.textContent = e.message; }
+                });
             }
 
             function summarizeItems(items) {
@@ -86,6 +189,17 @@
                         </div>
                     </div>`).join('');
 
+                const addr = order.address || {};
+                const hasAddr = !!(addr.name && addr.detail);
+                const addressHTML = hasAddr ? `
+                    <div class="info-box">📍 收货人：${escapeHtml(addr.name)}（${escapeHtml(addr.phone || '')}）<br/>收货地址：${escapeHtml(addr.detail)}</div>` : '';
+
+                const trackingHTML = order.tracking_no ? `
+                    <div class="info-box tracking-no">📦 ${escapeHtml(order.tracking_company || '快递')}：${escapeHtml(order.tracking_no)}${order.shipped_at ? '（发货时间 ' + formatTime(order.shipped_at) + '）' : ''}</div>` : '';
+
+                const afterSaleHTML = order.after_sale_status ? `
+                    <div class="info-box">🛠️ 售后状态：${escapeHtml(AS_STATUS_TEXT[order.after_sale_status] || order.after_sale_status)}${order.after_sale_note ? `<br/>处理备注：${escapeHtml(order.after_sale_note)}` : ''}</div>` : '';
+
                 content.innerHTML = `
                     <div class="section-wrapper">
                         <div class="section-header">
@@ -99,8 +213,11 @@
                                 <span class="order-time">下单时间 ${formatTime(order.created_at)}</span>
                             </div>
                             <div class="cart-list">${itemsHTML}</div>
+                            ${addressHTML}
+                            ${trackingHTML}
                             <div class="total" style="margin-top:0.8rem;">合计 ${formatPrice(order.total)}</div>
                             ${codes ? `<h4 style="margin:1rem 0 0.4rem;">发货内容</h4>${codes}` : ''}
+                            ${afterSaleHTML}
                             ${order.remark ? `<p style="margin-top:0.8rem; color:var(--text-medium);">备注：${escapeHtml(order.remark)}</p>` : ''}
                         </div>
                         <button class="btn btn--outline" style="margin-top:1rem;" id="backBtn">← 返回列表</button>

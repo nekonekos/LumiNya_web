@@ -273,3 +273,26 @@ const STATUS_TEXT = {
 function statusBadge(status) {
   return `<span class="status-badge status-${status}">${STATUS_TEXT[status] || status}</span>`;
 }
+
+/* ---------- 弹窗 ---------- */
+/** 创建通用弹窗，返回 modal 根节点（点遮罩关闭） */
+function showModal(html) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-backdrop';
+  modal.innerHTML = `<div class="modal">${html}</div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  return modal;
+}
+
+/** 「去支付」占位弹窗：支付接口未接入 */
+function payUnavailableModal() {
+  const modal = showModal(`
+    <h3>去支付</h3>
+    <p style="color:var(--text-medium); margin-bottom:1.2rem;">当前支付接口未接入！</p>
+    <div class="btn-group">
+      <button class="btn btn--primary" data-close>我知道了</button>
+    </div>`);
+  modal.querySelector('[data-close]').addEventListener('click', () => modal.remove());
+  return modal;
+}

@@ -7,6 +7,7 @@ import {
   randomId, verifyPassword, signJwt
 } from '../utils.js';
 import { safeJson, publicProduct } from '../db.js';
+import { fulfillOrder, restockOrder } from '../orderService.js';
 
 export async function handleAdmin(request, env, url) {
   const path = url.pathname.replace(/\/+$/, '');
@@ -45,6 +46,10 @@ export async function handleAdmin(request, env, url) {
   if (orderStatusMatch && method === 'PUT') {
     return adminSetOrderStatus(request, env, orderStatusMatch[1]);
   }
+  const shipMatch = path.match(/^\/api\/admin\/orders\/([^/]+)\/ship$/);
+  if (shipMatch && method === 'PUT') return adminShipOrder(request, env, shipMatch[1]);
+  const afterSaleMatch = path.match(/^\/api\/admin\/orders\/([^/]+)\/after-sale$/);
+  if (afterSaleMatch && method === 'PUT') return adminResolveAfterSale(request, env, afterSaleMatch[1]);
 
   // 用户
   if (path === '/api/admin/users' && method === 'GET') return adminUsers(env);
@@ -320,43 +325,96 @@ async function adminOrderDetail(env, id) {
   });
 }
 
-/** 订单状态流转（含取消回补库存） */
+/** 订单状态流转（含库存与发货副作用） */
+const ORDER_STATUS_TEXT = {
+  pending: '待支付', paid: '已支付', shipped: '已发货',
+  completed: '已完成', cancelled: '已取消', expired: '已过期'
+};
+
+// 允许的订单状态流转（current → next[]）
+const ORDER_TRANSITIONS = {
+  pending: ['paid', 'cancelled', 'expired'],
+  paid: ['shipped', 'completed', 'cancelled'],
+  shipped: ['completed'],
+  completed: [],
+  cancelled: [],
+  expired: []
+};
+
 async function adminSetOrderStatus(request, env, id) {
   const body = await readJson(request);
   const status = String(body?.status || '');
-  const allowed = ['pending', 'paid', 'shipped', 'completed', 'cancelled', 'expired'];
-  if (!allowed.includes(status)) return error('非法状态', 400);
 
   const order = await env.DB.prepare('SELECT * FROM orders WHERE id = ?1').bind(id).first();
   if (!order) return error('订单不存在', 404);
 
-  const now = Math.floor(Date.now() / 1000);
-
-  // 取消：回补库存
-  if (status === 'cancelled' && order.status !== 'cancelled') {
-    if (order.status === 'paid' || order.status === 'shipped') {
-      await restock(env, order.id);
-    }
+  const allowed = ORDER_TRANSITIONS[order.status] || [];
+  if (!allowed.includes(status)) {
+    return error(
+      `当前状态「${ORDER_STATUS_TEXT[order.status] || order.status}」不可变更为「${ORDER_STATUS_TEXT[status] || status}」`,
+      409
+    );
   }
 
-  await env.DB.prepare(
-    'UPDATE orders SET status = ?1, updated_at = ?2 WHERE id = ?3'
-  ).bind(status, now, id).run();
+  const now = Math.floor(Date.now() / 1000);
+
+  // 待支付 → 已支付/已发货/已完成：视为支付成功，扣减库存并发放虚拟商品（仅此一次）
+  if (order.status === 'pending' && ['paid', 'shipped', 'completed'].includes(status)) {
+    await fulfillOrder(env, order.id);
+  }
+
+  // 取消已支付订单：回补库存
+  if (status === 'cancelled' && ['paid', 'shipped'].includes(order.status)) {
+    await restockOrder(env, order.id);
+  }
+
+  if (status === 'shipped') {
+    await env.DB.prepare(
+      `UPDATE orders SET status = ?1, shipped_at = COALESCE(shipped_at, ?2), updated_at = ?2 WHERE id = ?3`
+    ).bind(status, now, id).run();
+  } else {
+    await env.DB.prepare(
+      'UPDATE orders SET status = ?1, updated_at = ?2 WHERE id = ?3'
+    ).bind(status, now, id).run();
+  }
 
   return json({ ok: true });
 }
 
-async function restock(env, orderId) {
-  const { results: items } = await env.DB.prepare('SELECT * FROM order_items WHERE order_id = ?1').bind(orderId).all();
-  for (const item of items) {
-    if (item.variant_id) {
-      await env.DB.prepare('UPDATE product_variants SET stock = stock + ?1 WHERE id = ?2')
-        .bind(item.qty, item.variant_id).run();
-    } else {
-      await env.DB.prepare('UPDATE products SET stock = stock + ?1, sold = MAX(sold - ?1, 0) WHERE id = ?2')
-        .bind(item.qty, item.product_id).run();
-    }
+/** 后台发货：填写快递单号，订单流转为已发货 */
+async function adminShipOrder(request, env, id) {
+  const body = await readJson(request);
+  const trackingNo = String(body?.tracking_no || '').trim();
+  const company = String(body?.tracking_company || '').trim().slice(0, 50);
+  if (!trackingNo) return error('请填写快递单号', 400);
+
+  const order = await env.DB.prepare('SELECT * FROM orders WHERE id = ?1').bind(id).first();
+  if (!order) return error('订单不存在', 404);
+  if (order.status !== 'paid') return error('仅已支付订单可发货', 409);
+
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.prepare(
+    `UPDATE orders SET status = 'shipped', tracking_no = ?1, tracking_company = ?2, shipped_at = ?3, updated_at = ?3 WHERE id = ?4`
+  ).bind(trackingNo, company, now, id).run();
+
+  return json({ ok: true });
+}
+
+/** 处理人工售后：标记已解决并记录处理备注 */
+async function adminResolveAfterSale(request, env, id) {
+  const body = await readJson(request);
+  const order = await env.DB.prepare('SELECT * FROM orders WHERE id = ?1').bind(id).first();
+  if (!order) return error('订单不存在', 404);
+  if (!['applied', 'processing'].includes(order.after_sale_status)) {
+    return error('该订单暂无待处理售后', 409);
   }
+
+  const note = String(body?.note || '').trim().slice(0, 500);
+  await env.DB.prepare(
+    `UPDATE orders SET after_sale_status = 'resolved', after_sale_note = ?1, updated_at = unixepoch() WHERE id = ?2`
+  ).bind(note, id).run();
+
+  return json({ ok: true });
 }
 
 // ---------- 用户 ----------

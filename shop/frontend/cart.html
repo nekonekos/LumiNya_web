@@ -37,7 +37,12 @@
                         <div class="info">
                             <div class="name">${escapeHtml(item.title)}</div>
                             ${item.sku_name ? `<div class="sku">${escapeHtml(item.sku_name)}</div>` : ''}
-                            <div class="unit">${formatPrice(item.unit_price)} × ${item.qty}</div>
+                            <div class="unit">${formatPrice(item.unit_price)} / 件</div>
+                        </div>
+                        <div class="qty-stepper">
+                            <button data-minus="${escapeHtml(item.key)}">−</button>
+                            <span class="qty-num">${item.qty}</span>
+                            <button data-plus="${escapeHtml(item.key)}">+</button>
                         </div>
                         <div class="subtotal">${formatPrice(item.unit_price * item.qty)}</div>
                         <button class="remove" data-key="${escapeHtml(item.key)}" title="移除">✕</button>
@@ -53,7 +58,10 @@
                         <div class="cart-summary">
                             <div class="row"><span>商品小计</span><span>${formatPrice(subtotal)}</span></div>
                             <div class="row total"><span>合计</span><span>${formatPrice(subtotal)}</span></div>
-                            <button class="btn btn--primary" id="checkoutBtn">去结算</button>
+                            <div class="btn-group">
+                                <button class="btn btn--ghost" id="clearCartBtn">清空购物车</button>
+                                <button class="btn btn--primary" id="checkoutBtn">去结算</button>
+                            </div>
                         </div>
                     </div>`;
 
@@ -62,6 +70,26 @@
                         removeFromCart(btn.dataset.key);
                         render();
                     });
+                });
+
+                content.querySelectorAll('[data-minus]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const item = Store.cart.find(i => i.key === btn.dataset.minus);
+                        if (item) { setCartQty(btn.dataset.minus, item.qty - 1); render(); }
+                    });
+                });
+
+                content.querySelectorAll('[data-plus]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const item = Store.cart.find(i => i.key === btn.dataset.plus);
+                        if (item) { setCartQty(btn.dataset.plus, item.qty + 1); render(); }
+                    });
+                });
+
+                document.getElementById('clearCartBtn').addEventListener('click', () => {
+                    if (!confirm('确认清空购物车？')) return;
+                    clearCart();
+                    render();
                 });
 
                 document.getElementById('checkoutBtn').addEventListener('click', () => {

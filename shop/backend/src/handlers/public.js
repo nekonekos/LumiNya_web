@@ -31,6 +31,10 @@ export async function handlePublic(request, env, url) {
   if (path === '/api/orders' && method === 'POST') return createOrder(request, env);
   const orderMatch = path.match(/^\/api\/orders\/([^/]+)$/);
   if (orderMatch && method === 'GET') return myOrderDetail(request, env, orderMatch[1]);
+  const cancelMatch = path.match(/^\/api\/orders\/([^/]+)\/cancel$/);
+  if (cancelMatch && method === 'POST') return cancelOrder(request, env, cancelMatch[1]);
+  const afterSaleMatch = path.match(/^\/api\/orders\/([^/]+)\/after-sale$/);
+  if (afterSaleMatch && method === 'POST') return applyAfterSale(request, env, afterSaleMatch[1]);
 
   return error('Not Found', 404);
 }
@@ -127,10 +131,20 @@ async function myOrders(request, env) {
   const payload = await authUser(request, env);
   if (!payload) return error('未登录', 401);
   const { results } = await env.DB.prepare(
-    `SELECT id, order_no, status, subtotal, shipping_fee, total, pay_channel, created_at, paid_at
+    `SELECT id, order_no, status, subtotal, shipping_fee, total, pay_channel, created_at, paid_at,
+            items_json, address_json, tracking_company, tracking_no, shipped_at,
+            after_sale_status, after_sale_reason, after_sale_note, after_sale_created_at
      FROM orders WHERE user_id = ?1 ORDER BY created_at DESC`
   ).bind(payload.sub).all();
-  return json({ orders: results.map((o) => ({ ...o, items: safeJson(o.items_json, []) })) });
+  return json({
+    orders: results.map((o) => ({
+      ...o,
+      items_json: undefined,
+      address_json: undefined,
+      items: safeJson(o.items_json, []),
+      address: safeJson(o.address_json, {})
+    }))
+  });
 }
 
 async function myOrderDetail(request, env, id) {
@@ -200,6 +214,7 @@ async function createOrder(request, env) {
       variant_id: variant ? variant.id : null,
       title: product.title,
       sku_name: skuName,
+      type: product.type,
       qty,
       unit_price: unitPrice
     });
@@ -244,10 +259,66 @@ async function createOrder(request, env) {
 
   for (const oi of orderItems) {
     await env.DB.prepare(
-      `INSERT INTO order_items (id, order_id, product_id, variant_id, title, sku_name, qty, unit_price, created_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`
-    ).bind(oi.id, orderId, oi.product_id, oi.variant_id, oi.title, oi.sku_name, oi.qty, oi.unit_price, now).run();
+      `INSERT INTO order_items (id, order_id, product_id, variant_id, title, sku_name, type, qty, unit_price, created_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`
+    ).bind(oi.id, orderId, oi.product_id, oi.variant_id, oi.title, oi.sku_name, oi.type, oi.qty, oi.unit_price, now).run();
   }
 
   return json({ order: { id: orderId, order_no: orderNo, total } }, 201);
+}
+
+/** 用户取消订单：仅待支付可取消，已支付及之后状态不支持取消 */
+async function cancelOrder(request, env, id) {
+  const payload = await authUser(request, env);
+  if (!payload) return error('未登录', 401);
+
+  const order = await env.DB.prepare('SELECT * FROM orders WHERE id = ?1').bind(id).first();
+  if (!order || order.user_id !== payload.sub) return error('订单不存在', 404);
+  if (order.status !== 'pending') return error('当前状态不可取消', 409);
+
+  await env.DB.prepare(
+    `UPDATE orders SET status = 'cancelled', updated_at = unixepoch() WHERE id = ?1 AND status = 'pending'`
+  ).bind(id).run();
+
+  return json({ ok: true });
+}
+
+/**
+ * 用户申请人工售后：
+ * - 实物：已发货 / 已完成 后可申请
+ * - 虚拟：已支付及之后 后可申请
+ * 用户不能主动退款，仅提交售后说明等待人工介入。
+ */
+async function applyAfterSale(request, env, id) {
+  const payload = await authUser(request, env);
+  if (!payload) return error('未登录', 401);
+
+  const body = await readJson(request);
+  const reason = String(body?.reason || '').trim();
+  const contact = String(body?.contact || '').trim().slice(0, 100);
+  if (!reason) return error('请填写售后说明', 400);
+
+  const order = await env.DB.prepare('SELECT * FROM orders WHERE id = ?1').bind(id).first();
+  if (!order || order.user_id !== payload.sub) return error('订单不存在', 404);
+
+  const { results: items } = await env.DB.prepare(
+    'SELECT * FROM order_items WHERE order_id = ?1'
+  ).bind(id).all();
+  const hasPhysical = items.some((i) => i.type === 'physical');
+
+  const allowedStatus = hasPhysical
+    ? ['shipped', 'completed']
+    : ['paid', 'shipped', 'completed'];
+  if (!allowedStatus.includes(order.status)) return error('当前状态不可申请售后', 409);
+
+  if (['applied', 'processing'].includes(order.after_sale_status)) {
+    return error('已有进行中的售后申请', 409);
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.prepare(
+    `UPDATE orders SET after_sale_status = 'applied', after_sale_reason = ?1, after_sale_contact = ?2, after_sale_created_at = ?3, updated_at = ?3 WHERE id = ?4`
+  ).bind(reason, contact, now, id).run();
+
+  return json({ ok: true });
 }

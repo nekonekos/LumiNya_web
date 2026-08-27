@@ -56,6 +56,9 @@ npx wrangler d1 create luminya-shop
 # 3. 导入表结构（远程）
 npx wrangler d1 execute luminya-shop --file=schema.sql --remote
 
+# 3.1 若是已在运行的旧库，需额外执行一次 schema.sql 末尾注释里的
+#     ALTER TABLE 升级语句（发货单号 / 售后字段 / 订单明细类型快照）
+
 # 4. 设置密钥（务必改成自己的强密码 / 随机串）
 npx wrangler secret put JWT_SECRET
 npx wrangler secret put ADMIN_PASSWORD
@@ -132,7 +135,9 @@ python3 -m http.server 8080
 | GET | `/api/categories` | 分类列表 |
 | GET | `/api/orders` | 我的订单 |
 | POST | `/api/orders` | 创建订单（结算） |
-| GET | `/api/orders/:id` | 订单详情（含发货内容） |
+| GET | `/api/orders/:id` | 订单详情（含发货内容 / 快递 / 售后） |
+| POST | `/api/orders/:id/cancel` | 取消订单（仅待支付） |
+| POST | `/api/orders/:id/after-sale` | 申请人工售后（实物已发货 / 虚拟已支付后） |
 | GET | `/api/site` | 站点信息 |
 
 ### 支付（预留）
@@ -155,7 +160,9 @@ python3 -m http.server 8080
 | PUT/DELETE | `/api/admin/categories/:id` | 更新 / 删除分类 |
 | GET | `/api/admin/orders` | 订单列表（`?status=`） |
 | GET | `/api/admin/orders/:id` | 订单详情 |
-| PUT | `/api/admin/orders/:id/status` | 订单状态流转（取消自动回补库存） |
+| PUT | `/api/admin/orders/:id/status` | 订单状态流转（严格状态机，含库存扣减/回补） |
+| PUT | `/api/admin/orders/:id/ship` | 发货（填写快递单号） |
+| PUT | `/api/admin/orders/:id/after-sale` | 处理售后（标记已解决） |
 | GET | `/api/admin/users` | 用户列表 |
 | PUT | `/api/admin/users/:id` | 更新用户（禁用/启用） |
 | GET | `/api/admin/codes` | 激活码列表 |

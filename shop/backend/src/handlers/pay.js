@@ -13,6 +13,7 @@
 //   GET  /api/pay/return   支付完成同步跳转（重定向到前端结果页）
 // ============================================================
 import { json, error, readJson } from '../utils.js';
+import { fulfillOrder } from '../orderService.js';
 
 export async function handlePay(request, env, url) {
   const path = url.pathname.replace(/\/+$/, '');
@@ -92,7 +93,7 @@ async function notify(request, env, url) {
 
   // 仅当交易成功 / 已完成时视为支付成功
   if (tradeStatus === 'TRADE_SUCCESS' || tradeStatus === 'TRADE_FINISHED') {
-    await markPaid(env, order.id, tradeNo);
+    await fulfillOrder(env, order.id, tradeNo);
     return json({ success: true });
   }
 
@@ -104,75 +105,6 @@ async function notify(request, env, url) {
   }
 
   return json({ success: true });
-}
-
-/** 支付成功：扣减库存、回填支付流水、发放虚拟商品 */
-async function markPaid(env, orderId, tradeNo) {
-  const now = Math.floor(Date.now() / 1000);
-
-  // 原子性标记为已支付，防止并发重复处理
-  const res = await env.DB.prepare(
-    `UPDATE orders SET status = 'paid', pay_ref = ?1, paid_at = ?2, updated_at = ?2
-     WHERE id = ?3 AND status = 'pending'`
-  ).bind(tradeNo || '', now, orderId).run();
-
-  if (!res.meta.changes) return; // 已被其他请求处理
-
-  // 扣减库存
-  const { results: items } = await env.DB.prepare(
-    'SELECT * FROM order_items WHERE order_id = ?1'
-  ).bind(orderId).all();
-
-  for (const item of items) {
-    if (item.variant_id) {
-      await env.DB.prepare(
-        `UPDATE product_variants SET stock = stock - ?1 WHERE id = ?2 AND stock >= ?1`
-      ).bind(item.qty, item.variant_id).run();
-    } else {
-      await env.DB.prepare(
-        `UPDATE products SET stock = stock - ?1, sold = sold + ?1 WHERE id = ?2 AND stock >= ?1`
-      ).bind(item.qty, item.product_id).run();
-    }
-
-    // 虚拟商品发货：激活码池 + 资源链接
-    const product = await env.DB.prepare('SELECT * FROM products WHERE id = ?1')
-      .bind(item.product_id).first();
-    if (product && product.type === 'virtual') {
-      await deliverVirtual(env, orderId, item, product, now);
-    }
-  }
-}
-
-/** 虚拟商品发放：优先激活码池，其次资源链接 */
-async function deliverVirtual(env, orderId, item, product, now) {
-  // 1) 从激活码池取未使用激活码
-  const codes = await env.DB.prepare(
-    'SELECT * FROM activation_codes WHERE product_id = ?1 AND used = 0 LIMIT ?2'
-  ).bind(product.id, item.qty).all();
-
-  for (const code of codes.results) {
-    await env.DB.prepare(
-      `UPDATE activation_codes SET used = 1, used_order_id = ?1, used_at = ?2 WHERE id = ?3 AND used = 0`
-    ).bind(orderId, now, code.id).run();
-    await env.DB.prepare(
-      `INSERT INTO order_codes (id, order_id, order_item_id, product_id, code, kind, created_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, 'activation', ?6)`
-    ).bind(
-      'oc' + crypto.randomUUID().replace(/-/g, '').slice(0, 20),
-      orderId, item.id, product.id, code.code, now
-    ).run();
-  }
-
-  // 2) 若商品带资源链接，也写入发货记录
-  if (product.resource_url) {
-    await env.DB.prepare(
-      `INSERT INTO order_codes (id, order_id, order_item_id, product_id, code, kind, created_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, 'resource', ?6)`
-    ).bind(
-      'oc' + crypto.randomUUID().replace(/-/g, '').slice(0, 20),
-      orderId, item.id, product.id, product.resource_url, now
-    ).run();
-  }
 }
 
 /** 同步跳转：带订单号重定向回前端结果页 */

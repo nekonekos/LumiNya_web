@@ -127,9 +127,12 @@
                     if (pay && pay.pay_url) {
                         location.href = pay.pay_url;
                     } else {
-                        // 支付接口尚未真实接入：引导至订单页
-                        toast('订单已创建，支付通道待接入');
-                        setTimeout(() => { location.href = 'orders.html'; }, 800);
+                        // 支付接口尚未真实接入：弹窗提示后跳转订单页
+                        const modal = payUnavailableModal();
+                        modal.querySelector('[data-close]').addEventListener('click', () => {
+                            modal.remove();
+                            location.href = 'orders.html';
+                        });
                     }
                 } catch (e) {
                     errEl.textContent = e.message;
