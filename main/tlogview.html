@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ArduPilot Tlog 分析器</title>
+    <!-- 引入 Three.js 和 ECharts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js">
+    </script>
+    <style>
+        /* ========== 全局 ========== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, sans-serif;
+            background: #0b0e17;
+            color: #e8edf5;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1f2b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b4a5e;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5a6f8a;
+        }
+
+        /* ========== 顶部导航 ========== */
+        #header {
+            background: linear-gradient(135deg, #121724 0%, #1a2332 100%);
+            padding: 10px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #2a3548;
+            flex-shrink: 0;
+            height: 64px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        #header .logo {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #4fc3f7, #00e5ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #header .logo small {
+            font-size: 13px;
+            font-weight: 400;
+            -webkit-text-fill-color: #8899bb;
+            background: none;
+        }
+        #header .actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .file-upload-wrap {
+            position: relative;
+            display: inline-block;
+        }
+        .file-upload-wrap input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        .btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #2a3548;
+            color: #c8d6e5;
+        }
+        .btn-primary {
+            background: #1e88e5;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #1565c0;
+            transform: scale(1.02);
+        }
+        .btn-success {
+            background: #2e7d32;
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #1b5e20;
+        }
+        .btn-danger {
+            background: #c62828;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #b71c1c;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #3b4a5e;
+            color: #aab8d0;
+        }
+        .btn-outline:hover {
+            background: #1a2332;
+            border-color: #5a6f8a;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        #fileInfo {
+            font-size: 13px;
+            color: #7a8aa0;
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ========== 主体布局 ========== */
+        #main {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            gap: 0;
+        }
+
+        /* 左侧面板: 曲线图 + 时间轴 */
+        #leftPanel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background: #0f141f;
+            border-right: 1px solid #1e2738;
+        }
+        #chartContainer {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            background: #0b0e17;
+        }
+        #chartContainer canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* 时间轴控制 */
+        #timelineBar {
+            background: #121724;
+            padding: 10px 20px 14px 20px;
+            border-top: 1px solid #1e2738;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        #timelineBar .tl-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        #timelineBar .tl-row label {
+            font-size: 13px;
+            color: #7a8aa0;
+            font-weight: 500;
+        }
+        #timelineSlider {
+            flex: 1;
+            min-width: 120px;
+            height: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #1e2738;
+            border-radius: 4px;
+            outline: none;
+            transition: background 0.2s;
+        }
+        #timelineSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4fc3f7;
+            cursor: pointer;
+            border: 2px solid #0b0e17;
+            box-shadow: 0 0 12px rgba(79, 195, 247, 0.4);
+        }
+        #timelineSlider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4fc3f7;
+            cursor: pointer;
+            border: 2px solid #0b0e17;
+        }
+        #timeDisplay {
+            font-size: 14px;
+            font-weight: 500;
+            color: #4fc3f7;
+            min-width: 100px;
+            font-variant-numeric: tabular-nums;
+        }
+        .tl-btn {
+            padding: 4px 12px;
+            border: none;
+            border-radius: 4px;
+            background: #1a2332;
+            color: #aab8d0;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .tl-btn:hover {
+            background: #2a3548;
+            color: #fff;
+        }
+
+        /* 右侧面板: 3D 视图 */
+        #rightPanel {
+            width: 480px;
+            min-width: 320px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            background: #0b0e17;
+            position: relative;
+        }
+        #threeContainer {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            background: #0a0d15;
+            overflow: hidden;
+        }
+        #threeContainer .overlay-label {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #4a5a72;
+            background: rgba(11, 14, 23, 0.7);
+            padding: 4px 14px;
+            border-radius: 12px;
+            pointer-events: none;
+            white-space: nowrap;
+            border: 1px solid #1a2332;
+        }
+
+        /* 右侧底部数据面板 */
+        #infoPanel {
+            background: #121724;
+            border-top: 1px solid #1e2738;
+            padding: 10px 16px;
+            flex-shrink: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 20px;
+            font-size: 13px;
+            max-height: 80px;
+            overflow-y: auto;
+            align-items: center;
+        }
+        #infoPanel .info-item {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            background: #1a2332;
+            padding: 2px 12px 2px 8px;
+            border-radius: 14px;
+            border: 1px solid #1e2738;
+        }
+        #infoPanel .info-item .label {
+            color: #6a7a90;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        #infoPanel .info-item .value {
+            color: #e8edf5;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+        #infoPanel .info-item .value.alt {
+            color: #4dd0e1;
+        }
+        #infoPanel .info-item .value.batt {
+            color: #ffb74d;
+        }
+        #infoPanel .info-item .value.att {
+            color: #81c784;
+        }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 900px) {
+            #rightPanel {
+                width: 300px;
+                min-width: 200px;
+            }
+            #header .logo {
+                font-size: 16px;
+            }
+            #header .logo small {
+                display: none;
+            }
+        }
+        @media (max-width: 700px) {
+            #main {
+                flex-direction: column;
+            }
+            #rightPanel {
+                width: 100%;
+                height: 320px;
+                min-width: unset;
+                border-top: 1px solid #1e2738;
+            }
+            #leftPanel {
+                border-right: none;
+            }
+            #infoPanel {
+                max-height: 60px;
+                padding: 6px 12px;
+            }
+            #timelineBar {
+                padding: 6px 12px 10px 12px;
+            }
+        }
+
+        /* ========== 加载状态 ========== */
+        .loading-mask {
+            position: absolute;
+            inset: 0;
+            background: rgba(11, 14, 23, 0.75);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        .loading-mask.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .loading-mask .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #1a2332;
+            border-top-color: #4fc3f7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .loading-mask .msg {
+            margin-top: 14px;
+            color: #aab8d0;
+            font-size: 14px;
+        }
+
+        /* 空状态 */
+        .empty-hint {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #3a4a60;
+            pointer-events: none;
+            font-size: 15px;
+            gap: 8px;
+        }
+        .empty-hint .icon {
+            font-size: 48px;
+            opacity: 0.4;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== 顶部栏 ========== -->
+    <header id="header">
+        <div class="logo">
+            🚁 ArduPilot Tlog 分析器
+            <small>v2.0 · 加速度计轨迹</small>
+        </div>
+        <div class="actions">
+            <span id="fileInfo">未加载日志</span>
+            <div class="file-upload-wrap">
+                <button class="btn btn-primary">📂 选择 .tlog</button>
+                <input type="file" id="fileInput" accept=".tlog,.bin" />
+            </div>
+            <button class="btn btn-outline" id="btnResetView">🔄 重置视角</button>
+            <button class="btn btn-outline" id="btnExportTrajectory">📥 导出轨迹</button>
+        </div>
+    </header>
+
+    <!-- ========== 主体 ========== -->
+    <div id="main">
+        <!-- 左侧：图表 + 时间轴 -->
+        <div id="leftPanel">
+            <div id="chartContainer">
+                <div id="chart" style="width:100%;height:100%;"></div>
+                <div class="empty-hint" id="chartEmptyHint">
+                    <span class="icon">📊</span>
+                    <span>导入 tlog 后显示数据曲线</span>
+                </div>
+                <div class="loading-mask" id="loadingMask">
+                    <div class="spinner"></div>
+                    <div class="msg" id="loadingMsg">解析中...</div>
+                </div>
+            </div>
+            <div id="timelineBar">
+                <div class="tl-row">
+                    <label>⏱ 时间轴</label>
+                    <input type="range" id="timelineSlider" min="0" max="100" value="0" step="0.1" disabled />
+                    <span id="timeDisplay">--:--</span>
+                    <button class="tl-btn" id="btnPlayPause">▶</button>
+                    <button class="tl-btn" id="btnResetTime">⟲</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：3D + 信息 -->
+        <div id="rightPanel">
+            <div id="threeContainer">
+                <div id="threeScene" style="width:100%;height:100%;"></div>
+                <div class="overlay-label">🛩 姿态 · 轨迹 (加速度计积分)</div>
+                <div class="empty-hint" id="threeEmptyHint">
+                    <span class="icon">🌐</span>
+                    <span>加载数据后显示 3D 姿态</span>
+                </div>
+            </div>
+            <div id="infoPanel">
+                <div class="info-item"><span class="label">高度</span><span class="value alt" id="dispAlt">--</span></div>
+                <div class="info-item"><span class="label">电流</span><span class="value batt" id="dispBatt">--</span></div>
+                <div class="info-item"><span class="label">Roll</span><span class="value att" id="dispRoll">--</span></div>
+                <div class="info-item"><span class="label">Pitch</span><span class="value att" id="dispPitch">--</span></div>
+                <div class="info-item"><span class="label">Yaw</span><span class="value att" id="dispYaw">--</span></div>
+                <div class="info-item"><span class="label">轨迹点</span><span class="value" id="dispTrajPts">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // 1. 全局状态
+        // ================================================================
+        const STATE = {
+            data: null, // { time: [], roll:[], pitch:[], yaw:[], alt:[], batt:[], ax:[], ay:[], az:[] }
+            trajectory: null, // { time: [], x:[], y:[], z:[] }
+            currentIndex: 0,
+            totalPoints: 0,
+            isPlaying: false,
+            playTimer: null,
+            fileLoaded: false,
+            // 用于3D
+            scene: null,
+            camera: null,
+            renderer: null,
+            controls: null,
+            droneGroup: null,
+            trajectoryLine: null,
+            trajectoryPoints: [],
+            trajectoryPositions: [],
+            // 图表
+            chart: null,
+            chartSeries: [],
+        };
+
+        // ================================================================
+        // 2. MAVLink 解析器 (v1.0)
+        // ================================================================
+        class MavLinkParser {
+            constructor() {
+                this.messages = [];
+                this.callbacks = {};
+            }
+
+            on(msgId, callback) {
+                if (!this.callbacks[msgId]) this.callbacks[msgId] = [];
+                this.callbacks[msgId].push(callback);
+            }
+
+            parse(buffer) {
+                const dv = new DataView(buffer);
+                let offset = 0;
+                const len = buffer.byteLength;
+                const msgs = [];
+
+                while (offset < len - 8) {
+                    // 查找 STX (0xFE)
+                    if (dv.getUint8(offset) !== 0xFE) { offset++; continue; }
+
+                    const stx = dv.getUint8(offset);
+                    const payloadLen = dv.getUint8(offset + 1);
+                    const seq = dv.getUint8(offset + 2);
+                    const sysid = dv.getUint8(offset + 3);
+                    const compid = dv.getUint8(offset + 4);
+                    const msgid = dv.getUint8(offset + 5);
+
+                    const totalLen = 8 + payloadLen; // STX + len + seq + sys + comp + msgid + payload + CRC(2)
+                    if (offset + totalLen > len) break;
+
+                    const payloadStart = offset + 6;
+                    const crcStart = offset + 6 + payloadLen;
+
+                    // 提取 payload
+                    const payload = new Uint8Array(buffer, payloadStart, payloadLen);
+                    const crc = dv.getUint16(crcStart, true);
+
+                    // 解析已知消息
+                    let parsed = this._parseMessage(msgid, payload, seq, sysid, compid);
+                    if (parsed) {
+                        parsed._raw = { seq, sysid, compid, msgid, crc };
+                        msgs.push(parsed);
+                        // 触发回调
+                        if (this.callbacks[msgid]) {
+                            for (const cb of this.callbacks[msgid]) cb(parsed);
+                        }
+                    }
+
+                    offset += totalLen;
+                }
+                return msgs;
+            }
+
+            _parseMessage(msgid, payload, seq, sysid, compid) {
+                const dv = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
+                const time_boot_ms = (msgid === 30 || msgid === 32 || msgid === 26) ? dv.getUint32(0, true) : 0;
+                const time_usec = (msgid === 27) ? dv.getBigUint64(0, true) : 0n;
+
+                switch (msgid) {
+                    case 1: { // SYS_STATUS
+                        if (payload.length < 28) return null;
+                        const current_battery = dv.getInt16(20, true); // 10mA
+                        return {
+                            type: 'SYS_STATUS',
+                            msgid: 1,
+                            time_boot_ms: dv.getUint32(0, true),
+                            current_battery: current_battery,
+                        };
+                    }
+                    case 26: { // SCALED_IMU
+                        if (payload.length < 24) return null;
+                        return {
+                            type: 'SCALED_IMU',
+                            msgid: 26,
+                            time_boot_ms: dv.getUint32(0, true),
+                            xacc: dv.getInt16(4, true),
+                            yacc: dv.getInt16(6, true),
+                            zacc: dv.getInt16(8, true),
+                            xgyro: dv.getInt16(10, true),
+                            ygyro: dv.getInt16(12, true),
+                            zgyro: dv.getInt16(14, true),
+                            xmag: dv.getInt16(16, true),
+                            ymag: dv.getInt16(18, true),
+                            zmag: dv.getInt16(20, true),
+                        };
+                    }
+                    case 27: { // RAW_IMU
+                        if (payload.length < 42) return null;
+                        return {
+                            type: 'RAW_IMU',
+                            msgid: 27,
+                            time_usec: dv.getBigUint64(0, true),
+                            xacc: dv.getInt16(8, true),
+                            yacc: dv.getInt16(10, true),
+                            zacc: dv.getInt16(12, true),
+                            xgyro: dv.getInt16(14, true),
+                            ygyro: dv.getInt16(16, true),
+                            zgyro: dv.getInt16(18, true),
+                            xmag: dv.getInt16(20, true),
+                            ymag: dv.getInt16(22, true),
+                            zmag: dv.getInt16(24, true),
+                        };
+                    }
+                    case 30: { // ATTITUDE
+                        if (payload.length < 28) return null;
+                        return {
+                            type: 'ATTITUDE',
+                            msgid: 30,
+                            time_boot_ms: dv.getUint32(0, true),
+                            roll: dv.getFloat32(4, true),
+                            pitch: dv.getFloat32(8, true),
+                            yaw: dv.getFloat32(12, true),
+                            rollspeed: dv.getFloat32(16, true),
+                            pitchspeed: dv.getFloat32(20, true),
+                            yawspeed: dv.getFloat32(24, true),
+                        };
+                    }
+                    case 32: { // DISTANCE_SENSOR
+                        if (payload.length < 14) return null;
+                        const orientation = dv.getUint8(12);
+                        // 只处理向下的距离传感器 (orientation=6 或 25 表示向下)
+                        // 简单起见，我们接受所有
+                        return {
+                            type: 'DISTANCE_SENSOR',
+                            msgid: 32,
+                            time_boot_ms: dv.getUint32(0, true),
+                            min_distance: dv.getUint16(4, true),
+                            max_distance: dv.getUint16(6, true),
+                            current_distance: dv.getUint16(8, true),
+                            type: dv.getUint8(10),
+                            id: dv.getUint8(11),
+                            orientation: orientation,
+                            covariance: dv.getUint8(13),
+                        };
+                    }
+                    default:
+                        return null;
+                }
+            }
+        }
+
+        // ================================================================
+        // 3. 数据提取与整理
+        // ================================================================
+        function extractData(rawMessages) {
+            // 按时间排序
+            const msgs = rawMessages.sort((a, b) => {
+                const ta = a.time_boot_ms || 0;
+                const tb = b.time_boot_ms || 0;
+                return ta - tb;
+            });
+
+            const time = [];
+            const roll = [],
+                pitch = [],
+                yaw = [];
+            const alt = []; // 从 DISTANCE_SENSOR 取
+            const batt = []; // 从 SYS_STATUS 取
+            const ax = [],
+                ay = [],
+                az = []; // 加速度计 (m/s²)
+
+            // 临时存储，用于插值
+            const attMap = {};
+            const distMap = {};
+            const battMap = {};
+            const imuMap = {};
+
+            // 收集所有带时间戳的数据
+            for (const m of msgs) {
+                const t = m.time_boot_ms || 0;
+                if (t === 0 && m.time_usec) {
+                    // 用微秒转毫秒
+                    const tMs = Number(m.time_usec) / 1000;
+                    m._timeMs = tMs;
+                } else {
+                    m._timeMs = t;
+                }
+                const tm = m._timeMs;
+
+                switch (m.msgid) {
+                    case 30: // ATTITUDE
+                        attMap[tm] = { roll: m.roll, pitch: m.pitch, yaw: m.yaw };
+                        break;
+                    case 32: // DISTANCE_SENSOR
+                        // 只取向下的距离传感器 (orientation 6 或 25 或 27)
+                        // 实际中可能 orientation 不同，但我们都存，后续取第一个有值的
+                        if (!distMap[tm]) distMap[tm] = [];
+                        distMap[tm].push(m.current_distance);
+                        break;
+                    case 1: // SYS_STATUS
+                        battMap[tm] = m.current_battery;
+                        break;
+                    case 26: // SCALED_IMU
+                        // 转换为 m/s²: 1g = 9.81 m/s², 数值单位为 mG (毫重力)
+                        const g = 9.80665;
+                        imuMap[tm] = {
+                            ax: (m.xacc / 1000) * g,
+                            ay: (m.yacc / 1000) * g,
+                            az: (m.zacc / 1000) * g
+                        };
+                        break;
+                    case 27: // RAW_IMU (备用)
+                        if (!imuMap[tm]) {
+                            const g2 = 9.80665;
+                            imuMap[tm] = {
+                                ax: (m.xacc / 1000) * g2,
+                                ay: (m.yacc / 1000) * g2,
+                                az: (m.zacc / 1000) * g2
+                            };
+                        }
+                        break;
+                }
+            }
+
+            // 合并时间轴：取所有时间戳的并集
+            const allTimes = new Set();
+            for (const k of Object.keys(attMap)) allTimes.add(Number(k));
+            for (const k of Object.keys(distMap)) allTimes.add(Number(k));
+            for (const k of Object.keys(battMap)) allTimes.add(Number(k));
+            for (const k of Object.keys(imuMap)) allTimes.add(Number(k));
+
+            const sortedTimes = Array.from(allTimes).sort((a, b) => a - b);
+            if (sortedTimes.length === 0) return null;
+
+            // 插值函数
+            function interpolate(map, key, defaultValue = 0) {
+                const keys = Object.keys(map).map(Number).sort((a, b) => a - b);
+                if (keys.length === 0) return defaultValue;
+                // 对于每个时间点，找最近的值
+                const result = [];
+                for (const t of sortedTimes) {
+                    let closest = keys[0];
+                    let minDist = Infinity;
+                    for (const k of keys) {
+                        const d = Math.abs(k - t);
+                        if (d < minDist) { minDist = d;
+                            closest = k; }
+                    }
+                    const val = map[closest];
+                    result.push(val && val[key] !== undefined ? val[key] : defaultValue);
+                }
+                return result;
+            }
+
+            // 提取数据
+            for (const t of sortedTimes) {
+                time.push(t);
+            }
+
+            // 姿态
+            const rollArr = interpolate(attMap, 'roll', 0);
+            const pitchArr = interpolate(attMap, 'pitch', 0);
+            const yawArr = interpolate(attMap, 'yaw', 0);
+
+            // 高度：从 DISTANCE_SENSOR 取，单位 cm -> m
+            const altArr = [];
+            for (const t of sortedTimes) {
+                let dist = 0;
+                if (distMap[t]) {
+                    // 取第一个有效值
+                    const vals = distMap[t].filter(v => v > 0 && v < 10000);
+                    if (vals.length > 0) dist = vals[0] / 100.0; // cm -> m
+                }
+                altArr.push(dist);
+            }
+
+            // 电池电流 (10mA -> A)
+            const battArr = [];
+            for (const t of sortedTimes) {
+                let val = 0;
+                if (battMap[t] !== undefined) {
+                    val = battMap[t] / 100.0; // 10mA -> A
+                }
+                battArr.push(val);
+            }
+
+            // 加速度计
+            const axArr = interpolate(imuMap, 'ax', 0);
+            const ayArr = interpolate(imuMap, 'ay', 0);
+            const azArr = interpolate(imuMap, 'az', 0);
+
+            return {
+                time: sortedTimes,
+                roll: rollArr,
+                pitch: pitchArr,
+                yaw: yawArr,
+                alt: altArr,
+                batt: battArr,
+                ax: axArr,
+                ay: ayArr,
+                az: azArr,
+            };
+        }
+
+        // ================================================================
+        // 4. 轨迹估计 (加速度计双重积分 + 姿态旋转)
+        // ================================================================
+        function estimateTrajectory(data, dt = 0.02) {
+            const n = data.time.length;
+            if (n < 2) return null;
+
+            const posX = new Float32Array(n);
+            const posY = new Float32Array(n);
+            const posZ = new Float32Array(n);
+            const velX = new Float32Array(n);
+            const velY = new Float32Array(n);
+            const velZ = new Float32Array(n);
+
+            // 初始化
+            posX[0] = 0;
+            posY[0] = 0;
+            posZ[0] = 0;
+            velX[0] = 0;
+            velY[0] = 0;
+            velZ[0] = 0;
+
+            // 重力补偿 (Z轴加速度减去重力)
+            const g = 9.80665;
+
+            // 高通滤波参数 (消除漂移)
+            const alpha = 0.995; // 极低截止频率
+
+            let bx = 0,
+                by = 0,
+                bz = 0;
+
+            for (let i = 1; i < n; i++) {
+                const dt_i = (data.time[i] - data.time[i - 1]) / 1000.0;
+                if (dt_i <= 0 || dt_i > 0.5) continue;
+
+                // 获取姿态 (用当前时刻的姿态，或用插值)
+                const r = data.roll[i] || 0;
+                const p = data.pitch[i] || 0;
+                const y = data.yaw[i] || 0;
+
+                // 加速度 (机体坐标系)
+                const ax_b = data.ax[i] || 0;
+                const ay_b = data.ay[i] || 0;
+                const az_b = data.az[i] || 0;
+
+                // 将加速度从机体坐标系旋转到世界坐标系 (NED: x北, y东, z下)
+                // 使用ZYX旋转矩阵 (yaw, pitch, roll)
+                const cr = Math.cos(r),
+                    sr = Math.sin(r);
+                const cp = Math.cos(p),
+                    sp = Math.sin(p);
+                const cy = Math.cos(y),
+                    sy = Math.sin(y);
+
+                // 旋转矩阵: R = Rz(y) * Ry(p) * Rx(r)
+                // 将机体加速度转换到世界
+                const ax_w = (cy * cp) * ax_b + (cy * sp * sr - sy * cr) * ay_b + (cy * sp * cr + sy * sr) * az_b;
+                const ay_w = (sy * cp) * ax_b + (sy * sp * sr + cy * cr) * ay_b + (sy * sp * cr - cy * sr) * az_b;
+                const az_w = (-sp) * ax_b + (cp * sr) * ay_b + (cp * cr) * az_b;
+
+                // 去除重力 (Z轴向下为正，所以减去重力)
+                const accX = ax_w;
+                const accY = ay_w;
+                const accZ = az_w - g;
+
+                // 高通滤波 (去除DC漂移)
+                bx = alpha * bx + (1 - alpha) * accX;
+                by = alpha * by + (1 - alpha) * accY;
+                bz = alpha * bz + (1 - alpha) * accZ;
+
+                const accX_f = accX - bx;
+                const accY_f = accY - by;
+                const accZ_f = accZ - bz;
+
+                // 积分 -> 速度
+                velX[i] = velX[i - 1] + accX_f * dt_i;
+                velY[i] = velY[i - 1] + accY_f * dt_i;
+                velZ[i] = velZ[i - 1] + accZ_f * dt_i;
+
+                // 积分 -> 位置
+                posX[i] = posX[i - 1] + velX[i] * dt_i;
+                posY[i] = posY[i - 1] + velY[i] * dt_i;
+                posZ[i] = posZ[i - 1] + velZ[i] * dt_i;
+
+                // 限制漂移
+                if (Math.abs(posX[i]) > 100) posX[i] = posX[i - 1];
+                if (Math.abs(posY[i]) > 100) posY[i] = posY[i - 1];
+                if (Math.abs(posZ[i]) > 100) posZ[i] = posZ[i - 1];
+            }
+
+            // 中心化轨迹 (使起点在原点)
+            const cx = posX[0],
+                cy = posY[0],
+                cz = posZ[0];
+            for (let i = 0; i < n; i++) {
+                posX[i] -= cx;
+                posY[i] -= cy;
+                posZ[i] -= cz;
+            }
+
+            return {
+                time: data.time,
+                x: Array.from(posX),
+                y: Array.from(posY),
+                z: Array.from(posZ),
+            };
+        }
+
+        // ================================================================
+        // 5. 主控制器
+        // ================================================================
+        const App = {
+            // 初始化
+            init() {
+                this.initThree();
+                this.initChart();
+                this.initUI();
+            },
+
+            // --- 5a. Three.js 3D场景 ---
+            initThree() {
+                const container = document.getElementById('threeScene');
+                const rect = container.getBoundingClientRect();
+                const w = rect.width || 480,
+                    h = rect.height || 400;
+
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x0a0d15);
+
+                const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 500);
+                camera.position.set(8, 6, 10);
+                camera.lookAt(0, 0, 0);
+
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(w, h);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.shadowMap.enabled = false;
+                container.appendChild(renderer.domElement);
+
+                const controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.08;
+                controls.minDistance = 2;
+                controls.maxDistance = 80;
+                controls.target.set(0, 0, 0);
+
+                // 灯光
+                const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+                scene.add(ambientLight);
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                dirLight.position.set(10, 20, 10);
+                scene.add(dirLight);
+                const dirLight2 = new THREE.DirectionalLight(0x4488ff, 0.4);
+                dirLight2.position.set(-10, 5, -10);
+                scene.add(dirLight2);
+
+                // 地面网格
+                const gridHelper = new THREE.GridHelper(30, 20, 0x2a3a5a, 0x1a2a3a);
+                gridHelper.position.y = -0.01;
+                scene.add(gridHelper);
+
+                // 坐标轴
+                const axesHelper = new THREE.AxesHelper(3);
+                scene.add(axesHelper);
+
+                // 添加一些参考点
+                const sphereGeo = new THREE.SphereGeometry(0.08, 8, 8);
+                const sphereMat = new THREE.MeshBasicMaterial({ color: 0x4a6a8a });
+                for (let i = -10; i <= 10; i += 2) {
+                    for (let j = -10; j <= 10; j += 2) {
+                        if (Math.abs(i) < 0.5 && Math.abs(j) < 0.5) continue;
+                        const s = new THREE.Mesh(sphereGeo, sphereMat);
+                        s.position.set(i, 0, j);
+                        scene.add(s);
+                    }
+                }
+
+                // 无人机模型组
+                const droneGroup = new THREE.Group();
+                // 机身
+                const bodyGeo = new THREE.BoxGeometry(0.5, 0.2, 0.5);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2a4a7a, metalness: 0.3, roughness: 0.6 });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                body.position.y = 0.1;
+                droneGroup.add(body);
+
+                // 机臂 (4个)
+                const armMat = new THREE.MeshStandardMaterial({ color: 0x4a6a8a, metalness: 0.2, roughness: 0.5 });
+                const armGeo = new THREE.BoxGeometry(0.08, 0.04, 0.8);
+                for (let i = 0; i < 4; i++) {
+                    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+                    const arm = new THREE.Mesh(armGeo, armMat);
+                    arm.position.set(Math.cos(angle) * 0.45, 0.1, Math.sin(angle) * 0.45);
+                    arm.rotation.y = -angle;
+                    droneGroup.add(arm);
+                    // 电机
+                    const motorGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.06, 8);
+                    const motorMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6, roughness: 0.3 });
+                    const motor = new THREE.Mesh(motorGeo, motorMat);
+                    motor.position.set(Math.cos(angle) * 0.85, 0.14, Math.sin(angle) * 0.85);
+                    motor.rotation.x = Math.PI / 2;
+                    droneGroup.add(motor);
+                    // 螺旋桨 (透明圆盘)
+                    const propGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.01, 12);
+                    const propMat = new THREE.MeshStandardMaterial({
+                        color: 0x88bbdd,
+                        transparent: true,
+                        opacity: 0.35,
+                        metalness: 0.1,
+                        roughness: 0.8,
+                        side: THREE.DoubleSide
+                    });
+                    const prop = new THREE.Mesh(propGeo, propMat);
+                    prop.position.set(Math.cos(angle) * 0.85, 0.17, Math.sin(angle) * 0.85);
+                    prop.rotation.x = Math.PI / 2;
+                    droneGroup.add(prop);
+                }
+
+                // 姿态指示器 (一个箭头)
+                const arrowDir = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0.3, 0), 0.6,
+                    0xff6644, 0.2, 0.15);
+                droneGroup.add(arrowDir);
+
+                scene.add(droneGroup);
+
+                // 轨迹线
+                const trajMat = new THREE.LineBasicMaterial({
+                    color: 0x4fc3f7,
+                    linewidth: 2,
+                    transparent: true,
+                    opacity: 0.8,
+                });
+                const trajGeo = new THREE.BufferGeometry();
+                const trajLine = new THREE.Line(trajGeo, trajMat);
+                scene.add(trajLine);
+
+                // 轨迹点 (小圆球)
+                const dotMat = new THREE.PointsMaterial({
+                    color: 0x4fc3f7,
+                    size: 0.08,
+                    transparent: true,
+                    opacity: 0.5,
+                    sizeAttenuation: true,
+                });
+                const dotGeo = new THREE.BufferGeometry();
+                const dotPoints = new THREE.Points(dotGeo, dotMat);
+                scene.add(dotPoints);
+
+                // 当前无人机位置指示 (光晕)
+                const glowGeo = new THREE.SphereGeometry(0.15, 12, 12);
+                const glowMat = new THREE.MeshBasicMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.3 });
+                const glow = new THREE.Mesh(glowGeo, glowMat);
+                scene.add(glow);
+
+                STATE.scene = scene;
+                STATE.camera = camera;
+                STATE.renderer = renderer;
+                STATE.controls = controls;
+                STATE.droneGroup = droneGroup;
+                STATE.trajectoryLine = trajLine;
+                STATE.trajectoryPoints = dotPoints;
+                STATE.glow = glow;
+
+                // 窗口自适应
+                window.addEventListener('resize', () => this.resizeThree());
+
+                // 动画循环
+                this.animateThree();
+            },
+
+            resizeThree() {
+                const container = document.getElementById('threeScene');
+                const rect = container.getBoundingClientRect();
+                const w = rect.width || 480,
+                    h = rect.height || 400;
+                if (STATE.renderer) {
+                    STATE.renderer.setSize(w, h);
+                    STATE.camera.aspect = w / h;
+                    STATE.camera.updateProjectionMatrix();
+                }
+            },
+
+            animateThree() {
+                requestAnimationFrame(() => this.animateThree());
+                if (STATE.controls) STATE.controls.update();
+                if (STATE.renderer && STATE.scene && STATE.camera) {
+                    STATE.renderer.render(STATE.scene, STATE.camera);
+                }
+            },
+
+            // --- 5b. ECharts 图表 ---
+            initChart() {
+                const dom = document.getElementById('chart');
+                const chart = echarts.init(dom, 'dark');
+                STATE.chart = chart;
+
+                // 默认空
+                chart.setOption({
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: 'rgba(11,14,23,0.85)',
+                        borderColor: '#2a3548',
+                        textStyle: { color: '#e8edf5' },
+                    },
+                    legend: {
+                        data: [],
+                        textStyle: { color: '#8899bb' },
+                        top: 8,
+                        right: 16,
+                    },
+                    grid: {
+                        left: 50,
+                        right: 16,
+                        top: 44,
+                        bottom: 28,
+                    },
+                    xAxis: {
+                        type: 'value',
+                        name: '时间 (ms)',
+                        nameTextStyle: { color: '#5a6a80', fontSize: 11 },
+                        axisLine: { lineStyle: { color: '#1a2332' } },
+                        axisLabel: { color: '#6a7a90', fontSize: 10 },
+                        splitLine: { show: false },
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '数值',
+                        nameTextStyle: { color: '#5a6a80', fontSize: 11 },
+                        axisLine: { show: false },
+                        axisLabel: { color: '#6a7a90', fontSize: 10 },
+                        splitLine: { lineStyle: { color: '#1a2332', type: 'dashed' } },
+                    },
+                    series: [],
+                    dataZoom: [{
+                        type: 'inside',
+                        start: 0,
+                        end: 100,
+                        minSpan: 5,
+                    }],
+                });
+
+                // 自适应
+                window.addEventListener('resize', () => chart.resize());
+            },
+
+            updateChart(data) {
+                if (!STATE.chart || !data) return;
+                const chart = STATE.chart;
+                const time = data.time;
+
+                // 准备系列数据
+                const series = [];
+
+                // 高度 (cm)
+                const altData = data.alt.map(v => v * 100); // m -> cm
+                series.push({
+                    name: '高度 (cm)',
+                    type: 'line',
+                    data: time.map((t, i) => [t, altData[i]]),
+                    smooth: true,
+                    symbol: 'none',
+                    lineStyle: { color: '#4dd0e1', width: 2 },
+                });
+
+                // 电池电流 (A)
+                series.push({
+                    name: '电流 (A)',
+                    type: 'line',
+                    data: time.map((t, i) => [t, data.batt[i]]),
+                    smooth: true,
+                    symbol: 'none',
+                    lineStyle: { color: '#ffb74d', width: 2 },
+                });
+
+                // 姿态
+                series.push({
+                    name: 'Roll (°)',
+                    type: 'line',
+                    data: time.map((t, i) => [t, data.roll[i] * 180 / Math.PI]),
+                    smooth: true,
+                    symbol: 'none',
+                    lineStyle: { color: '#ef5350', width: 1.5 },
+                });
+                series.push({
+                    name: 'Pitch (°)',
+                    type: 'line',
+                    data: time.map((t, i) => [t, data.pitch[i] * 180 / Math.PI]),
+                    smooth: true,
+                    symbol: 'none',
+                    lineStyle: { color: '#66bb6a', width: 1.5 },
+                });
+                series.push({
+                    name: 'Yaw (°)',
+                    type: 'line',
+                    data: time.map((t, i) => [t, data.yaw[i] * 180 / Math.PI]),
+                    smooth: true,
+                    symbol: 'none',
+                    lineStyle: { color: '#ab47bc', width: 1.5 },
+                });
+
+                // 加速度 (可选，但为了不杂乱，只在legend中显示)
+                // 我们默认只显示高度、电流、姿态，加速度放在额外选项
+                // 可以加一个开关，但这里简化，只显示高度、电流、姿态
+
+                chart.setOption({
+                    legend: {
+                        data: ['高度 (cm)', '电流 (A)', 'Roll (°)', 'Pitch (°)', 'Yaw (°)'],
+                        textStyle: { color: '#8899bb' },
+                        top: 8,
+                        right: 16,
+                    },
+                    series: series,
+                });
+
+                // 更新空状态
+                document.getElementById('chartEmptyHint').style.display = 'none';
+                chart.resize();
+            },
+
+            // --- 5c. UI 事件 ---
+            initUI() {
+                const fileInput = document.getElementById('fileInput');
+                fileInput.addEventListener('change', (e) => this.handleFile(e));
+
+                document.getElementById('btnResetView').addEventListener('click', () => this.resetView());
+                document.getElementById('btnExportTrajectory').addEventListener('click', () => this.exportTrajectory());
+
+                const slider = document.getElementById('timelineSlider');
+                slider.addEventListener('input', () => this.seekTo(slider.value));
+
+                document.getElementById('btnPlayPause').addEventListener('click', () => this.togglePlay());
+                document.getElementById('btnResetTime').addEventListener('click', () => {
+                    this.seekTo(0);
+                    this.stopPlay();
+                });
+
+                // 键盘快捷键
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === ' ' || e.key === 'Space') {
+                        e.preventDefault();
+                        this.togglePlay();
+                    }
+                    if (e.key === 'ArrowRight') {
+                        const val = Math.min(100, parseFloat(slider.value) + 1);
+                        this.seekTo(val);
+                    }
+                    if (e.key === 'ArrowLeft') {
+                        const val = Math.max(0, parseFloat(slider.value) - 1);
+                        this.seekTo(val);
+                    }
+                });
+            },
+
+            // --- 5d. 文件处理 ---
+            async handleFile(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                document.getElementById('fileInfo').textContent = `📄 ${file.name}`;
+                const mask = document.getElementById('loadingMask');
+                mask.classList.add('active');
+                document.getElementById('loadingMsg').textContent = '读取文件中...';
+
+                try {
+                    const buffer = await file.arrayBuffer();
+                    document.getElementById('loadingMsg').textContent = '解析 MAVLink 消息...';
+                    await new Promise(r => setTimeout(r, 50));
+
+                    const parser = new MavLinkParser();
+                    const msgs = parser.parse(buffer);
+                    if (msgs.length === 0) {
+                        alert('未能解析到有效 MAVLink 消息，请确认文件格式正确。');
+                        mask.classList.remove('active');
+                        return;
+                    }
+
+                    document.getElementById('loadingMsg').textContent =
+                        `解析到 ${msgs.length} 条消息，提取数据...`;
+                    await new Promise(r => setTimeout(r, 30));
+
+                    const data = extractData(msgs);
+                    if (!data || data.time.length < 2) {
+                        alert('提取的数据不足，请确认tlog包含姿态/距离/加速度数据。');
+                        mask.classList.remove('active');
+                        return;
+                    }
+
+                    STATE.data = data;
+                    document.getElementById('loadingMsg').textContent = '估计轨迹 (加速度积分)...';
+                    await new Promise(r => setTimeout(r, 30));
+
+                    const traj = estimateTrajectory(data);
+                    STATE.trajectory = traj;
+                    STATE.totalPoints = data.time.length;
+                    STATE.currentIndex = 0;
+                    STATE.fileLoaded = true;
+
+                    // 启用滑块
+                    document.getElementById('timelineSlider').disabled = false;
+                    document.getElementById('timelineSlider').max = 100;
+
+                    // 更新视图
+                    this.updateChart(data);
+                    this.updateThree(data, traj, 0);
+                    this.updateInfo(data, 0);
+                    this.updateTimeline(0);
+
+                    // 更新空状态
+                    document.getElementById('threeEmptyHint').style.display = 'none';
+
+                    mask.classList.remove('active');
+                    document.getElementById('fileInfo').textContent = `✅ ${file.name} (${data.time.length} 帧)`;
+
+                } catch (err) {
+                    console.error(err);
+                    alert('解析失败: ' + err.message);
+                    mask.classList.remove('active');
+                    document.getElementById('fileInfo').textContent = '❌ 加载失败';
+                }
+            },
+
+            // --- 5e. 时间定位 ---
+            seekTo(value) {
+                const pct = parseFloat(value) / 100;
+                const idx = Math.floor(pct * (STATE.totalPoints - 1));
+                this.setIndex(Math.max(0, Math.min(idx, STATE.totalPoints - 1)));
+            },
+
+            setIndex(idx) {
+                if (!STATE.fileLoaded || !STATE.data) return;
+                const data = STATE.data;
+                const traj = STATE.trajectory;
+                const n = data.time.length;
+                const i = Math.max(0, Math.min(idx, n - 1));
+                STATE.currentIndex = i;
+
+                this.updateThree(data, traj, i);
+                this.updateInfo(data, i);
+                this.updateTimeline(i);
+
+                // 在图表上标记位置
+                if (STATE.chart) {
+                    // 用markLine或markPoint，简单起见我们使用dataZoom配合
+                    // 或者直接更新图表上的标记，这里简化
+                }
+            },
+
+            updateTimeline(idx) {
+                const data = STATE.data;
+                const n = data.time.length;
+                const pct = n > 1 ? (idx / (n - 1)) * 100 : 0;
+                const slider = document.getElementById('timelineSlider');
+                slider.value = pct;
+
+                const t = data.time[idx] || 0;
+                const sec = t / 1000;
+                const min = Math.floor(sec / 60);
+                const s = Math.floor(sec % 60);
+                document.getElementById('timeDisplay').textContent =
+                    `${String(min).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            },
+
+            updateInfo(data, idx) {
+                const alt = data.alt[idx] || 0;
+                const batt = data.batt[idx] || 0;
+                const roll = data.roll[idx] || 0;
+                const pitch = data.pitch[idx] || 0;
+                const yaw = data.yaw[idx] || 0;
+
+                document.getElementById('dispAlt').textContent = alt.toFixed(2) + ' m';
+                document.getElementById('dispBatt').textContent = batt.toFixed(2) + ' A';
+                document.getElementById('dispRoll').textContent = (roll * 180 / Math.PI).toFixed(1) + '°';
+                document.getElementById('dispPitch').textContent = (pitch * 180 / Math.PI).toFixed(1) + '°';
+                document.getElementById('dispYaw').textContent = (yaw * 180 / Math.PI).toFixed(1) + '°';
+
+                if (STATE.trajectory) {
+                    const pts = STATE.trajectory.x.length;
+                    document.getElementById('dispTrajPts').textContent = pts;
+                }
+            },
+
+            // --- 5f. 3D更新 ---
+            updateThree(data, traj, idx) {
+                if (!STATE.scene) return;
+                const drone = STATE.droneGroup;
+                const trajLine = STATE.trajectoryLine;
+                const trajPoints = STATE.trajectoryPoints;
+                const glow = STATE.glow;
+
+                // 更新姿态
+                if (data && data.roll.length > idx) {
+                    const r = data.roll[idx] || 0;
+                    const p = data.pitch[idx] || 0;
+                    const y = data.yaw[idx] || 0;
+                    drone.rotation.x = r;
+                    drone.rotation.z = p;
+                    drone.rotation.y = y;
+                }
+
+                // 更新位置 (从轨迹)
+                if (traj && traj.x.length > idx) {
+                    const x = traj.x[idx] || 0;
+                    const y = traj.y[idx] || 0;
+                    const z = traj.z[idx] || 0;
+                    drone.position.set(x, z, y); // Three.js: x右, y上, z前
+                    glow.position.set(x, z, y);
+                }
+
+                // 更新轨迹线
+                if (traj && traj.x.length > 1) {
+                    const points = [];
+                    const step = Math.max(1, Math.floor(traj.x.length / 800));
+                    for (let i = 0; i < traj.x.length; i += step) {
+                        points.push(new THREE.Vector3(traj.x[i], traj.z[i], traj.y[i]));
+                    }
+                    // 确保最后一个点
+                    if (points.length > 0 && traj.x.length > 1) {
+                        const last = traj.x.length - 1;
+                        points.push(new THREE.Vector3(traj.x[last], traj.z[last], traj.y[last]));
+                    }
+
+                    const geo = new THREE.BufferGeometry().setFromPoints(points);
+                    trajLine.geometry.dispose();
+                    trajLine.geometry = geo;
+                    trajLine.visible = true;
+
+                    // 更新轨迹点 (采样)
+                    const dotStep = Math.max(1, Math.floor(traj.x.length / 300));
+                    const dotPositions = [];
+                    for (let i = 0; i < traj.x.length; i += dotStep) {
+                        dotPositions.push(traj.x[i], traj.z[i], traj.y[i]);
+                    }
+                    const dotGeo = new THREE.BufferGeometry();
+                    dotGeo.setAttribute('position', new THREE.Float32BufferAttribute(dotPositions, 3));
+                    trajPoints.geometry.dispose();
+                    trajPoints.geometry = dotGeo;
+                    trajPoints.visible = true;
+                } else {
+                    trajLine.visible = false;
+                    trajPoints.visible = false;
+                }
+
+                // 自动调整相机目标到无人机位置
+                if (drone.position.length() > 0.1) {
+                    STATE.controls.target.copy(drone.position);
+                }
+            },
+
+            // --- 5g. 播放控制 ---
+            togglePlay() {
+                if (!STATE.fileLoaded) return;
+                STATE.isPlaying = !STATE.isPlaying;
+                document.getElementById('btnPlayPause').textContent = STATE.isPlaying ? '⏸' : '▶';
+                if (STATE.isPlaying) {
+                    this.startPlay();
+                } else {
+                    this.stopPlay();
+                }
+            },
+
+            startPlay() {
+                if (STATE.playTimer) clearInterval(STATE.playTimer);
+                STATE.playTimer = setInterval(() => {
+                    if (!STATE.isPlaying) return;
+                    const idx = STATE.currentIndex + 1;
+                    if (idx >= STATE.totalPoints) {
+                        this.stopPlay();
+                        return;
+                    }
+                    this.setIndex(idx);
+                }, 50);
+            },
+
+            stopPlay() {
+                STATE.isPlaying = false;
+                document.getElementById('btnPlayPause').textContent = '▶';
+                if (STATE.playTimer) {
+                    clearInterval(STATE.playTimer);
+                    STATE.playTimer = null;
+                }
+            },
+
+            // --- 5h. 工具 ---
+            resetView() {
+                if (STATE.camera) {
+                    STATE.camera.position.set(8, 6, 10);
+                    STATE.controls.target.set(0, 0, 0);
+                    STATE.controls.update();
+                }
+            },
+
+            exportTrajectory() {
+                if (!STATE.trajectory || STATE.trajectory.x.length < 2) {
+                    alert('没有可导出的轨迹数据。');
+                    return;
+                }
+                const traj = STATE.trajectory;
+                const lines = ['# 时间(ms), X(m), Y(m), Z(m)'];
+                for (let i = 0; i < traj.x.length; i++) {
+                    lines.push(`${traj.time[i].toFixed(0)}, ${traj.x[i].toFixed(4)}, ${traj.y[i].toFixed(4)}, ${traj.z[i].toFixed(4)}`);
+                }
+                const content = lines.join('\n');
+                const blob = new Blob([content], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `trajectory_${new Date().toISOString().slice(0,10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+            },
+        };
+
+        // ================================================================
+        // 6. 启动应用
+        // ================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
+            // 调整3D大小
+            setTimeout(() => App.resizeThree(), 100);
+            // 窗口改变时调整
+            window.addEventListener('resize', () => App.resizeThree());
+        });
+
+        // 额外的：当文件加载完成后，自动播放?
+        // 暴露到全局用于调试
+        window.__app = App;
+        console.log('🚁 ArduPilot Tlog 分析器已启动');
+        console.log('📖 使用说明: 导入 .tlog 文件，使用时间轴或空格键播放');
+        console.log('⌨️  快捷键: 空格=播放/暂停, ←/→=步进');
+    </script>
+</body>
+</html>
