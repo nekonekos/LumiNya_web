@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="LumiDrone · 770mm H型自组无人机首飞全记录" />
+    <title>LumiDrone · 770mm H型自组无人机</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/main.css" />
+    <style>
+        /* ===== 无人机专题页补充样式 ===== */
+        .video-hero {
+            margin-bottom: 1.6rem;
+            position: relative;
+            z-index: 2;
+        }
+        .video-hero video {
+            display: block;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+            border-radius: 20px;
+            background: #000;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-light);
+        }
+
+        .hero-copy {
+            position: relative;
+            z-index: 2;
+            margin-bottom: 4rem;
+        }
+        .hero-copy .kicker {
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--primary-blue);
+            margin-bottom: 0.3rem;
+        }
+        .hero-copy h1 {
+            font-size: clamp(2.6rem, 6vw, 4rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.05;
+            margin-bottom: 0.3rem;
+            background: var(--hero-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-copy .subhead {
+            font-size: 1.15rem;
+            color: var(--text-medium);
+            font-weight: 500;
+            margin-bottom: 1.1rem;
+        }
+        .hero-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .hero-badges span {
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.28rem 0.9rem;
+            border-radius: 20px;
+            background: var(--bg-soft);
+            border: 1px solid var(--border-light);
+            color: var(--text-medium);
+            transition: all 0.25s ease;
+        }
+        .hero-badges span:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+            transform: translateY(-2px);
+        }
+
+        /* 核心参数 */
+        .spec-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+        .spec-item {
+            text-align: center;
+            padding: 1rem 0.5rem;
+            border-radius: 16px;
+            background: var(--bg-soft);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border-light);
+            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .spec-item:hover {
+            transform: translateY(-6px) scale(1.02);
+            border-color: var(--primary-blue);
+            background: rgba(255, 255, 255, 0.45);
+            box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.04);
+        }
+        [data-theme="dark"] .spec-item:hover {
+            background: rgba(255, 255, 255, 0.10);
+        }
+        .spec-item .value {
+            font-weight: 800;
+            font-size: 1.15rem;
+            color: var(--text-dark);
+            line-height: 1.25;
+        }
+        .spec-item .label {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            font-weight: 500;
+            margin-top: 0.15rem;
+        }
+
+        /* 文章正文 */
+        .article-text p {
+            font-size: 1rem;
+            color: var(--text-medium);
+            line-height: 1.8;
+            max-width: 85%;
+        }
+        .article-text .article-highlight {
+            color: var(--primary-blue);
+            font-weight: 600;
+            padding-left: 1rem;
+            border-left: 3px solid var(--primary-blue);
+            margin-top: 0.2rem;
+        }
+
+        .keypoint-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-top: 1.2rem;
+            max-width: 85%;
+        }
+        .keypoint-item {
+            display: flex;
+            gap: 0.8rem;
+            align-items: flex-start;
+            padding: 0.9rem 1.1rem;
+            border-radius: 12px;
+            background: var(--bg-soft);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border-light);
+            transition: all 0.3s ease;
+        }
+        .keypoint-item:hover {
+            border-color: var(--primary-mint);
+            transform: translateX(4px);
+        }
+        .keypoint-item .kp-icon {
+            flex-shrink: 0;
+            color: var(--primary-mint);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        .keypoint-item .kp-text {
+            font-size: 0.92rem;
+            color: var(--text-medium);
+            line-height: 1.6;
+        }
+
+        /* 影像占位 */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
+        }
+        .gallery-item {
+            aspect-ratio: 4 / 3;
+            border-radius: 16px;
+            background: var(--bg-soft);
+            backdrop-filter: blur(4px);
+            border: 1.5px dashed var(--text-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            transition: all 0.3s ease;
+        }
+        .gallery-item:hover {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+            transform: translateY(-4px);
+        }
+        .gallery-item .ph-icon {
+            font-size: 2rem;
+            line-height: 1;
+        }
+        .gallery-item .ph-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            color: var(--text-medium);
+        }
+        .gallery-item .ph-note {
+            font-size: 0.7rem;
+            margin-top: 0.2rem;
+            opacity: 0.7;
+        }
+
+        /* 未来规划 */
+        .roadmap-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
+        }
+        .roadmap-item {
+            padding: 1.3rem 1.1rem;
+            border-radius: 16px;
+            background: var(--bg-soft);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border-light);
+            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .roadmap-item:hover {
+            transform: translateY(-6px);
+            border-color: var(--primary-blue);
+            background: rgba(255, 255, 255, 0.45);
+            box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.04);
+        }
+        [data-theme="dark"] .roadmap-item:hover {
+            background: rgba(255, 255, 255, 0.10);
+        }
+        .roadmap-item .r-icon {
+            font-size: 1.8rem;
+            line-height: 1;
+            transition: transform 0.3s ease;
+        }
+        .roadmap-item:hover .r-icon {
+            transform: scale(1.12) rotate(-3deg);
+        }
+        .roadmap-item .r-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-dark);
+            margin-top: 0.45rem;
+        }
+        .roadmap-item .r-desc {
+            font-size: 0.85rem;
+            color: var(--text-medium);
+            margin-top: 0.2rem;
+            line-height: 1.5;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 820px) {
+            .spec-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .article-text p,
+            .keypoint-list {
+                max-width: 100%;
+            }
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .roadmap-list {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-copy h1 {
+                font-size: 2.4rem;
+            }
+            .hero-copy .subhead {
+                font-size: 1rem;
+            }
+            .spec-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.8rem;
+            }
+            .gallery-grid {
+                grid-template-columns: 1fr;
+            }
+            .roadmap-list {
+                grid-template-columns: 1fr;
+            }
+            .keypoint-item {
+                padding: 0.8rem 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 装饰性模糊图形 -->
+    <div class="blob blob--1"></div>
+    <div class="blob blob--2"></div>
+    <div class="blob blob--3"></div>
+
+    <div class="container" id="pageContent"></div>
+
+    <script>
+        (function () {
+            const pageContent = document.getElementById('pageContent');
+            const root = document.documentElement;
+            const STORAGE_KEY = 'theme-preference';
+
+            function escapeHtml(value = '') {
+                return String(value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function buildHeader(data) {
+                const header = document.createElement('header');
+                const navItems = (data.nav || []).map(item => `<li><a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a></li>`).join('');
+                header.innerHTML = `
+                    <a href="${escapeHtml(data.site.homeHref || '#')}" class="logo">${escapeHtml(data.site.logoPrefix)}<span>${escapeHtml(data.site.logoAccent)}</span></a>
+                    <div class="nav-wrapper">
+                        <ul class="nav-links">${navItems}</ul>
+                        <button class="theme-toggle" id="themeToggle" aria-label="${escapeHtml(data.site.themeToggleLabel || '切换深浅色')}">
+                            <span class="icon-sun">☀️</span>
+                            <span class="icon-moon">🌙</span>
+                        </button>
+                    </div>
+                `;
+                return header;
+            }
+
+            function buildHero(hero) {
+                const section = document.createElement('section');
+                const poster = hero.videoPoster ? ` poster="${escapeHtml(hero.videoPoster)}"` : '';
+                const badges = (hero.badges || []).map(badge => `<span>${escapeHtml(badge)}</span>`).join('');
+                section.innerHTML = `
+                    <div class="video-hero">
+                        <video src="${escapeHtml(hero.video)}"${poster} controls playsinline muted loop preload="metadata" aria-label="${escapeHtml(hero.subtitle || '首飞视频')}">
+                            你的浏览器不支持 HTML5 视频播放。
+                        </video>
+                    </div>
+                    <div class="hero-copy">
+                        <div class="kicker">${escapeHtml(hero.kicker || '')}</div>
+                        <h1>${escapeHtml(hero.title || '')}</h1>
+                        <p class="subhead">${escapeHtml(hero.subtitle || '')}</p>
+                        <div class="hero-badges">${badges}</div>
+                    </div>
+                `;
+                return section;
+            }
+
+            function buildSectionHeader(title, subtitle) {
+                return `
+                    <div class="section-header">
+                        <h2 class="section-title">${escapeHtml(title || '')}</h2>
+                        ${subtitle ? `<p class="section-subtitle">${escapeHtml(subtitle)}</p>` : ''}
+                    </div>
+                    <div class="section-divider">
+                        <span class="line"></span>
+                        <span class="dot"></span>
+                        <span class="line"></span>
+                    </div>
+                `;
+            }
+
+            function buildSpecs(specs) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'section-wrapper';
+                const items = (specs.items || []).map(item => `
+                    <div class="spec-item">
+                        <div class="value">${escapeHtml(item.value || '')}</div>
+                        <div class="label">${escapeHtml(item.label || '')}</div>
+                    </div>
+                `).join('');
+                wrapper.innerHTML = `
+                    ${buildSectionHeader(specs.title, specs.subtitle)}
+                    <div class="section-content"><div class="spec-grid">${items}</div></div>
+                `;
+                return wrapper;
+            }
+
+            function buildArticle(section) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'section-wrapper';
+                if (section.id) wrapper.id = section.id;
+
+                let contentHtml = '<div class="article-text">';
+                (section.paragraphs || []).forEach(p => { contentHtml += `<p>${escapeHtml(p)}</p>`; });
+                if (section.highlight) {
+                    contentHtml += `<p class="article-highlight">${escapeHtml(section.highlight)}</p>`;
+                }
+                contentHtml += '</div>';
+
+                if (section.keypoints && section.keypoints.length) {
+                    contentHtml += `<div class="keypoint-list">${section.keypoints.map(k => `
+                        <div class="keypoint-item">
+                            <span class="kp-icon">⚙</span>
+                            <span class="kp-text">${escapeHtml(k)}</span>
+                        </div>
+                    `).join('')}</div>`;
+                }
+
+                wrapper.innerHTML = `
+                    ${buildSectionHeader(section.title, section.subtitle)}
+                    <div class="section-content">${contentHtml}</div>
+                `;
+                return wrapper;
+            }
+
+            function buildMetrics(metrics) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'section-wrapper';
+                const items = (metrics.items || []).map(item => `
+                    <div class="metric-item">
+                        <div class="number">${escapeHtml(item.value || '')}</div>
+                        <div class="label">${escapeHtml(item.label || '')}</div>
+                    </div>
+                `).join('');
+                wrapper.innerHTML = `
+                    ${buildSectionHeader(metrics.title, metrics.subtitle)}
+                    <div class="section-content"><div class="metrics-grid">${items}</div></div>
+                `;
+                return wrapper;
+            }
+
+            function buildGallery(gallery) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'section-wrapper';
+                wrapper.id = 'gallery';
+                const items = (gallery.items || []).map(item => `
+                    <div class="gallery-item">
+                        <span class="ph-icon">📷</span>
+                        <span class="ph-label">${escapeHtml(item.alt || '图片')}</span>
+                        <span class="ph-note">图片位置预留</span>
+                    </div>
+                `).join('');
+                wrapper.innerHTML = `
+                    ${buildSectionHeader(gallery.title, gallery.subtitle)}
+                    <div class="section-content"><div class="gallery-grid">${items}</div></div>
+                `;
+                return wrapper;
+            }
+
+            function buildRoadmap(roadmap) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'section-wrapper';
+                wrapper.id = 'roadmap';
+                const items = (roadmap.items || []).map(item => `
+                    <div class="roadmap-item">
+                        <span class="r-icon">${escapeHtml(item.icon || '🚀')}</span>
+                        <div class="r-title">${escapeHtml(item.title || '')}</div>
+                        <div class="r-desc">${escapeHtml(item.desc || '')}</div>
+                    </div>
+                `).join('');
+                wrapper.innerHTML = `
+                    ${buildSectionHeader(roadmap.title, roadmap.subtitle)}
+                    <div class="section-content"><div class="roadmap-list">${items}</div></div>
+                `;
+                return wrapper;
+            }
+
+            function buildFooter(footer) {
+                const footerEl = document.createElement('footer');
+                const navItems = (footer.nav || []).map(item => `<li><a href="${escapeHtml(item.href || '#')}">${escapeHtml(item.label || '')}</a></li>`).join('');
+                const contactLinks = (footer.contactLinks || []).map(link => `<a href="${escapeHtml(link.href || '#')}"><span class="link-icon">${escapeHtml(link.icon || '')}</span> ${escapeHtml(link.label || '')}</a>`).join('');
+                const socialLinks = (footer.socialLinks || []).map(link => `<a href="${escapeHtml(link.href || '#')}">${escapeHtml(link.label || '')}</a>`).join('');
+                footerEl.innerHTML = `
+                    <div class="footer-grid">
+                        <div class="footer-brand">
+                            <div class="brand">${escapeHtml(footer.brandPrefix || 'Lumi')}<span>${escapeHtml(footer.brandAccent || 'Drone')}</span></div>
+                            <div class="brand-desc">${escapeHtml(footer.description || '')}</div>
+                        </div>
+                        <div class="footer-nav">
+                            <h5>${escapeHtml(footer.navTitle || '导航')}</h5>
+                            <ul>${navItems}</ul>
+                        </div>
+                        <div class="footer-contact">
+                            <h5>${escapeHtml(footer.contactTitle || '技术栈')}</h5>
+                            <div class="contact-links">${contactLinks}</div>
+                        </div>
+                    </div>
+                    <div class="footer-social">${socialLinks}</div>
+                    <div class="footer-bottom">
+                        <span class="copy">${escapeHtml(footer.copyright || '')}</span>
+                    </div>
+                `;
+                return footerEl;
+            }
+
+            function renderPage(data) {
+                if (data.site && data.site.title) {
+                    document.title = data.site.title;
+                }
+                const fragment = document.createDocumentFragment();
+                fragment.appendChild(buildHeader(data));
+                fragment.appendChild(buildHero(data.hero));
+                if (data.specs) fragment.appendChild(buildSpecs(data.specs));
+                (data.sections || []).forEach(section => fragment.appendChild(buildArticle(section)));
+                if (data.flightMetrics) fragment.appendChild(buildMetrics(data.flightMetrics));
+                if (data.gallery) fragment.appendChild(buildGallery(data.gallery));
+                if (data.roadmap) fragment.appendChild(buildRoadmap(data.roadmap));
+                if (data.footer) fragment.appendChild(buildFooter(data.footer));
+                pageContent.innerHTML = '';
+                pageContent.appendChild(fragment);
+            }
+
+            function getPreferredTheme() {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored === 'dark' || stored === 'light') return stored;
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
+            function setTheme(theme) {
+                if (theme === 'dark') {
+                    root.setAttribute('data-theme', 'dark');
+                } else {
+                    root.removeAttribute('data-theme');
+                }
+                localStorage.setItem(STORAGE_KEY, theme);
+            }
+
+            function toggleTheme() {
+                const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                setTheme(current === 'dark' ? 'light' : 'dark');
+            }
+
+            function initTheme() {
+                setTheme(getPreferredTheme());
+                const toggleBtn = document.getElementById('themeToggle');
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', toggleTheme);
+                }
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                mediaQuery.addEventListener('change', function (event) {
+                    if (!localStorage.getItem(STORAGE_KEY)) {
+                        setTheme(event.matches ? 'dark' : 'light');
+                    }
+                });
+            }
+
+            function initAnimations() {
+                const sections = document.querySelectorAll('.section-wrapper');
+                if (sections.length > 0) {
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                entry.target.classList.add('visible');
+                            }
+                        });
+                    }, { threshold: 0.10, rootMargin: '0px 0px -20px 0px' });
+                    sections.forEach(section => observer.observe(section));
+                }
+            }
+
+            fetch('./inspire.json')
+                .then(function (response) {
+                    if (!response.ok) throw new Error('加载配置失败');
+                    return response.json();
+                })
+                .then(function (data) {
+                    renderPage(data);
+                    initTheme();
+                    initAnimations();
+                })
+                .catch(function () {
+                    pageContent.innerHTML = `
+                        <div class="section-wrapper">
+                            <div class="section-content">
+                                <p style="text-align:center; padding:1.5rem 0;">页面配置加载失败，请检查 inspire.json。</p>
+                            </div>
+                        </div>
+                    `;
+                });
+        })();
+    </script>
+</body>
+</html>

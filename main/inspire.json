@@ -1,0 +1,142 @@
+{
+  "site": {
+    "title": "LumiDrone · 770mm H型自组无人机",
+    "logoPrefix": "Lumi",
+    "logoAccent": "Drone",
+    "homeHref": "./index.html",
+    "themeToggleLabel": "切换深浅色"
+  },
+  "nav": [
+    { "label": "机架", "href": "#airframe" },
+    { "label": "动力", "href": "#power" },
+    { "label": "飞控", "href": "#flight" },
+    { "label": "首飞", "href": "#maiden" },
+    { "label": "影像", "href": "#gallery" },
+    { "label": "下一步", "href": "#roadmap" }
+  ],
+  "hero": {
+    "video": "/flydrone.mp4",
+    "videoPoster": "",
+    "kicker": "DIY · ArduPilot · 开源飞控",
+    "title": "从零到一",
+    "subtitle": "我的 770mm H 型自组无人机 · 首飞全记录",
+    "badges": ["轴距 770mm", "6010 电机", "6S2P 21700", "MicoAir743"]
+  },
+  "specs": {
+    "title": "核心参数",
+    "subtitle": "整机技术规格一览",
+    "items": [
+      { "label": "轴距", "value": "770mm" },
+      { "label": "布局", "value": "H 型四轴" },
+      { "label": "中梁", "value": "25mm 碳管" },
+      { "label": "机臂", "value": "20mm 碳管" },
+      { "label": "中心板宽", "value": "80mm" },
+      { "label": "动力", "value": "6010 · 1855 桨" },
+      { "label": "电池", "value": "6S2P 21700" },
+      { "label": "飞控", "value": "MicoAir743" }
+    ]
+  },
+  "sections": [
+    {
+      "id": "overview",
+      "title": "缘起",
+      "subtitle": "不再满足于成品，亲手打造一套可扩展的空中系统",
+      "paragraphs": [
+        "今年夏天，我决定亲手打造一架属于自己的 H 型四轴。目标很明确：轴距 770mm、6010 电机、21700 电池、可挂载云台——不是一架飞行器，而是一套完整的、可扩展的空中系统。"
+      ],
+      "highlight": "这是我第一次从零开始组装无人机，也是第一次学习 ArduPilot 飞控。"
+    },
+    {
+      "id": "airframe",
+      "title": "机架",
+      "subtitle": "从草图到机架：25mm 碳管贯穿，80mm 中心板包裹电池",
+      "paragraphs": [
+        "机架采用 H 型布局：中央 25mm 碳管贯穿，机臂 20mm 碳管，铝合金三通连接，AB 胶加固。中心板宽度定为 80mm——恰好匹配 21700 电芯长度，让电池被包裹在结构之中。"
+      ],
+      "keypoints": [
+        "6010 电机 + 1855 桨：6S 电压下可提供 4–5kg 拉力，18 寸桨在效率与噪音之间取得平衡。",
+        "21700 电芯：能量密度与安全性优于软包电池，更适合长航时飞行。"
+      ]
+    },
+    {
+      "id": "power",
+      "title": "动力",
+      "subtitle": "电力心脏：6S2P 电池组与带电流计的分电板",
+      "paragraphs": [
+        "12 颗亿纬 INR21700-50PL 按 6S2P 构型焊接，内阻一致性极好（极差仅 0.39mΩ）。采用前后各 6 颗的布局，与 80mm 中心板完美贴合。",
+        "为满足双电并联冗余，分电板主线路 30mm 宽、双面 1oz 铜箔并开窗堆锡；两块电池同步监测，实现精确的能耗监控。"
+      ]
+    },
+    {
+      "id": "flight",
+      "title": "飞控与调参",
+      "subtitle": "大脑与神经：MicoAir743 + ArduPilot",
+      "paragraphs": [
+        "飞控为 MicoAir743，搭载 ArduPilot固件。GPS 定位精度不足，遂采用更可靠的 MTF-02P 光流传感器。SD 卡损坏导致日志无法记录——逐个解决后，初始调参（Initial Tune）非常顺利，输入 18 寸桨与 6S 参数后，AltHold 模式下稳定悬停。",
+        "地面站使用 QGC，数传延迟约 0.5s。首飞前每个电机检查转向，避免了通道顺序反接。"
+      ]
+    },
+    {
+      "id": "maiden",
+      "title": "首飞",
+      "subtitle": "2026.08.29 · 离地瞬间",
+      "paragraphs": [
+        "一个晴朗的下午，微风。解锁、推杆，飞机平稳离地约 2 米，直上直下，我则专注于保持姿态稳定。收油、缓缓落下、轻微触地——那一刻涌上的不是狂喜，而是「它真的能飞」的踏实感。"
+      ],
+      "highlight": "首飞成功，意味着从零到一的自组无人机正式投入使用。"
+    }
+  ],
+  "flightMetrics": {
+    "title": "首飞数据",
+    "subtitle": "飞控回放 · 远低于理论值的高效系统",
+    "items": [
+      { "value": "23A", "label": "悬停电流" },
+      { "value": "33.5A", "label": "峰值电流" },
+      { "value": "0.5s", "label": "数传延迟" },
+      { "value": "0.39mΩ", "label": "电芯内阻极差" }
+    ]
+  },
+  "gallery": {
+    "title": "影像记录",
+    "subtitle": "图片位置预留 · 后续补充实拍",
+    "items": [
+      { "alt": "整机总装" },
+      { "alt": "分电板与电池组" },
+      { "alt": "首飞瞬间" }
+    ]
+  },
+  "roadmap": {
+    "title": "下一步",
+    "subtitle": "从「能飞」到「空中系统」",
+    "items": [
+      { "icon": "🎥", "title": "云台挂载", "desc": "为航拍与稳定视角预留接口" },
+      { "icon": "💡", "title": "灯板 / 喊话模块", "desc": "任务化载荷，拓展应用场景" },
+      { "icon": "📡", "title": "树莓派 + 4G", "desc": "远程控制的终极方案" }
+    ]
+  },
+  "footer": {
+    "brandPrefix": "Lumi",
+    "brandAccent": "Drone",
+    "description": "从零到一，造一架属于自己的无人机。",
+    "navTitle": "页面导航",
+    "nav": [
+      { "label": "返回首页", "href": "./index.html" },
+      { "label": "机架", "href": "#airframe" },
+      { "label": "动力", "href": "#power" },
+      { "label": "飞控", "href": "#flight" },
+      { "label": "首飞", "href": "#maiden" }
+    ],
+    "contactTitle": "技术栈",
+    "contactLinks": [
+      { "icon": "🛠", "label": "MicoAir743 · ArduPilot", "href": "#" },
+      { "icon": "🔋", "label": "6S2P · INR21700-50PL", "href": "#" },
+      { "icon": "🖥", "label": "QGC 地面站", "href": "#" }
+    ],
+    "socialLinks": [
+      { "label": "🏠 返回首页", "href": "./index.html" },
+      { "label": "📝 关于我", "href": "./index.html#about" },
+      { "label": "🛍️ 小商店", "href": "./config.html" }
+    ],
+    "copyright": "© 2026 LumiNya · 自组无人机项目"
+  }
+}
