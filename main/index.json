@@ -13,13 +13,13 @@
   ],
   "hero": {
     "title": "你好，我是LumiNya",
-    "subhead": "一个喜欢编程的初中生 · 正在学习做网站",
+    "subhead": "一个喜欢编程的高中生 · 正在学习做网站",
     "bio": "课余时间写写代码，听听音乐，玩玩游戏。慢慢地，用自己的方式搭建起这个小网站。",
     "status": "在线 · 欢迎来玩",
     "profile": {
       "avatar": "✨",
       "name": "LumiNya",
-      "role": "初中生 · 编程爱好者"
+      "role": "高中生 · 编程爱好者"
     },
     "buttons": [
       { "label": "看看我的作品", "href": "#work", "className": "btn--primary" },

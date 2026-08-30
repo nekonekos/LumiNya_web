@@ -1,15 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 :root {
-  --bg: #111318;
-  --panel: #17191f;
-  --panel-2: #1d2027;
-  --line: #2a2e37;
-  --text: #d9dee8;
-  --muted: #747d8d;
-  --faint: #4b5361;
-  --blue: #7db7ff;
-  --green: #9bd8b4;
+  --bg: #1c2128;
+  --panel: #242c34;
+  --panel-2: #2a323c;
+  --line: #343d49;
+  --text: #E8EDF3;
+  --muted: #9AA8B9;
+  --faint: #6A7B8C;
+  --blue: #8AB8E0;
+  --green: #8DD4BA;
   --yellow: #e8c778;
   --pink: #ed9cba;
   --red: #f58f88;
@@ -31,7 +31,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(circle at 90% 0%, rgba(125, 183, 255, .08), transparent 34rem), var(--bg);
+  background: radial-gradient(circle at 90% 0%, rgba(138, 184, 224, .08), transparent 34rem), var(--bg);
 }
 
 /* ===== 顶栏 ===== */
@@ -43,7 +43,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   gap: 14px;
   padding: 0 16px;
   border-bottom: 1px solid var(--line);
-  background: rgba(17, 19, 24, .9);
+  background: rgba(28, 33, 40, .9);
 }
 .brand {
   color: var(--text);
@@ -91,7 +91,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* 活动栏 */
 .activitybar {
-  background: #15171c;
+  background: #20262e;
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
@@ -377,11 +377,11 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* ===== 浅色主题 ===== */
 .light-theme {
-  --bg: #f4f6f9; --panel: #fff; --panel-2: #f9fafc; --line: #dfe4eb;
-  --text: #273142; --muted: #687386; --faint: #a0aaba;
-  --blue: #2878c8; --green: #238653; --yellow: #a56b00; --pink: #b53770; --red: #b63d36;
+  --bg: #f6faff; --panel: #ffffff; --panel-2: #f4f8fd; --line: #dfe4eb;
+  --text: #2C3E50; --muted: #5A6B7C; --faint: #8A9BAE;
+  --blue: #4f8bc9; --green: #4aa98a; --yellow: #a56b00; --pink: #b53770; --red: #b63d36;
 }
-.light-theme .topbar, .light-theme .activitybar { background: #edf0f4; }
+.light-theme .topbar, .light-theme .activitybar { background: #eef4fb; }
 .light-theme .editor {
   background: linear-gradient(90deg, rgba(38, 55, 75, .035) 0, rgba(38, 55, 75, .035) 54px, transparent 54px);
 }

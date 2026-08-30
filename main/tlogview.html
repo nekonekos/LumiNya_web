@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ArduPilot Tlog 分析器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
     <!-- 引入 Three.js 和 ECharts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
     </script>
@@ -19,8 +22,8 @@
             padding: 0;
         }
         body {
-            font-family: 'Segoe UI', 'PingFang SC', Roboto, sans-serif;
-            background: #0b0e17;
+            font-family: 'Inter', 'Segoe UI', 'PingFang SC', Roboto, sans-serif;
+            background: #1c2128;
             color: #e8edf5;
             height: 100vh;
             overflow: hidden;
@@ -45,12 +48,12 @@
 
         /* ========== 顶部导航 ========== */
         #header {
-            background: linear-gradient(135deg, #121724 0%, #1a2332 100%);
+            background: linear-gradient(135deg, #1c2128 0%, #242c34 100%);
             padding: 10px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid #2a3548;
+            border-bottom: 1px solid #343d49;
             flex-shrink: 0;
             height: 64px;
             flex-wrap: wrap;
@@ -59,8 +62,9 @@
         #header .logo {
             font-size: 20px;
             font-weight: 700;
-            background: linear-gradient(90deg, #4fc3f7, #00e5ff);
+            background: linear-gradient(90deg, #8AB8E0, #8DD4BA);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: 0.5px;
             display: flex;
@@ -70,7 +74,7 @@
         #header .logo small {
             font-size: 13px;
             font-weight: 400;
-            -webkit-text-fill-color: #8899bb;
+            -webkit-text-fill-color: #9AA8B9;
             background: none;
         }
         #header .actions {
@@ -217,23 +221,23 @@
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: #4fc3f7;
+            background: #8AB8E0;
             cursor: pointer;
             border: 2px solid #0b0e17;
-            box-shadow: 0 0 12px rgba(79, 195, 247, 0.4);
+            box-shadow: 0 0 12px rgba(138, 184, 224, 0.4);
         }
         #timelineSlider::-moz-range-thumb {
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: #4fc3f7;
+            background: #8AB8E0;
             cursor: pointer;
             border: 2px solid #0b0e17;
         }
         #timeDisplay {
             font-size: 14px;
             font-weight: 500;
-            color: #4fc3f7;
+            color: #8AB8E0;
             min-width: 100px;
             font-variant-numeric: tabular-nums;
         }
@@ -319,7 +323,7 @@
             font-variant-numeric: tabular-nums;
         }
         #infoPanel .info-item .value.alt {
-            color: #4dd0e1;
+            color: #8AB8E0;
         }
         #infoPanel .info-item .value.batt {
             color: #ffb74d;
@@ -386,7 +390,7 @@
             width: 40px;
             height: 40px;
             border: 4px solid #1a2332;
-            border-top-color: #4fc3f7;
+            border-top-color: #8AB8E0;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
@@ -425,10 +429,11 @@
     <!-- ========== 顶部栏 ========== -->
     <header id="header">
         <div class="logo">
-            🚁 ArduPilot Tlog 分析器
-            <small>v2.0 · 加速度计轨迹</small>
+            🚁 LumiNya · Tlog 分析器
+            <small>ArduPilot · 加速度计轨迹</small>
         </div>
         <div class="actions">
+            <a class="btn btn-outline" href="./index.html" style="text-decoration:none;">🏠 首页</a>
             <span id="fileInfo">未加载日志</span>
             <div class="file-upload-wrap">
                 <button class="btn btn-primary">📂 选择 .tlog</button>
@@ -1118,7 +1123,7 @@
                     },
                     legend: {
                         data: [],
-                        textStyle: { color: '#8899bb' },
+                        textStyle: { color: '#9AA8B9' },
                         top: 8,
                         right: 16,
                     },
@@ -1173,7 +1178,7 @@
                     data: time.map((t, i) => [t, altData[i]]),
                     smooth: true,
                     symbol: 'none',
-                    lineStyle: { color: '#4dd0e1', width: 2 },
+                    lineStyle: { color: '#8AB8E0', width: 2 },
                 });
 
                 // 电池电流 (A)
@@ -1219,7 +1224,7 @@
                 chart.setOption({
                     legend: {
                         data: ['高度 (cm)', '电流 (A)', 'Roll (°)', 'Pitch (°)', 'Yaw (°)'],
-                        textStyle: { color: '#8899bb' },
+                        textStyle: { color: '#9AA8B9' },
                         top: 8,
                         right: 16,
                     },
