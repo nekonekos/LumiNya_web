@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f6fbff" />
+    <meta name="description" content="LumiNya 的个人联系方式快速入口：QQ、微信、邮箱等，一键复制或唤起应用。" />
+    <meta property="og:title" content="LumiNya · 联系我" />
+    <meta property="og:description" content="个人联系方式快速入口，一键复制或唤起应用。" />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/wikilink.css" />
+    <title>LumiNya · 联系我</title>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色" title="切换深浅色">
+        <span class="theme-icon" id="themeIcon">🌙</span>
+    </button>
+
+    <main class="shell" id="app">
+        <div class="loading" style="text-align:center;color:var(--text-faint);padding:2rem 0;">正在加载…</div>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            var CONFIG_URL = './config.json';
+            var THEME_KEY = 'theme-preference';
+            var app = document.getElementById('app');
+            var root = document.documentElement;
+
+            /* ===== Helpers ===== */
+            function escapeHtml(value) {
+                return String(value == null ? '' : value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function detectPlatform() {
+                var ua = navigator.userAgent;
+                if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+                if (/Android/i.test(ua)) return 'android';
+                if (/Windows|Win32|Win64/i.test(ua)) return 'windows';
+                if (/Macintosh|Mac OS X/i.test(ua)) return 'mac';
+                return 'default';
+            }
+
+            /* ===== Clipboard (with fallback) ===== */
+            function copyText(text) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    return navigator.clipboard.writeText(text);
+                }
+                return new Promise(function (resolve, reject) {
+                    var ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'absolute';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    ta.setSelectionRange(0, text.length);
+                    try {
+                        document.execCommand('copy');
+                        resolve();
+                    } catch (e) {
+                        reject(e);
+                    } finally {
+                        document.body.removeChild(ta);
+                    }
+                });
+            }
+
+            /* ===== Toast ===== */
+            var toast = document.getElementById('toast');
+            var toastTimer = null;
+            function showToast(message) {
+                toast.textContent = message;
+                toast.classList.add('visible');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(function () {
+                    toast.classList.remove('visible');
+                }, 2600);
+            }
+
+            /* ===== Theme ===== */
+            function applyTheme(theme) {
+                if (theme === 'dark') {
+                    root.setAttribute('data-theme', 'dark');
+                    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#14181d');
+                    document.getElementById('themeIcon').textContent = '☀️';
+                } else {
+                    root.removeAttribute('data-theme');
+                    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f6fbff');
+                    document.getElementById('themeIcon').textContent = '🌙';
+                }
+            }
+            function getPreferredTheme() {
+                var stored = localStorage.getItem(THEME_KEY);
+                if (stored === 'dark' || stored === 'light') return stored;
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            function initTheme() {
+                applyTheme(getPreferredTheme());
+                document.getElementById('themeToggle').addEventListener('click', function () {
+                    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                    localStorage.setItem(THEME_KEY, next);
+                    applyTheme(next);
+                });
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').addEventListener) {
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+                        if (!localStorage.getItem(THEME_KEY)) applyTheme(e.matches ? 'dark' : 'light');
+                    });
+                }
+            }
+
+            /* ===== Builders ===== */
+            function buildCard(card) {
+                var el = document.createElement('article');
+                el.className = 'card';
+                el.style.setProperty('--accent', card.accent || '#6B9FD4');
+
+                if (card.placeholder) el.classList.add('card--placeholder');
+
+                var main = document.createElement('div');
+                main.className = 'card-main';
+                main.innerHTML =
+                    '<div class="card-icon">' + escapeHtml(card.icon || '') + '</div>' +
+                    '<div class="card-body">' +
+                        '<div class="card-label">' + escapeHtml(card.label || '') + '</div>' +
+                        '<div class="card-value">' + escapeHtml(card.value || '') + '</div>' +
+                        (card.note ? '<div class="card-note">' + escapeHtml(card.note) + '</div>' : '') +
+                    '</div>';
+                el.appendChild(main);
+
+                // Actions row
+                if (card.actions && card.actions.length) {
+                    var actions = document.createElement('div');
+                    actions.className = 'card-actions';
+                    (card.actions || []).forEach(function (action) {
+                        if (action.type === 'link') {
+                            var a = document.createElement('a');
+                            a.className = 'chip ' + (action.kind ? 'chip--' + action.kind : 'chip--ghost');
+                            a.href = action.href || '#';
+                            if (/^https?:\/\//i.test(action.href || '')) {
+                                a.target = '_blank';
+                                a.rel = 'noopener';
+                            }
+                            a.textContent = action.label || '打开';
+                            actions.appendChild(a);
+                        } else {
+                            var b = document.createElement('button');
+                            b.type = 'button';
+                            b.className = 'chip ' + (action.kind ? 'chip--' + action.kind : 'chip--ghost');
+                            b.textContent = action.label || '操作';
+                            b.addEventListener('click', function () {
+                                if (action.type === 'copy') handleCopy(action, card);
+                                else if (action.type === 'scheme') handleScheme(action, el);
+                            });
+                            actions.appendChild(b);
+                        }
+                    });
+                    el.appendChild(actions);
+                }
+
+                // Steps toggle + steps list
+                if (card.steps && card.steps.length) {
+                    var toggle = document.createElement('button');
+                    toggle.type = 'button';
+                    toggle.className = 'chip chip--ghost chip-toggle';
+                    toggle.textContent = '使用步骤 ▾';
+                    el.appendChild(toggle);
+
+                    var steps = document.createElement('div');
+                    steps.className = 'card-steps';
+                    steps.hidden = true;
+                    (card.steps || []).forEach(function (text, i) {
+                        var s = document.createElement('div');
+                        s.className = 'step';
+                        s.innerHTML =
+                            '<span class="step-num">' + (i + 1) + '</span>' +
+                            '<span>' + escapeHtml(text) + '</span>';
+                        steps.appendChild(s);
+                    });
+                    el.appendChild(steps);
+
+                    toggle.addEventListener('click', function () {
+                        var isHidden = steps.hidden;
+                        steps.hidden = !isHidden;
+                        toggle.textContent = isHidden ? '收起步骤 ▴' : '使用步骤 ▾';
+                    });
+                }
+
+                // Hint (fallback for scheme)
+                var hint = document.createElement('div');
+                hint.className = 'card-hint';
+                hint.hidden = true;
+                el.appendChild(hint);
+
+                return el;
+            }
+
+            function buildProfile(profile) {
+                var el = document.createElement('header');
+                el.className = 'profile';
+                el.innerHTML =
+                    '<div class="avatar">' + escapeHtml(profile.avatar || '✨') + '</div>' +
+                    '<div class="profile-name">' + escapeHtml(profile.name || '') + '</div>' +
+                    '<p class="profile-bio">' + escapeHtml(profile.bio || '') + '</p>' +
+                    (profile.location ? '<span class="profile-loc">📍 ' + escapeHtml(profile.location) + '</span>' : '');
+                return el;
+            }
+
+            /* ===== Interactions ===== */
+            function handleCopy(action, card) {
+                var text = action.copy || card.value || '';
+                copyText(text).then(function () {
+                    var label = (action.label || '').replace(/^复制\s*/, '');
+                    showToast('已复制' + (label ? '「' + label + '」' : ''));
+                }).catch(function () {
+                    showToast('复制失败，请长按手动复制');
+                });
+            }
+
+            function handleScheme(action, cardEl) {
+                var platform = detectPlatform();
+                var schemes = action.schemes || {};
+                var url = schemes[platform] || schemes['default'] ||
+                    schemes['ios'] || schemes['android'] || schemes['windows'] || '';
+                if (!url) return;
+                window.location.href = url;
+
+                var hint = cardEl.querySelector('.card-hint');
+                if (action.fallback && hint) {
+                    hint.textContent = action.fallback;
+                    hint.hidden = false;
+                    clearTimeout(hint._t);
+                    hint._t = setTimeout(function () { hint.hidden = true; }, 5200);
+                }
+            }
+
+            /* ===== Render ===== */
+            function renderPage(data) {
+                var fragment = document.createDocumentFragment();
+                fragment.appendChild(buildProfile(data.profile || {}));
+
+                var cards = document.createElement('section');
+                cards.className = 'cards';
+                (data.cards || []).forEach(function (card) {
+                    cards.appendChild(buildCard(card));
+                });
+                fragment.appendChild(cards);
+
+                var footer = document.createElement('footer');
+                footer.className = 'footer';
+                footer.textContent = data.site && data.site.footer ? data.site.footer : '';
+                fragment.appendChild(footer);
+
+                app.innerHTML = '';
+                app.appendChild(fragment);
+            }
+
+            /* ===== Boot ===== */
+            initTheme();
+
+            fetch(CONFIG_URL)
+                .then(function (response) {
+                    if (!response.ok) throw new Error('加载配置失败');
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (data.site && data.site.title) document.title = data.site.title;
+                    renderPage(data);
+                })
+                .catch(function () {
+                    app.innerHTML =
+                        '<div class="loading" style="text-align:center;color:var(--text-faint);padding:2rem 0;">' +
+                        '配置加载失败，请检查 config.json。</div>';
+                });
+        })();
+    </script>
+</body>
+</html>

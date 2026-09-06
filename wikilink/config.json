@@ -1,0 +1,137 @@
+{
+  "site": {
+    "title": "LumiNya · 联系我",
+    "description": "LumiNya 的个人联系方式快速入口：QQ、微信、邮箱等，一键复制或唤起应用。",
+    "themeToggleLabel": "切换深浅色",
+    "footer": "© 2026 LumiNya · 联系我"
+  },
+  "profile": {
+    "avatar": "✨",
+    "name": "LumiNya",
+    "bio": "喜欢编程的初中生 · 想聊天、一起玩游戏？从这里找到我",
+    "location": "中国 · 广州"
+  },
+  "cards": [
+    {
+      "id": "qq",
+      "icon": "🐧",
+      "label": "QQ",
+      "value": "1686157307",
+      "accent": "#12B7F5",
+      "actions": [
+        { "type": "copy", "label": "复制 QQ 号", "copy": "1686157307", "kind": "primary" },
+        {
+          "type": "scheme",
+          "label": "打开 QQ",
+          "kind": "accent",
+          "schemes": {
+            "ios": "mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1686157307&card_type=person&source=sharecard",
+            "android": "mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1686157307&card_type=person&source=sharecard",
+            "windows": "tencent://message/?uin=1686157307&Site=luminya.cc&Menu=yes"
+          },
+          "fallback": "若未自动跳转，请打开 QQ 搜索号码添加"
+        }
+      ],
+      "steps": [
+        "点击「复制 QQ 号」保存号码",
+        "点击「打开 QQ」自动唤起并查看资料卡",
+        "若上方未跳转，请打开 QQ 搜索该号码添加"
+      ]
+    },
+    {
+      "id": "wechat",
+      "icon": "💬",
+      "label": "微信",
+      "value": "LumiNya_Dev",
+      "accent": "#07C160",
+      "note": "微信暂无法从网页直接加好友，请按步骤手动添加",
+      "actions": [
+        { "type": "copy", "label": "复制微信号", "copy": "LumiNya_Dev", "kind": "primary" },
+        {
+          "type": "scheme",
+          "label": "打开微信",
+          "kind": "accent",
+          "schemes": {
+            "ios": "weixin://",
+            "android": "weixin://",
+            "windows": "weixin://"
+          },
+          "fallback": "若未自动跳转，请手动打开微信"
+        }
+      ],
+      "steps": [
+        "点击「复制微信号」保存 LumiNya_Dev",
+        "打开微信 → 右上角 ＋ → 添加朋友",
+        "粘贴或输入微信号搜索并发送好友申请"
+      ]
+    },
+    {
+      "id": "email",
+      "icon": "✉️",
+      "label": "邮箱",
+      "value": "contact@luminya.cc",
+      "accent": "#6B9FD4",
+      "actions": [
+        { "type": "copy", "label": "复制邮箱", "copy": "contact@luminya.cc", "kind": "primary" },
+        { "type": "link", "label": "写邮件", "kind": "accent", "href": "mailto:contact@luminya.cc" }
+      ],
+      "steps": [
+        "点击「写邮件」唤起邮件应用",
+        "或点击「复制邮箱」后自己粘贴发送"
+      ]
+    },
+    {
+      "id": "github",
+      "icon": "🐙",
+      "label": "GitHub",
+      "value": "github.com/nekonekos",
+      "accent": "#6f6f8f",
+      "actions": [
+        { "type": "link", "label": "打开主页", "kind": "accent", "href": "https://github.com/nekonekos" },
+        { "type": "copy", "label": "复制", "copy": "github.com/nekonekos", "kind": "ghost" }
+      ],
+      "steps": [
+        "点击「打开主页」访问 GitHub",
+        "或点击「复制」分享链接给朋友"
+      ]
+    },
+    {
+      "id": "x",
+      "icon": "🕊️",
+      "label": "X",
+      "value": "@LumiNyacc",
+      "accent": "#1D9BF0",
+      "actions": [
+        { "type": "link", "label": "打开主页", "kind": "accent", "href": "https://x.com/LumiNyacc" },
+        { "type": "copy", "label": "复制", "copy": "@LumiNyacc", "kind": "ghost" }
+      ],
+      "steps": [
+        "点击「打开主页」访问我的 X",
+        "或点击「复制」分享账号给朋友"
+      ]
+    },
+    {
+      "id": "telegram",
+      "icon": "📨",
+      "label": "Telegram",
+      "value": "待补充",
+      "accent": "#229ED9",
+      "placeholder": true
+    },
+    {
+      "id": "discord",
+      "icon": "🎮",
+      "label": "Discord",
+      "value": "待补充",
+      "accent": "#5865F2",
+      "placeholder": true
+    },
+    {
+      "id": "location",
+      "icon": "📍",
+      "label": "所在地",
+      "value": "中国 · 广州",
+      "accent": "#75BFA7"
+    }
+  ]
+}
