@@ -6,12 +6,27 @@
     "footer": "© 2026 LumiNya · 联系我"
   },
   "profile": {
-    "avatar": "✨",
+    "monogram": "LN",
     "name": "LumiNya",
-    "bio": "喜欢编程的初中生 · 想聊天、一起玩游戏？从这里找到我",
+    "bio": "这是我的联系方式页面，欢迎联系我！",
     "location": "中国 · 广州"
   },
   "cards": [
+    {
+      "id": "site",
+      "icon": "🌐",
+      "label": "个人网站",
+      "value": "luminya.cc",
+      "accent": "#6B9FD4",
+      "actions": [
+        { "type": "link", "label": "去逛逛", "kind": "accent", "href": "https://luminya.cc" },
+        { "type": "copy", "label": "复制网址", "copy": "https://luminya.cc", "kind": "ghost" }
+      ],
+      "steps": [
+        "点击「去逛逛」打开我的个人网站",
+        "或点击「复制网址」分享链接给朋友"
+      ]
+    },
     {
       "id": "qq",
       "icon": "🐧",
@@ -44,7 +59,6 @@
       "label": "微信",
       "value": "LumiNya_Dev",
       "accent": "#07C160",
-      "note": "微信暂无法从网页直接加好友，请按步骤手动添加",
       "actions": [
         { "type": "copy", "label": "复制微信号", "copy": "LumiNya_Dev", "kind": "primary" },
         {

@@ -212,7 +212,7 @@
                 var el = document.createElement('header');
                 el.className = 'profile';
                 el.innerHTML =
-                    '<div class="avatar">' + escapeHtml(profile.avatar || '✨') + '</div>' +
+                    '<div class="avatar" aria-hidden="true">' + escapeHtml(profile.monogram || 'LN') + '</div>' +
                     '<div class="profile-name">' + escapeHtml(profile.name || '') + '</div>' +
                     '<p class="profile-bio">' + escapeHtml(profile.bio || '') + '</p>' +
                     (profile.location ? '<span class="profile-loc">📍 ' + escapeHtml(profile.location) + '</span>' : '');

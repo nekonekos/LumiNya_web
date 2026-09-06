@@ -115,17 +115,32 @@ body {
   padding-top: 0.6rem;
 }
 .avatar {
-  width: 86px;
-  height: 86px;
-  border-radius: 50%;
+  width: 88px;
+  height: 88px;
+  border-radius: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.5rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  background: linear-gradient(135deg, #6B9FD4 0%, #75BFA7 100%);
+  box-shadow: 0 14px 30px -12px rgba(107, 159, 212, 0.5);
   margin: 0 auto 0.9rem;
+  animation: avatarFloat 4s ease-in-out infinite;
+}
+@keyframes avatarFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 14px 30px -12px rgba(107, 159, 212, 0.45);
+  }
+  50% {
+    transform: translateY(-5px);
+    box-shadow: 0 22px 38px -12px rgba(107, 159, 212, 0.62);
+  }
 }
 .profile-name {
   font-size: 1.6rem;
