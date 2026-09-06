@@ -20,6 +20,7 @@ export async function handlePublic(request, env, url) {
 
   // ---- 商品 ----
   if (path === '/api/products' && method === 'GET') return productsList(request, env, url);
+  if (path === '/api/products/batch' && method === 'POST') return productsBatch(request, env);
   const productMatch = path.match(/^\/api\/products\/([^/]+)$/);
   if (productMatch && method === 'GET') return productDetail(env, productMatch[1]);
 
@@ -27,7 +28,8 @@ export async function handlePublic(request, env, url) {
   if (path === '/api/categories' && method === 'GET') return categories(env);
 
   // ---- 用户订单 ----
-  if (path === '/api/orders' && method === 'GET') return myOrders(request, env);
+  if (path === '/api/orders' && method === 'GET') return myOrders(request, env, url);
+  if (path === '/api/orders/quote' && method === 'POST') return quoteOrder(request, env);
   if (path === '/api/orders' && method === 'POST') return createOrder(request, env);
   const orderMatch = path.match(/^\/api\/orders\/([^/]+)$/);
   if (orderMatch && method === 'GET') return myOrderDetail(request, env, orderMatch[1]);
@@ -35,6 +37,8 @@ export async function handlePublic(request, env, url) {
   if (cancelMatch && method === 'POST') return cancelOrder(request, env, cancelMatch[1]);
   const afterSaleMatch = path.match(/^\/api\/orders\/([^/]+)\/after-sale$/);
   if (afterSaleMatch && method === 'POST') return applyAfterSale(request, env, afterSaleMatch[1]);
+  const completeMatch = path.match(/^\/api\/orders\/([^/]+)\/complete$/);
+  if (completeMatch && method === 'POST') return completeOrder(request, env, completeMatch[1]);
 
   return error('Not Found', 404);
 }
@@ -107,7 +111,10 @@ async function productsList(request, env, url) {
     category: url.searchParams.get('category') || undefined,
     search: url.searchParams.get('q') || undefined,
     page: url.searchParams.get('page') || 1,
-    size: url.searchParams.get('size') || 12
+    size: url.searchParams.get('size') || 12,
+    sort: url.searchParams.get('sort') || 'new',
+    priceMin: url.searchParams.get('price_min') || undefined,
+    priceMax: url.searchParams.get('price_max') || undefined
   });
   return json(result);
 }
@@ -116,6 +123,27 @@ async function productDetail(env, id) {
   const product = await getProduct(env, id);
   if (!product) return error('商品不存在或已下架', 404);
   return json({ product });
+}
+
+/** 批量返回商品（含 SKU），供购物车一次回验价格/库存 */
+async function productsBatch(request, env) {
+  const body = await readJson(request);
+  const ids = Array.isArray(body?.ids) ? body.ids.map(String) : [];
+  if (!ids.length) return json({ products: [] });
+
+  const placeholders = ids.map(() => '?').join(',');
+  const { results: products } = await env.DB.prepare(
+    `SELECT * FROM products WHERE id IN (${placeholders}) AND status = 'on'`
+  ).bind(...ids).all();
+  const { results: variants } = await env.DB.prepare(
+    `SELECT * FROM product_variants WHERE product_id IN (${placeholders}) AND enabled = 1`
+  ).bind(...ids).all();
+  const byProduct = {};
+  variants.forEach(v => { (byProduct[v.product_id] = byProduct[v.product_id] || []).push(v); });
+
+  return json({
+    products: products.map(p => ({ ...publicProduct(p), variants: byProduct[p.id] || [] }))
+  });
 }
 
 async function categories(env) {
@@ -127,15 +155,31 @@ async function categories(env) {
 
 // ---------- 订单 ----------
 
-async function myOrders(request, env) {
+async function myOrders(request, env, url) {
   const payload = await authUser(request, env);
   if (!payload) return error('未登录', 401);
-  const { results } = await env.DB.prepare(
-    `SELECT id, order_no, status, subtotal, shipping_fee, total, pay_channel, created_at, paid_at,
-            items_json, address_json, tracking_company, tracking_no, shipped_at,
-            after_sale_status, after_sale_reason, after_sale_note, after_sale_created_at
-     FROM orders WHERE user_id = ?1 ORDER BY created_at DESC`
-  ).bind(payload.sub).all();
+  const status = url?.searchParams.get('status') || '';
+  const valid = ['pending', 'paid', 'shipped', 'completed', 'cancelled', 'expired'];
+  const cols = `id, order_no, status, subtotal, shipping_fee, total, pay_channel, created_at, paid_at,
+                items_json, address_json, tracking_company, tracking_no, shipped_at,
+                after_sale_status, after_sale_reason, after_sale_note, after_sale_created_at`;
+  let results;
+  if (status === 'after') {
+    const { results: rows } = await env.DB.prepare(
+      `SELECT ${cols} FROM orders WHERE user_id = ?1 AND after_sale_status IN ('applied','processing') ORDER BY created_at DESC`
+    ).bind(payload.sub).all();
+    results = rows;
+  } else if (valid.includes(status)) {
+    const { results: rows } = await env.DB.prepare(
+      `SELECT ${cols} FROM orders WHERE user_id = ?1 AND status = ?2 ORDER BY created_at DESC`
+    ).bind(payload.sub, status).all();
+    results = rows;
+  } else {
+    const { results: rows } = await env.DB.prepare(
+      `SELECT ${cols} FROM orders WHERE user_id = ?1 ORDER BY created_at DESC`
+    ).bind(payload.sub).all();
+    results = rows;
+  }
   return json({
     orders: results.map((o) => ({
       ...o,
@@ -267,6 +311,52 @@ async function createOrder(request, env) {
   return json({ order: { id: orderId, order_no: orderNo, total } }, 201);
 }
 
+/** 订单金额预估（不写库）：返回 subtotal / shipping_fee / total 供结算页展示 */
+async function quoteOrder(request, env) {
+  const payload = await authUser(request, env);
+  if (!payload) return error('未登录', 401);
+  const body = await readJson(request);
+  const items = Array.isArray(body?.items) ? body.items : [];
+  if (!items.length) return error('订单为空', 400);
+
+  let subtotal = 0;
+  let count = 0;
+  const physical = [];
+  for (const item of items) {
+    const qty = Math.max(1, parseInt(item.qty, 10) || 1);
+    count += qty;
+    const product = await env.DB.prepare('SELECT * FROM products WHERE id = ?1').bind(item.product_id).first();
+    if (!product || product.status !== 'on') return error('商品不存在或已下架', 400);
+    let unitPrice = product.price;
+    if (item.variant_id) {
+      const variant = await env.DB.prepare('SELECT * FROM product_variants WHERE id = ?1 AND product_id = ?2')
+        .bind(item.variant_id, item.product_id).first();
+      if (!variant || !variant.enabled) return error('商品规格不存在', 400);
+      unitPrice = variant.price;
+      if (variant.stock < qty) return error(`「${product.title} · ${variant.name}」库存不足`, 409);
+    } else if (product.stock < qty) {
+      return error(`「${product.title}」库存不足`, 409);
+    }
+    subtotal += unitPrice * qty;
+    if (product.type === 'physical') physical.push(product);
+  }
+
+  let shippingFee = 0;
+  for (const product of physical) {
+    if (product.shipping_template_id) {
+      const tpl = await env.DB.prepare('SELECT * FROM shipping_templates WHERE id = ?1')
+        .bind(product.shipping_template_id).first();
+      if (tpl) {
+        const fee = subtotal >= tpl.free_threshold && tpl.free_threshold > 0 ? 0 : tpl.base_fee;
+        shippingFee = Math.max(shippingFee, fee);
+      }
+    }
+  }
+
+  const total = subtotal + shippingFee;
+  return json({ quote: { subtotal, shipping_fee: shippingFee, total, count } });
+}
+
 /** 用户取消订单：仅待支付可取消，已支付及之后状态不支持取消 */
 async function cancelOrder(request, env, id) {
   const payload = await authUser(request, env);
@@ -278,6 +368,21 @@ async function cancelOrder(request, env, id) {
 
   await env.DB.prepare(
     `UPDATE orders SET status = 'cancelled', updated_at = unixepoch() WHERE id = ?1 AND status = 'pending'`
+  ).bind(id).run();
+
+  return json({ ok: true });
+}
+
+/** 用户确认收货：仅已发货（shipped）可转为已完成 */
+async function completeOrder(request, env, id) {
+  const payload = await authUser(request, env);
+  if (!payload) return error('未登录', 401);
+  const order = await env.DB.prepare('SELECT * FROM orders WHERE id = ?1').bind(id).first();
+  if (!order || order.user_id !== payload.sub) return error('订单不存在', 404);
+  if (order.status !== 'shipped') return error('当前状态不可确认收货', 409);
+
+  await env.DB.prepare(
+    `UPDATE orders SET status = 'completed', updated_at = unixepoch() WHERE id = ?1 AND status = 'shipped'`
   ).bind(id).run();
 
   return json({ ok: true });

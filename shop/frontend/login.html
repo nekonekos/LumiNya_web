@@ -14,11 +14,13 @@
         <div id="pageContent"></div>
     </div>
 
+    <script src="./js/ui.js"></script>
+    <script src="./js/layout.js"></script>
     <script src="./js/shop.js"></script>
     <script>
         (async function () {
             await initCommon();
-            const redirect = new URLSearchParams(location.search).get('redirect') || 'index.html';
+            const redirect = safeRedirect(new URLSearchParams(location.search).get('redirect') || 'index.html');
             const content = document.getElementById('pageContent');
 
             content.innerHTML = `

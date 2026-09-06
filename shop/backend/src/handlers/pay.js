@@ -19,6 +19,7 @@ export async function handlePay(request, env, url) {
   const path = url.pathname.replace(/\/+$/, '');
 
   if (path === '/api/pay/create' && request.method === 'POST') return create(request, env);
+  if (path === '/api/pay/mock' && request.method === 'POST') return mockPay(request, env);
   if (path === '/api/pay/notify' && request.method === 'POST') return notify(request, env, url);
   if (path === '/api/pay/return' && request.method === 'GET') return payReturn(request, env, url);
 
@@ -58,6 +59,22 @@ async function create(request, env) {
   ).bind(order.id).run();
 
   return json({ pay: payParams });
+}
+
+/** 模拟支付（演示用）：将待支付订单标记为已支付并触发发货逻辑 */
+async function mockPay(request, env) {
+  const body = await readJson(request);
+  const orderNo = String(body?.order_no || '');
+  if (!orderNo) return error('缺少订单号', 400);
+
+  const order = await env.DB.prepare('SELECT * FROM orders WHERE order_no = ?1')
+    .bind(orderNo).first();
+  if (!order) return error('订单不存在', 404);
+  if (order.status !== 'pending') return error('订单状态不可支付', 409);
+
+  const tradeNo = 'MOCK' + Date.now();
+  await fulfillOrder(env, order.id, tradeNo);
+  return json({ success: true, order_no: orderNo, trade_no: tradeNo });
 }
 
 /**

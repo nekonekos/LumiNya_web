@@ -14,6 +14,8 @@
         <div id="pageContent"></div>
     </div>
 
+    <script src="./js/ui.js"></script>
+    <script src="./js/layout.js"></script>
     <script src="./js/shop.js"></script>
     <script>
         (async function () {
@@ -60,12 +62,14 @@
                     <div class="section-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
                     <div class="admin-layout">
                         <nav class="admin-side" id="adminSide">
+                            <button class="admin-toggle" id="adminToggle" aria-label="菜单">☰ 菜单</button>
                             <a href="#" data-view="dashboard" class="active">📊 数据看板</a>
                             <a href="#" data-view="products">📦 商品管理</a>
                             <a href="#" data-view="categories">🗂️ 分类管理</a>
                             <a href="#" data-view="orders">🧾 订单管理</a>
                             <a href="#" data-view="users">👥 用户管理</a>
                             <a href="#" data-view="codes">🔑 激活码池</a>
+                            <a href="#" data-view="shipping">🚚 运费模板</a>
                             <a href="index.html">← 返回商城</a>
                         </nav>
                         <div class="admin-main" id="adminMain"></div>
@@ -78,7 +82,12 @@
                     document.querySelectorAll('.admin-side a').forEach(x => x.classList.remove('active'));
                     a.classList.add('active');
                     switchView(a.dataset.view);
+                    // 移动端选择后自动收起抽屉
+                    if (isMobileView()) document.getElementById('adminSide').classList.remove('open');
                 });
+
+                const toggle = document.getElementById('adminToggle');
+                if (toggle) toggle.addEventListener('click', () => document.getElementById('adminSide').classList.toggle('open'));
 
                 switchView('dashboard');
             }
@@ -90,7 +99,8 @@
                     categories: renderCategories,
                     orders: renderOrders,
                     users: renderUsers,
-                    codes: renderCodes
+                    codes: renderCodes,
+                    shipping: renderShipping
                 };
                 (views[view] || renderDashboard)();
             }
@@ -152,7 +162,7 @@
                         </table>`;
                     wrap.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openProductModal(b.dataset.edit)));
                     wrap.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
-                        if (!confirm('确认删除该商品？')) return;
+                        if (!(await confirmDialog({ title: '删除商品', message: '确认删除该商品？', okText: '删除', danger: true }))) return;
                         try {
                             await api(`/admin/products/${encodeURIComponent(b.dataset.del)}`, { method: 'DELETE' });
                             toast('已删除');
@@ -177,6 +187,7 @@
                     } catch (e) { toast(e.message, 'err'); return; }
                 }
                 const cats = await loadCategoriesSelect();
+                const tpls = await loadShippingSelect();
 
                 const modal = document.createElement('div');
                 modal.className = 'modal-backdrop';
@@ -204,6 +215,9 @@
                                 <option value="off" ${product?.status === 'off' ? 'selected' : ''}>下架</option>
                             </select>
                         </div>
+                        <div class="form-field"><label>运费模板（实物商品）</label>
+                            <select id="fTpl">${tpls}</select>
+                        </div>
                         <div class="form-error" id="formError"></div>
                         <div class="btn-group">
                             <button class="btn btn--primary" id="saveProduct">保存</button>
@@ -226,7 +240,8 @@
                         description: modal.querySelector('#fDesc').value,
                         images: modal.querySelector('#fImages').value.split('\n').map(s => s.trim()).filter(Boolean),
                         resource_url: modal.querySelector('#fResource').value.trim(),
-                        status: modal.querySelector('#fStatus').value
+                        status: modal.querySelector('#fStatus').value,
+                        shipping_template_id: modal.querySelector('#fTpl').value || null
                     };
                     const errEl = modal.querySelector('#formError');
                     if (!body.title) { errEl.textContent = '标题不能为空'; return; }
@@ -247,6 +262,13 @@
                 } catch { return '<option value="">无分类</option>'; }
             }
 
+            async function loadShippingSelect() {
+                try {
+                    const { templates } = await api('/admin/shipping-templates');
+                    return `<option value="">不使用</option>` + templates.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
+                } catch { return '<option value="">不使用</option>'; }
+            }
+
             /* ---------- 分类 ---------- */
             async function renderCategories() {
                 const main = document.getElementById('adminMain');
@@ -257,11 +279,21 @@
                     </div>
                     <div id="catWrap"><div class="empty-state">加载中…</div></div>`;
                 document.getElementById('newCat').addEventListener('click', () => {
-                    const name = prompt('分类名称：');
-                    if (!name) return;
-                    api('/admin/categories', { method: 'POST', body: { name } })
-                        .then(() => { toast('已创建'); renderCategories(); })
-                        .catch(e => toast(e.message, 'err'));
+                    const modal = showModal(`
+                        <h3>新建分类</h3>
+                        <div class="form-field"><label>分类名称</label><input id="catName" placeholder="例如：数码" /></div>
+                        <div class="form-field"><label>分类标识（slug，选填）</label><input id="catSlug" placeholder="例如：digital" /></div>
+                        <div class="form-error" id="catError"></div>
+                        <div class="btn-group"><button class="btn btn--primary" id="catSave">创建</button><button class="btn btn--ghost" id="catCancel">取消</button></div>`);
+                    modal.querySelector('#catCancel').addEventListener('click', () => modal.remove());
+                    modal.querySelector('#catSave').addEventListener('click', async () => {
+                        const name = modal.querySelector('#catName').value.trim();
+                        const slug = modal.querySelector('#catSlug').value.trim();
+                        const err = modal.querySelector('#catError');
+                        if (!name) { err.textContent = '分类名不能为空'; return; }
+                        try { await api('/admin/categories', { method: 'POST', body: { name, slug } }); toast('已创建'); modal.remove(); renderCategories(); }
+                        catch (e) { err.textContent = e.message; }
+                    });
                 });
                 document.getElementById('refreshCat').addEventListener('click', renderCategories);
                 await loadCats();
@@ -283,7 +315,7 @@
                             </tr>`).join('')}</tbody>
                     </table>`;
                     wrap.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
-                        if (!confirm('确认删除该分类？')) return;
+                        if (!(await confirmDialog({ title: '删除分类', message: '确认删除该分类？', okText: '删除', danger: true }))) return;
                         try { await api(`/admin/categories/${encodeURIComponent(b.dataset.del)}`, { method: 'DELETE' }); toast('已删除'); loadCats(); }
                         catch (e) { toast(e.message, 'err'); }
                     }));
@@ -523,7 +555,7 @@
                             </tr>`).join('')}</tbody>
                     </table>`;
                     wrap.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
-                        if (!confirm('确认删除该激活码？')) return;
+                        if (!(await confirmDialog({ title: '删除激活码', message: '确认删除该激活码？', okText: '删除', danger: true }))) return;
                         try { await api(`/admin/codes/${encodeURIComponent(b.dataset.del)}`, { method: 'DELETE' }); toast('已删除'); loadCodes(); }
                         catch (e) { toast(e.message, 'err'); }
                     }));
@@ -564,6 +596,69 @@
                         modal.remove();
                         loadCodes();
                     } catch (e) { errEl.textContent = e.message; }
+                });
+            }
+
+            /* ---------- 运费模板 ---------- */
+            async function renderShipping() {
+                const main = document.getElementById('adminMain');
+                main.innerHTML = `
+                    <div class="admin-toolbar">
+                        <button class="btn btn--primary btn--small" id="newTpl">+ 新建模板</button>
+                        <button class="btn btn--ghost btn--small" id="refreshTpl">刷新</button>
+                    </div>
+                    <div id="tplWrap"><div class="empty-state">加载中…</div></div>`;
+                document.getElementById('newTpl').addEventListener('click', () => openTplModal());
+                document.getElementById('refreshTpl').addEventListener('click', loadTpls);
+                await loadTpls();
+            }
+
+            async function loadTpls() {
+                const wrap = document.getElementById('tplWrap');
+                try {
+                    const { templates } = await api('/admin/shipping-templates');
+                    if (!templates.length) { wrap.innerHTML = '<div class="empty-state">暂无运费模板</div>'; return; }
+                    wrap.innerHTML = `<table class="admin-table">
+                        <thead><tr><th>名称</th><th>基础运费</th><th>包邮门槛</th><th>操作</th></tr></thead>
+                        <tbody>${templates.map(t => `
+                            <tr>
+                                <td>${escapeHtml(t.name)}</td>
+                                <td>${formatPrice(t.base_fee)}</td>
+                                <td>${t.free_threshold > 0 ? `满 ${formatPrice(t.free_threshold)} 包邮` : '不包邮'}</td>
+                                <td><button class="btn btn--ghost btn--small" data-edit="${escapeHtml(t.id)}">编辑</button><button class="btn btn--danger btn--small" data-del="${escapeHtml(t.id)}">删除</button></td>
+                            </tr>`).join('')}</tbody>
+                    </table>`;
+                    wrap.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openTplModal(templates.find(x => x.id === b.dataset.edit))));
+                    wrap.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', async () => {
+                        const ok = await confirmDialog({ title: '删除模板', message: '确认删除该运费模板？', okText: '删除', danger: true });
+                        if (!ok) return;
+                        try { await api(`/admin/shipping-templates/${encodeURIComponent(b.dataset.del)}`, { method: 'DELETE' }); toast('已删除'); loadTpls(); }
+                        catch (e) { toast(e.message, 'err'); }
+                    }));
+                } catch (e) { wrap.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`; }
+            }
+
+            function openTplModal(tpl) {
+                const modal = showModal(`
+                    <h3>${tpl ? '编辑模板' : '新建模板'}</h3>
+                    <div class="form-field"><label>模板名称</label><input id="tName" value="${escapeHtml(tpl?.name || '')}" placeholder="例如：默认 / 江浙沪包邮" /></div>
+                    <div class="form-field"><label>基础运费（元）</label><input id="tFee" type="number" step="0.01" value="${tpl ? (tpl.base_fee / 100) : ''}" /></div>
+                    <div class="form-field"><label>包邮门槛（元，0 表示不包邮）</label><input id="tFree" type="number" step="0.01" value="${tpl ? (tpl.free_threshold / 100) : ''}" /></div>
+                    <div class="form-error" id="tError"></div>
+                    <div class="btn-group"><button class="btn btn--primary" id="tSave">保存</button><button class="btn btn--ghost" id="tCancel">取消</button></div>`);
+                modal.querySelector('#tCancel').addEventListener('click', () => modal.remove());
+                modal.querySelector('#tSave').addEventListener('click', async () => {
+                    const name = modal.querySelector('#tName').value.trim();
+                    const base = Math.round(parseFloat(modal.querySelector('#tFee').value || '0') * 100);
+                    const free = Math.round(parseFloat(modal.querySelector('#tFree').value || '0') * 100);
+                    const err = modal.querySelector('#tError');
+                    if (!name) { err.textContent = '模板名称不能为空'; return; }
+                    const body = { name, base_fee: base, free_threshold: free };
+                    try {
+                        if (tpl) await api(`/admin/shipping-templates/${encodeURIComponent(tpl.id)}`, { method: 'PUT', body });
+                        else await api('/admin/shipping-templates', { method: 'POST', body });
+                        toast('已保存'); modal.remove(); loadTpls();
+                    } catch (e) { err.textContent = e.message; }
                 });
             }
 

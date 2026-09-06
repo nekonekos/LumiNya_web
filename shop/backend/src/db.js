@@ -29,8 +29,8 @@ export async function findAdmin(env, email) {
   ).bind(email, 'admin').first();
 }
 
-/** 查询商品（带分类过滤/搜索/分页），只返回上架商品 */
-export async function listProducts(env, { category, search, page = 1, size = 12 } = {}) {
+/** 查询商品（带分类过滤/搜索/价格/排序/分页），只返回上架商品 */
+export async function listProducts(env, { category, search, page = 1, size = 12, sort = 'new', priceMin, priceMax } = {}) {
   const conditions = [`status = 'on'`];
   const params = [];
   if (category) {
@@ -41,13 +41,30 @@ export async function listProducts(env, { category, search, page = 1, size = 12 
     conditions.push('(title LIKE ?' + (params.length + 1) + ' OR summary LIKE ?' + (params.length + 1) + ')');
     params.push(`%${search}%`, `%${search}%`);
   }
+  const min = Number(priceMin);
+  if (priceMin !== undefined && priceMin !== '' && !isNaN(min)) {
+    conditions.push('price >= ?' + (params.length + 1));
+    params.push(min);
+  }
+  const max = Number(priceMax);
+  if (priceMax !== undefined && priceMax !== '' && !isNaN(max)) {
+    conditions.push('price <= ?' + (params.length + 1));
+    params.push(max);
+  }
   const where = conditions.join(' AND ');
+  const orderMap = {
+    new: 'created_at DESC',
+    sales: 'sold DESC',
+    price_asc: 'price ASC',
+    price_desc: 'price DESC'
+  };
+  const orderBy = orderMap[sort] || 'created_at DESC';
   const p = Math.max(1, parseInt(page, 10) || 1);
   const s = Math.min(50, Math.max(1, parseInt(size, 10) || 12));
   const offset = (p - 1) * s;
 
   const { results } = await env.DB.prepare(
-    `SELECT * FROM products WHERE ${where} ORDER BY created_at DESC LIMIT ?${params.length + 1} OFFSET ?${params.length + 2}`
+    `SELECT * FROM products WHERE ${where} ORDER BY ${orderBy} LIMIT ?${params.length + 1} OFFSET ?${params.length + 2}`
   ).bind(...params, s, offset).all();
 
   const countRow = await env.DB.prepare(

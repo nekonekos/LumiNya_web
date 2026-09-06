@@ -14,6 +14,8 @@
         <div id="pageContent"></div>
     </div>
 
+    <script src="./js/ui.js"></script>
+    <script src="./js/layout.js"></script>
     <script src="./js/shop.js"></script>
     <script>
         (async function () {
@@ -25,6 +27,20 @@
             ).join('');
 
             const content = document.getElementById('pageContent');
+            const params = new URLSearchParams(location.search);
+            const state = {
+                q: params.get('q') || '',
+                category: params.get('category') || '',
+                page: parseInt(params.get('page') || '1', 10),
+                sort: params.get('sort') || 'new',
+                priceMin: params.get('price_min') || '',
+                priceMax: params.get('price_max') || '',
+                perPage: 12,
+                total: 0,
+                view: 'grid'
+            };
+            const productMap = {};
+
             content.innerHTML = `
                 ${(cfg.site.announcement) ? `<div class="announcement">${escapeHtml(cfg.site.announcement)}</div>` : ''}
                 <section class="hero">
@@ -45,61 +61,186 @@
 
                 <div class="section-wrapper" id="products">
                     <div class="section-header">
-                        <h2 class="section-title">全部商品</h2>
-                        <p class="section-subtitle">挑一件喜欢的东西吧</p>
+                        <h2 class="section-title">${state.q ? `搜索“${escapeHtml(state.q)}”` : '全部商品'}</h2>
+                        <p class="section-subtitle" id="resultCount">挑一件喜欢的东西吧</p>
                     </div>
                     <div class="section-divider">
                         <span class="line"></span><span class="dot"></span><span class="line"></span>
                     </div>
+                    <div class="list-toolbar" id="listToolbar">
+                        <div class="sort-bar" id="sortBar">
+                            <button class="sort-item" data-sort="new">综合</button>
+                            <button class="sort-item" data-sort="sales">销量</button>
+                            <button class="sort-item" data-sort="price_asc">价格↑</button>
+                            <button class="sort-item" data-sort="price_desc">价格↓</button>
+                        </div>
+                        <div class="price-filter">
+                            <input id="priceMin" type="number" placeholder="¥最低" value="${escapeHtml(state.priceMin)}" />
+                            <span>-</span>
+                            <input id="priceMax" type="number" placeholder="¥最高" value="${escapeHtml(state.priceMax)}" />
+                            <button class="btn btn--ghost btn--small" id="priceApply">确定</button>
+                        </div>
+                        <div class="view-toggle" id="viewToggle">
+                            <button class="active" data-view="grid" title="网格">▦</button>
+                            <button data-view="list" title="列表">☰</button>
+                        </div>
+                    </div>
                     <div class="category-bar" id="categoryBar">
-                        <button class="category-chip active" data-cat="">全部</button>
+                        <button class="category-chip" data-cat="">全部</button>
                     </div>
                     <div class="products-grid" id="productsGrid"></div>
+                    <div class="pagination" id="pagination"></div>
                 </div>
             `;
 
-            let currentCategory = '';
-
-            // 加载分类
-            try {
-                const { categories } = await api('/categories');
-                const bar = document.getElementById('categoryBar');
-                categories.forEach(c => {
-                    const btn = document.createElement('button');
-                    btn.className = 'category-chip';
-                    btn.dataset.cat = c.id;
-                    btn.textContent = c.name;
-                    bar.appendChild(btn);
-                });
-                bar.addEventListener('click', (e) => {
-                    const chip = e.target.closest('.category-chip');
-                    if (!chip) return;
-                    currentCategory = chip.dataset.cat;
-                    bar.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
-                    chip.classList.add('active');
-                    loadProducts();
-                });
-            } catch (e) { /* 分类加载失败不阻塞 */ }
-
-            async function loadProducts() {
-                const grid = document.getElementById('productsGrid');
-                grid.innerHTML = '<div class="empty-state">加载中…</div>';
+            // 分类
+            (async () => {
                 try {
-                    const qs = currentCategory ? `?category=${encodeURIComponent(currentCategory)}` : '';
-                    const { results } = await api(`/products${qs}`);
-                    if (!results.length) {
-                        grid.innerHTML = '<div class="empty-state">暂时没有商品</div>';
-                        return;
-                    }
-                    grid.innerHTML = results.map(productCardHTML).join('');
-                    grid.querySelectorAll('.product-card').forEach(card => {
-                        card.addEventListener('click', () => {
-                            window.location.href = `product.html?id=${encodeURIComponent(card.dataset.id)}`;
+                    const { categories } = await api('/categories');
+                    const bar = document.getElementById('categoryBar');
+                    categories.forEach(c => {
+                        const btn = document.createElement('button');
+                        btn.className = 'category-chip';
+                        btn.dataset.cat = c.id;
+                        btn.textContent = c.name;
+                        bar.appendChild(btn);
+                    });
+                    setActiveCategory();
+                    bar.querySelectorAll('.category-chip').forEach(chip => {
+                        chip.addEventListener('click', () => {
+                            state.category = chip.dataset.cat;
+                            state.page = 1;
+                            setActiveCategory();
+                            loadProducts();
                         });
                     });
+                } catch (e) { /* 忽略 */ }
+            })();
+
+            function setActiveCategory() {
+                document.querySelectorAll('#categoryBar .category-chip').forEach(chip => {
+                    chip.classList.toggle('active', chip.dataset.cat === state.category);
+                });
+            }
+
+            // 排序
+            document.getElementById('sortBar').addEventListener('click', (e) => {
+                const btn = e.target.closest('.sort-item');
+                if (!btn) return;
+                state.sort = btn.dataset.sort;
+                state.page = 1;
+                document.querySelectorAll('#sortBar .sort-item').forEach(b => b.classList.toggle('active', b === btn));
+                loadProducts();
+            });
+            document.querySelectorAll('#sortBar .sort-item').forEach(b => b.classList.toggle('active', b.dataset.sort === state.sort));
+
+            document.getElementById('priceApply').addEventListener('click', () => {
+                state.priceMin = document.getElementById('priceMin').value.trim();
+                state.priceMax = document.getElementById('priceMax').value.trim();
+                state.page = 1;
+                loadProducts();
+            });
+
+            // 视图切换
+            document.getElementById('viewToggle').addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-view]');
+                if (!btn) return;
+                state.view = btn.dataset.view;
+                document.querySelectorAll('#viewToggle button').forEach(b => b.classList.toggle('active', b === btn));
+                const grid = document.getElementById('productsGrid');
+                grid.classList.toggle('list-view', state.view === 'list');
+            });
+
+            function buildQs() {
+                const qs = new URLSearchParams();
+                if (state.category) qs.set('category', state.category);
+                if (state.q) qs.set('q', state.q);
+                if (state.sort && state.sort !== 'new') qs.set('sort', state.sort);
+                if (state.priceMin) qs.set('price_min', state.priceMin);
+                if (state.priceMax) qs.set('price_max', state.priceMax);
+                qs.set('page', state.page);
+                qs.set('size', state.perPage);
+                return `?${qs.toString()}`;
+            }
+
+            function updateUrl() {
+                const qs = new URLSearchParams();
+                if (state.q) qs.set('q', state.q);
+                if (state.category) qs.set('category', state.category);
+                if (state.sort && state.sort !== 'new') qs.set('sort', state.sort);
+                if (state.priceMin) qs.set('price_min', state.priceMin);
+                if (state.priceMax) qs.set('price_max', state.priceMax);
+                if (state.page > 1) qs.set('page', state.page);
+                history.replaceState(null, '', qs.toString() ? `?${qs.toString()}` : location.pathname);
+            }
+
+            async function loadProducts(append = false) {
+                const grid = document.getElementById('productsGrid');
+                if (!append) grid.innerHTML = Array.from({ length: 8 }, skeletonCard).join('');
+                try {
+                    const data = await api(`/products${buildQs()}`);
+                    state.total = data.total || (data.results || []).length;
+                    const results = data.results || [];
+                    results.forEach(r => productMap[r.id] = r);
+                    const count = document.getElementById('resultCount');
+                    if (count) count.textContent = `共 ${state.total} 件商品`;
+                    if (!results.length) {
+                        if (!append) grid.innerHTML = emptyState(state.q ? '没有找到相关商品' : '暂时没有商品', { retry: () => loadProducts() });
+                        renderPagination();
+                        return;
+                    }
+                    if (append) grid.insertAdjacentHTML('beforeend', results.map(productCardHTML).join(''));
+                    else grid.innerHTML = results.map(productCardHTML).join('');
+                    bindProductCards(grid);
+                    bindQuickAdd(grid);
+                    renderPagination();
+                    updateUrl();
                 } catch (e) {
-                    grid.innerHTML = `<div class="empty-state">加载失败：${escapeHtml(e.message)}</div>`;
+                    if (!append) grid.innerHTML = emptyState('加载失败：' + e.message, { retry: () => loadProducts() });
                 }
+            }
+
+            function bindQuickAdd(grid) {
+                grid.querySelectorAll('[data-add]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const card = btn.closest('.product-card');
+                        const p = productMap[card && card.dataset.id];
+                        if (!p) return;
+                        if (p.stock === 0) return toast('已售罄', 'err');
+                        addToCart(p, null, 1);
+                        flyToCart(btn.closest('.thumb'));
+                        toast('已加入购物车');
+                    });
+                });
+            }
+
+            function renderPagination() {
+                const wrap = document.getElementById('pagination');
+                if (state.total === 0) { wrap.innerHTML = ''; return; }
+                const totalPages = Math.max(1, Math.ceil(state.total / state.perPage));
+                if (isMobileView()) {
+                    if (state.page < totalPages) {
+                        wrap.innerHTML = `<div class="load-more"><button class="btn btn--outline" id="loadMore">加载更多</button></div>`;
+                        document.getElementById('loadMore').addEventListener('click', () => { state.page++; loadProducts(true); });
+                    } else {
+                        wrap.innerHTML = `<div class="empty-state" style="padding:1rem;">已经到底了</div>`;
+                    }
+                    return;
+                }
+                const btns = [];
+                const start = Math.max(1, state.page - 2);
+                const end = Math.min(totalPages, start + 4);
+                for (let p = start; p <= end; p++) btns.push(`<button class="page-btn ${p === state.page ? 'active' : ''}" data-page="${p}">${p}</button>`);
+                wrap.innerHTML = `<button class="page-btn" data-page="${state.page - 1}" ${state.page <= 1 ? 'disabled' : ''}>‹</button>${btns.join('')}<button class="page-btn" data-page="${state.page + 1}" ${state.page >= totalPages ? 'disabled' : ''}>›</button>`;
+                wrap.querySelectorAll('[data-page]').forEach(b => {
+                    b.addEventListener('click', () => {
+                        const p = parseInt(b.dataset.page, 10);
+                        if (p < 1 || p > totalPages || p === state.page) return;
+                        state.page = p;
+                        loadProducts();
+                    });
+                });
             }
 
             await loadProducts();

@@ -115,7 +115,8 @@ function addToCart(product, variant, qty) {
       unit_price: variant ? variant.price : product.price,
       qty,
       image: (product.images && product.images[0]) || '',
-      type: product.type
+      type: product.type,
+      _stock: variant ? variant.stock : product.stock
     });
   }
   saveCart();
@@ -127,7 +128,9 @@ function removeFromCart(key) {
 function setCartQty(key, qty) {
   const item = Store.cart.find((i) => i.key === key);
   if (!item) return;
-  item.qty = Math.max(1, qty);
+  let q = Math.max(1, qty);
+  if (item._stock !== undefined) q = Math.min(q, Math.max(1, item._stock));
+  item.qty = q;
   saveCart();
 }
 function clearCart() {
@@ -168,6 +171,16 @@ function formatTime(unix) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+/* ---------- 安全跳转（防开放重定向） ---------- */
+function safeRedirect(url) {
+  if (!url) return 'index.html';
+  // 禁用带协议或协议相对地址
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) return 'index.html';
+  if (url.startsWith('//')) return 'index.html';
+  if (url.startsWith('\\')) return 'index.html';
+  return url;
+}
+
 /* ---------- HTML 转义 ---------- */
 function escapeHtml(value = '') {
   return String(value)
@@ -176,43 +189,6 @@ function escapeHtml(value = '') {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-/* ---------- Header 构建 ---------- */
-function buildHeader() {
-  const cfg = Store.config || {};
-  const site = cfg.site || {};
-  const nav = (cfg.nav || []).map((n) => `<li><a href="${escapeHtml(n.href)}">${escapeHtml(n.label)}</a></li>`).join('');
-  const user = getUser();
-
-  const userChip = user
-    ? `<div class="user-chip">
-         <span>${escapeHtml(user.display_name || user.email)}</span>
-         ${isAdmin() ? '<a href="admin.html">后台</a>' : ''}
-         <a href="#" id="logoutBtn">退出</a>
-       </div>`
-    : `<a href="login.html" class="btn btn--small btn--ghost">登录</a>`;
-
-  return `
-    <header>
-      <a href="index.html" class="logo">
-        ${escapeHtml(site.logoPrefix || 'Lumi')}<span class="accent">${escapeHtml(site.logoAccent || 'Nya')}</span>
-        ${site.logoTag ? `<span class="tag">${escapeHtml(site.logoTag)}</span>` : ''}
-      </a>
-      <div class="nav-wrapper">
-        <ul class="nav-links">${nav}</ul>
-        <div class="header-actions">
-          ${userChip}
-          <a href="cart.html" class="cart-badge" aria-label="购物车">
-            🛒<span class="count cart-count" style="display:none">0</span>
-          </a>
-          <button class="theme-toggle" aria-label="切换深浅色">
-            <span class="icon-sun">☀️</span>
-            <span class="icon-moon">🌙</span>
-          </button>
-        </div>
-      </div>
-    </header>`;
 }
 
 function bindLogout() {
@@ -237,20 +213,111 @@ async function initCommon() {
      <div class="blob blob--2"></div>
      <div class="blob blob--3"></div>`
   );
-  const mount = document.querySelector('.container') || document.body;
-  mount.insertAdjacentHTML('afterbegin', buildHeader());
-  bindLogout();
+  renderHeader();
+  renderFooter();
+  renderMobileTabBar();
+  bindHeaderActions();
   initTheme();
   updateCartBadge();
+  updateSelectedBadge();
+}
+
+/* 购物车勾选状态（localStorage 记录选中项 key） */
+const SELECTED_KEY = 'luminya-shop-selected';
+function getSelected() {
+  try { return JSON.parse(localStorage.getItem(SELECTED_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveSelected(keys) {
+  localStorage.setItem(SELECTED_KEY, JSON.stringify(keys));
+  updateSelectedBadge();
+}
+function toggleSelect(key) {
+  const sel = getSelected();
+  const i = sel.indexOf(key);
+  if (i >= 0) sel.splice(i, 1); else sel.push(key);
+  saveSelected(sel);
+  return sel;
+}
+function selectedItems() {
+  const sel = getSelected();
+  return Store.cart.filter(i => sel.includes(i.key));
+}
+function updateSelectedBadge() {
+  const n = selectedItems().reduce((s, i) => s + i.qty, 0);
+  document.querySelectorAll('.selected-count').forEach(el => { el.textContent = n; });
+}
+
+/* ---------- 收货地址簿（localStorage） ---------- */
+const ADDR_KEY = 'luminya-shop-addresses';
+function getAddresses() {
+  try { return JSON.parse(localStorage.getItem(ADDR_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveAddresses(list) {
+  localStorage.setItem(ADDR_KEY, JSON.stringify(list));
+}
+function defaultAddress() {
+  const list = getAddresses();
+  return list.find(a => a.isDefault) || list[0] || null;
+}
+function saveAddress(a) {
+  const list = getAddresses();
+  if (!a.id) a.id = 'a' + Date.now().toString(36);
+  const i = list.findIndex(x => x.id === a.id);
+  if (i >= 0) list[i] = a; else list.push(a);
+  if (a.isDefault) list.forEach(x => x.isDefault = x.id === a.id);
+  saveAddresses(list);
+  return list;
+}
+function removeAddress(id) {
+  saveAddresses(getAddresses().filter(a => a.id !== id));
+}
+
+/* 购物车回验：批量拉取商品（含 SKU），刷新价格与库存 */
+async function revalidateCart() {
+  const ids = [...new Set(Store.cart.map(i => i.product_id))];
+  if (!ids.length) return;
+
+  let products = [];
+  try {
+    const res = await api('/products/batch', { method: 'POST', body: { ids } });
+    products = res.products || [];
+  } catch (e) {
+    // 降级：逐个请求详情
+    for (const pid of ids) {
+      try { const { product } = await api(`/products/${encodeURIComponent(pid)}`); products.push(product); } catch {}
+    }
+  }
+  const map = {};
+  products.forEach(p => { map[p.id] = p; });
+
+  Store.cart.forEach(c => {
+    const p = map[c.product_id];
+    if (!p) { c._invalid = true; return; }
+    const v = c.variant_id ? (p.variants || []).find(v => v.id === c.variant_id) : null;
+    c.unit_price = v ? v.price : p.price;
+    c._stock = v ? v.stock : p.stock;
+    delete c._invalid;
+  });
+  saveCart();
 }
 
 /* 商品卡片 HTML（供多个页面复用） */
 function productCardHTML(p) {
   const image = p.images && p.images[0];
+  const badges = [];
+  if (p.stock === 0) badges.push('<span class="badge badge--soldout">已售罄</span>');
+  if ((p.sold || 0) >= 50) badges.push('<span class="badge badge--hot">热卖</span>');
+  if (p.created_at && Date.now() / 1000 - p.created_at < 7 * 86400) badges.push('<span class="badge badge--new">新品</span>');
+  if (p.type === 'physical') badges.push('<span class="badge badge--virtual">实物</span>');
   return `
     <div class="product-card" data-id="${escapeHtml(p.id)}" role="button" tabindex="0">
-      <div class="thumb">${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(p.title)}" loading="lazy" />` : '🛍️'}</div>
+      <div class="thumb">${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(p.title)}" loading="lazy" />` : '🛍️'}
+        <button class="card-action btn btn--primary btn--small" data-add title="加入购物车">+</button>
+      </div>
       <div class="body">
+        ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
         <div class="title">${escapeHtml(p.title)}</div>
         <div class="summary">${escapeHtml(p.summary || '')}</div>
         <div class="meta">

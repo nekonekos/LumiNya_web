@@ -14,6 +14,8 @@
         <div id="pageContent"></div>
     </div>
 
+    <script src="./js/ui.js"></script>
+    <script src="./js/layout.js"></script>
     <script src="./js/shop.js"></script>
     <script>
         (async function () {
@@ -28,60 +30,101 @@
             const AS_STATUS_TEXT = { applied: '申请中', processing: '处理中', resolved: '已解决', closed: '已关闭' };
 
             const content = document.getElementById('pageContent');
+            let allOrders = [];
+            let tab = new URLSearchParams(location.search).get('status') || 'all';
+
             content.innerHTML = `
                 <div class="section-wrapper">
                     <div class="section-header"><h2 class="section-title">我的订单</h2></div>
                     <div class="section-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+                    <div class="order-tabs" id="orderTabs"></div>
                     <div id="orderList"><div class="empty-state">加载中…</div></div>
                 </div>`;
 
             await loadOrders();
 
-            async function loadOrders() {
+            const TABS = [
+                ['all', '全部'], ['pending', '待付款'], ['paid', '待发货'], ['shipped', '待收货'], ['completed', '已完成'], ['after', '售后']
+            ];
+
+            function statusLine(o) {
+                if (['applied', 'processing'].includes(o.after_sale_status)) return 'after';
+                return o.status;
+            }
+            function matches(o) {
+                if (tab === 'all') return true;
+                if (tab === 'after') return ['applied', 'processing'].includes(o.after_sale_status);
+                return o.status === tab;
+            }
+
+            function renderTabs() {
+                const wrap = document.getElementById('orderTabs');
+                const counts = {};
+                allOrders.forEach(o => { const k = statusLine(o); counts[k] = (counts[k] || 0) + 1; });
+                wrap.innerHTML = TABS.map(([k, label]) => `<button class="order-tab ${tab === k ? 'active' : ''}" data-tab="${k}">${label}${counts[k] ? ` (${counts[k]})` : ''}</button>`).join('');
+                wrap.querySelectorAll('.order-tab').forEach(b => b.addEventListener('click', () => { tab = b.dataset.tab; renderTabs(); renderList(); }));
+            }
+
+            function renderList() {
                 const list = document.getElementById('orderList');
+                const orders = allOrders.filter(matches);
+                if (!orders.length) { list.innerHTML = emptyState('暂无相关订单', { icon: '🧾' }); return; }
+                list.innerHTML = orders.map(orderCardHTML).join('');
+                bindList(list);
+            }
+
+            async function loadOrders() {
                 try {
                     const { orders } = await api('/orders');
-                    if (!orders.length) {
-                        list.innerHTML = '<div class="empty-state">还没有订单</div>';
-                        return;
-                    }
-                    list.innerHTML = orders.map(orderCardHTML).join('');
-                    bindOrderActions(list);
+                    allOrders = orders || [];
+                    renderTabs();
+                    renderList();
                 } catch (e) {
-                    list.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+                    const list = document.getElementById('orderList');
+                    list.innerHTML = emptyState(e.message, { retry: loadOrders });
+                    bindRetry(list, loadOrders);
                 }
+            }
+
+            function timelineHTML(o) {
+                const steps = ['下单', '支付', '发货', '收货', '完成'];
+                if (['cancelled', 'expired'].includes(o.status)) {
+                    return `<div class="info-box">📋 订单已${o.status === 'cancelled' ? '取消' : '过期'}</div>`;
+                }
+                let active = 0;
+                if (o.status === 'paid') active = 1;
+                else if (o.status === 'shipped') active = 2;
+                else if (o.status === 'completed') active = 4;
+                const dots = steps.map((s, i) => `<div class="tl-step ${i === active ? 'active' : (i < active ? 'done' : '')}"><span class="dot"></span>${s}</div>`).join('');
+                return `<div class="order-timeline">${dots}</div>`;
             }
 
             function orderCardHTML(o) {
                 const items = o.items || [];
                 const physical = items.some(i => i.type === 'physical');
-                const address = o.address || {};
-                const hasAddr = !!(address.name && address.detail);
-                const canAfterSale = physical
-                    ? ['shipped', 'completed'].includes(o.status)
-                    : ['paid', 'shipped', 'completed'].includes(o.status);
-                const afterSaleApplied = ['applied', 'processing'].includes(o.after_sale_status);
+                const addr = o.address || {};
+                const hasAddr = !!(addr.name && addr.detail);
+                const canAfterSale = physical ? ['shipped', 'completed'].includes(o.status) : ['paid', 'shipped', 'completed'].includes(o.status);
+                const afterApplied = ['applied', 'processing'].includes(o.after_sale_status);
 
                 const actions = [];
                 if (o.status === 'pending') {
                     actions.push(`<button class="btn btn--primary btn--small" data-pay="${escapeHtml(o.id)}">去支付</button>`);
                     actions.push(`<button class="btn btn--ghost btn--small" data-cancel="${escapeHtml(o.id)}">取消订单</button>`);
-                } else if (canAfterSale && !afterSaleApplied) {
+                } else if (o.status === 'paid' && !physical) {
+                    actions.push(`<button class="btn btn--ghost btn--small" data-codes="${escapeHtml(o.id)}">查看发货内容</button>`);
+                } else if (o.status === 'shipped') {
+                    actions.push(`<button class="btn btn--primary btn--small" data-complete="${escapeHtml(o.id)}">确认收货</button>`);
+                    if (canAfterSale && !afterApplied) actions.push(`<button class="btn btn--ghost btn--small" data-aftersale="${escapeHtml(o.id)}">申请售后</button>`);
+                } else if (o.status === 'completed' && canAfterSale && !afterApplied && physical) {
                     actions.push(`<button class="btn btn--ghost btn--small" data-aftersale="${escapeHtml(o.id)}">申请售后</button>`);
                 }
 
-                const infoBits = [];
-                if (physical && hasAddr) {
-                    infoBits.push(`<div class="info-box">📍 收货：${escapeHtml(address.name)} ${escapeHtml(address.phone || '')} ${escapeHtml(address.detail)}</div>`);
-                }
-                if (o.tracking_no) {
-                    infoBits.push(`<div class="info-box tracking-no">📦 ${escapeHtml(o.tracking_company || '快递')}：${escapeHtml(o.tracking_no)}</div>`);
-                }
-                if (afterSaleApplied) {
-                    infoBits.push('<div class="info-box">🛠️ 售后处理中</div>');
-                } else if (o.after_sale_status === 'resolved') {
-                    infoBits.push('<div class="info-box">✅ 售后已解决</div>');
-                }
+                const info = [];
+                if (physical && hasAddr) info.push(`<div class="info-box">📍 收货：${escapeHtml(addr.name)} ${escapeHtml(addr.phone || '')} ${escapeHtml(addr.detail)}</div>`);
+                if (o.tracking_no) info.push(`<div class="info-box tracking-no">📦 ${escapeHtml(o.tracking_company || '快递')}：${escapeHtml(o.tracking_no)}</div>`);
+                if (afterApplied) info.push('<div class="info-box">🛠️ 售后处理中</div>');
+                else if (o.after_sale_status === 'resolved') info.push('<div class="info-box">✅ 售后已解决</div>');
 
                 return `
                     <div class="order-card" data-id="${escapeHtml(o.id)}">
@@ -90,140 +133,98 @@
                             <span class="order-time">${formatTime(o.created_at)}</span>
                             ${statusBadge(o.status)}
                         </div>
+                        ${timelineHTML(o)}
                         <div class="items">${escapeHtml(summarizeItems(items))}</div>
-                        ${infoBits.join('')}
+                        ${info.join('')}
                         <div class="total">合计 ${formatPrice(o.total)}${o.shipping_fee ? `（含运费 ${formatPrice(o.shipping_fee)}）` : ''}</div>
                         ${actions.length ? `<div class="order-actions">${actions.join('')}</div>` : ''}
                     </div>`;
             }
 
-            function bindOrderActions(list) {
-                list.querySelectorAll('[data-pay]').forEach(btn => {
-                    btn.addEventListener('click', (e) => { e.stopPropagation(); payUnavailableModal(); });
-                });
+            function summarizeItems(items) {
+                if (!items || !items.length) return '';
+                const f = items[0];
+                const more = items.length > 1 ? ` 等 ${items.length} 件` : '';
+                return `${f.title}${f.sku_name ? ' · ' + f.sku_name : ''} × ${f.qty}${more}`;
+            }
 
-                list.querySelectorAll('[data-cancel]').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const id = btn.dataset.cancel;
-                        const modal = showModal(`
-                            <h3>取消订单</h3>
-                            <p style="color:var(--text-medium); margin-bottom:1.2rem;">确认取消该订单？</p>
-                            <div class="btn-group">
-                                <button class="btn btn--primary" data-ok>确认取消</button>
-                                <button class="btn btn--ghost" data-close>再想想</button>
-                            </div>`);
-                        modal.querySelector('[data-close]').addEventListener('click', () => modal.remove());
-                        modal.querySelector('[data-ok]').addEventListener('click', async () => {
-                            modal.remove();
-                            try {
-                                await api(`/orders/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
-                                toast('订单已取消');
-                                await loadOrders();
-                            } catch (err) { toast(err.message, 'err'); }
-                        });
-                    });
-                });
+            function bindList(list) {
+                list.querySelectorAll('[data-pay]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); openPayModal(allOrders.find(o => o.id === b.dataset.pay)); }));
+                list.querySelectorAll('[data-codes]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); openOrderDetail(allOrders.find(o => o.id === b.dataset.codes)); }));
+                list.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); copyText(b.dataset.copy).then(() => toast('已复制')).catch(() => toast('复制失败', 'err')); }));
+                list.querySelectorAll('[data-cancel]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); cancelConfirm(b.dataset.cancel); }));
+                list.querySelectorAll('[data-complete]').forEach(b => b.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const ok = await confirmDialog({ title: '确认收货', message: '确认已收到商品？确认后订单将完成。', okText: '确认收货' });
+                    if (!ok) return;
+                    try { await api(`/orders/${encodeURIComponent(b.dataset.complete)}/complete`, { method: 'POST' }); toast('已确认收货'); loadOrders(); }
+                    catch (err) { toast(err.message, 'err'); }
+                }));
+                list.querySelectorAll('[data-aftersale]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); openAfterSaleModal(b.dataset.aftersale); }));
+                list.querySelectorAll('.order-card').forEach(card => card.addEventListener('click', () => { openOrderDetail(allOrders.find(o => o.id === card.dataset.id)); }));
+            }
 
-                list.querySelectorAll('[data-aftersale]').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        openAfterSaleModal(btn.dataset.aftersale);
-                    });
-                });
-
-                list.querySelectorAll('.order-card').forEach(card => {
-                    card.addEventListener('click', async () => {
-                        const id = card.dataset.id;
-                        try {
-                            const { order } = await api(`/orders/${encodeURIComponent(id)}`);
-                            showOrderDetail(order);
-                        } catch (e) { toast(e.message, 'err'); }
-                    });
+            function openPayModal(order) {
+                if (!order) return;
+                const modal = showModal(`
+                    <h3>去支付</h3>
+                    <p style="color:var(--text-medium);margin-bottom:0.6rem;">订单号：${escapeHtml(order.order_no)}</p>
+                    <p style="margin-bottom:1rem;font-size:1.2rem;font-weight:700;">应付：${formatPrice(order.total)}</p>
+                    <p class="hint" style="margin-bottom:1rem;">当前支付网关未接入，可使用「模拟支付」完成演示流程。</p>
+                    <div class="btn-group">
+                        <button class="btn btn--primary" id="mockPay">模拟支付（演示）</button>
+                        <button class="btn btn--ghost" data-close>稍后支付</button>
+                    </div>`);
+                modal.querySelector('[data-close]').addEventListener('click', () => modal.remove());
+                modal.querySelector('#mockPay').addEventListener('click', async () => {
+                    modal.querySelector('#mockPay').disabled = true;
+                    try { await api('/pay/mock', { method: 'POST', body: { order_no: order.order_no } }); toast('支付成功'); modal.remove(); loadOrders(); }
+                    catch (err) { toast(err.message, 'err'); modal.querySelector('#mockPay').disabled = false; }
                 });
             }
 
+            function cancelConfirm(id) {
+                const modal = showModal(`<h3>取消订单</h3><p style="color:var(--text-medium);margin-bottom:1.2rem;">确认取消该订单？</p><div class="btn-group"><button class="btn btn--primary" data-ok>确认取消</button><button class="btn btn--ghost" data-close>再想想</button></div>`);
+                modal.querySelector('[data-close]').addEventListener('click', () => modal.remove());
+                modal.querySelector('[data-ok]').addEventListener('click', async () => { modal.remove(); try { await api(`/orders/${encodeURIComponent(id)}/cancel`, { method: 'POST' }); toast('订单已取消'); loadOrders(); } catch (err) { toast(err.message, 'err'); } });
+            }
+
             function openAfterSaleModal(id) {
-                const modal = showModal(`
-                    <h3>申请人工售后</h3>
-                    <p class="hint" style="margin-bottom:1rem;">请描述遇到的问题，客服将人工介入处理。</p>
-                    <div class="form-field"><label>售后说明</label><textarea id="asReason" placeholder="例如：商品未收到 / 激活码无法使用…"></textarea></div>
-                    <div class="form-field"><label>联系方式（选填）</label><input id="asContact" placeholder="手机号 / 邮箱 / 微信" /></div>
-                    <div class="form-error" id="asError"></div>
-                    <div class="btn-group">
-                        <button class="btn btn--primary" id="asSubmit">提交申请</button>
-                        <button class="btn btn--ghost" id="asCancel">取消</button>
-                    </div>`);
+                const modal = showModal(`<h3>申请人工售后</h3><p class="hint" style="margin-bottom:1rem;">请描述遇到的问题，客服将人工介入处理。</p><div class="form-field"><label>售后说明</label><textarea id="asReason" placeholder="例如：商品未收到 / 激活码无法使用…"></textarea></div><div class="form-field"><label>联系方式（选填）</label><input id="asContact" placeholder="手机号 / 邮箱 / 微信" /></div><div class="form-error" id="asError"></div><div class="btn-group"><button class="btn btn--primary" id="asSubmit">提交申请</button><button class="btn btn--ghost" id="asCancel">取消</button></div>`);
                 modal.querySelector('#asCancel').addEventListener('click', () => modal.remove());
                 modal.querySelector('#asSubmit').addEventListener('click', async () => {
                     const reason = modal.querySelector('#asReason').value.trim();
                     const contact = modal.querySelector('#asContact').value.trim();
                     const errEl = modal.querySelector('#asError');
                     if (!reason) { errEl.textContent = '请填写售后说明'; return; }
-                    try {
-                        await api(`/orders/${encodeURIComponent(id)}/after-sale`, { method: 'POST', body: { reason, contact } });
-                        toast('售后申请已提交');
-                        modal.remove();
-                        await loadOrders();
-                    } catch (e) { errEl.textContent = e.message; }
+                    try { await api(`/orders/${encodeURIComponent(id)}/after-sale`, { method: 'POST', body: { reason, contact } }); toast('售后申请已提交'); modal.remove(); loadOrders(); }
+                    catch (e) { errEl.textContent = e.message; }
                 });
             }
 
-            function summarizeItems(items) {
-                if (!items || !items.length) return '';
-                const first = items[0];
-                const more = items.length > 1 ? ` 等 ${items.length} 件` : '';
-                return `${first.title}${first.sku_name ? ' · ' + first.sku_name : ''} × ${first.qty}${more}`;
-            }
-
-            function showOrderDetail(order) {
-                const codes = (order.codes || []).map(c => `
-                    <div class="code-box">${c.kind === 'resource' ? '🔗 资源链接：' : '🔑 激活码：'}${escapeHtml(c.code)}</div>`).join('');
-
-                const itemsHTML = (order.items || []).map(i => `
-                    <div class="cart-item">
-                        <div class="info">
-                            <div class="name">${escapeHtml(i.title)}</div>
-                            ${i.sku_name ? `<div class="sku">${escapeHtml(i.sku_name)}</div>` : ''}
-                            <div class="unit">${formatPrice(i.unit_price)} × ${i.qty}</div>
-                        </div>
-                    </div>`).join('');
-
+            function openOrderDetail(order) {
+                if (!order) return;
+                const codes = (order.codes || []).map(c => `<div class="code-box">${c.kind === 'resource' ? '🔗 资源链接：' : '🔑 激活码：'}${escapeHtml(c.code)}<button class="btn btn--ghost btn--small" data-copy="${escapeHtml(c.code)}">复制</button></div>`).join('');
+                const itemsHTML = (order.items || []).map(i => `<div class="cart-item"><div class="info"><div class="name">${escapeHtml(i.title)}</div>${i.sku_name ? `<div class="sku">${escapeHtml(i.sku_name)}</div>` : ''}<div class="unit">${formatPrice(i.unit_price)} × ${i.qty}</div></div></div>`).join('');
                 const addr = order.address || {};
                 const hasAddr = !!(addr.name && addr.detail);
-                const addressHTML = hasAddr ? `
-                    <div class="info-box">📍 收货人：${escapeHtml(addr.name)}（${escapeHtml(addr.phone || '')}）<br/>收货地址：${escapeHtml(addr.detail)}</div>` : '';
+                const addressHTML = hasAddr ? `<div class="info-box">📍 收货人：${escapeHtml(addr.name)}（${escapeHtml(addr.phone || '')}）<br/>收货地址：${escapeHtml(addr.detail)}</div>` : '';
+                const trackingHTML = order.tracking_no ? `<div class="info-box tracking-no">📦 ${escapeHtml(order.tracking_company || '快递')}：${escapeHtml(order.tracking_no)}${order.shipped_at ? '（发货时间 ' + formatTime(order.shipped_at) + '）' : ''}</div>` : '';
+                const afterHTML = order.after_sale_status ? `<div class="info-box">🛠️ 售后状态：${escapeHtml(AS_STATUS_TEXT[order.after_sale_status] || order.after_sale_status)}${order.after_sale_note ? `<br/>处理备注：${escapeHtml(order.after_sale_note)}` : ''}</div>` : '';
 
-                const trackingHTML = order.tracking_no ? `
-                    <div class="info-box tracking-no">📦 ${escapeHtml(order.tracking_company || '快递')}：${escapeHtml(order.tracking_no)}${order.shipped_at ? '（发货时间 ' + formatTime(order.shipped_at) + '）' : ''}</div>` : '';
-
-                const afterSaleHTML = order.after_sale_status ? `
-                    <div class="info-box">🛠️ 售后状态：${escapeHtml(AS_STATUS_TEXT[order.after_sale_status] || order.after_sale_status)}${order.after_sale_note ? `<br/>处理备注：${escapeHtml(order.after_sale_note)}` : ''}</div>` : '';
-
-                content.innerHTML = `
-                    <div class="section-wrapper">
-                        <div class="section-header">
-                            <h2 class="section-title">订单详情</h2>
-                            <p class="section-subtitle">${escapeHtml(order.order_no)}</p>
-                        </div>
-                        <div class="section-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
-                        <div class="order-card">
-                            <div class="head">
-                                <span>${statusBadge(order.status)}</span>
-                                <span class="order-time">下单时间 ${formatTime(order.created_at)}</span>
-                            </div>
-                            <div class="cart-list">${itemsHTML}</div>
-                            ${addressHTML}
-                            ${trackingHTML}
-                            <div class="total" style="margin-top:0.8rem;">合计 ${formatPrice(order.total)}</div>
-                            ${codes ? `<h4 style="margin:1rem 0 0.4rem;">发货内容</h4>${codes}` : ''}
-                            ${afterSaleHTML}
-                            ${order.remark ? `<p style="margin-top:0.8rem; color:var(--text-medium);">备注：${escapeHtml(order.remark)}</p>` : ''}
-                        </div>
-                        <button class="btn btn--outline" style="margin-top:1rem;" id="backBtn">← 返回列表</button>
-                    </div>`;
-
-                document.getElementById('backBtn').addEventListener('click', () => location.reload());
+                const modal = showModal(`
+                    <h3 style="display:flex;align-items:center;gap:0.6rem;">订单详情 ${statusBadge(order.status)}</h3>
+                    <div class="info-box"><strong>订单号：</strong>${escapeHtml(order.order_no)}</div>
+                    ${timelineHTML(order)}
+                    <div class="cart-list">${itemsHTML}</div>
+                    ${addressHTML}${trackingHTML}
+                    <div class="total" style="margin:0.8rem 0;">合计 ${formatPrice(order.total)}</div>
+                    ${codes ? `<h4 style="margin:0.6rem 0 0.3rem;">发货内容</h4>${codes}` : ''}
+                    ${afterHTML}
+                    ${order.remark ? `<p style="margin-top:0.8rem;color:var(--text-medium);">备注：${escapeHtml(order.remark)}</p>` : ''}
+                    <div class="btn-group" style="margin-top:1.2rem;"><button class="btn btn--ghost" data-close>关闭</button></div>`);
+                modal.querySelector('[data-close]').addEventListener('click', () => modal.remove());
+                modal.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => copyText(b.dataset.copy).then(() => toast('已复制')).catch(() => toast('复制失败', 'err'))));
             }
         })();
     </script>

@@ -14,29 +14,53 @@
         <div id="pageContent"></div>
     </div>
 
+    <script src="./js/ui.js"></script>
+    <script src="./js/layout.js"></script>
     <script src="./js/shop.js"></script>
     <script>
         (async function () {
             await initCommon();
             const content = document.getElementById('pageContent');
+            let items = Store.cart;
+
+            init();
+
+            async function init() {
+                await revalidateCart();
+                items = Store.cart;
+                let selected = getSelected();
+                if (!selected.length) { selected = items.map(i => i.key); saveSelected(selected); }
+                render();
+            }
 
             function render() {
-                if (!Store.cart.length) {
+                items = Store.cart;
+                const selected = getSelected();
+                if (!items.length) {
                     content.innerHTML = `
                         <div class="section-wrapper">
                             <div class="section-header"><h2 class="section-title">购物车</h2></div>
                             <div class="section-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
-                            <div class="empty-state">购物车是空的，去 <a href="index.html#products">逛逛</a> 吧</div>
+                            ${emptyState('购物车是空的', { icon: '🛒' })}
+                            <div style="text-align:center;margin-top:1rem;"><a class="btn btn--primary" href="index.html#products">去逛逛</a></div>
                         </div>`;
                     return;
                 }
 
-                const rows = Store.cart.map(item => `
+                const selSet = new Set(selected);
+                const selRows = items.filter(i => selSet.has(i.key));
+                const subtotal = selRows.reduce((s, i) => s + i.unit_price * i.qty, 0);
+                const count = selRows.reduce((s, i) => s + i.qty, 0);
+                const allSelected = items.length > 0 && selected.length === items.length;
+
+                const rows = items.map(item => `
                     <div class="cart-item" data-key="${escapeHtml(item.key)}">
+                        <input type="checkbox" class="cart-check" data-check="${escapeHtml(item.key)}" ${selSet.has(item.key) ? 'checked' : ''} title="选择" />
                         <div class="thumb">${item.image ? `<img src="${escapeHtml(item.image)}" alt="" />` : '🛍️'}</div>
                         <div class="info">
                             <div class="name">${escapeHtml(item.title)}</div>
                             ${item.sku_name ? `<div class="sku">${escapeHtml(item.sku_name)}</div>` : ''}
+                            ${item._invalid ? `<div class="sku" style="color:var(--danger)">商品已失效</div>` : ''}
                             <div class="unit">${formatPrice(item.unit_price)} / 件</div>
                         </div>
                         <div class="qty-stepper">
@@ -45,64 +69,85 @@
                             <button data-plus="${escapeHtml(item.key)}">+</button>
                         </div>
                         <div class="subtotal">${formatPrice(item.unit_price * item.qty)}</div>
-                        <button class="remove" data-key="${escapeHtml(item.key)}" title="移除">✕</button>
+                        <button class="remove" data-remove="${escapeHtml(item.key)}" title="移除">✕</button>
                     </div>`).join('');
-
-                const subtotal = Store.cart.reduce((s, i) => s + i.unit_price * i.qty, 0);
 
                 content.innerHTML = `
                     <div class="section-wrapper">
                         <div class="section-header"><h2 class="section-title">购物车</h2></div>
                         <div class="section-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
-                        <div class="cart-list">${rows}</div>
-                        <div class="cart-summary">
-                            <div class="row"><span>商品小计</span><span>${formatPrice(subtotal)}</span></div>
-                            <div class="row total"><span>合计</span><span>${formatPrice(subtotal)}</span></div>
-                            <div class="btn-group">
-                                <button class="btn btn--ghost" id="clearCartBtn">清空购物车</button>
-                                <button class="btn btn--primary" id="checkoutBtn">去结算</button>
+                        <div class="cart-toolbar">
+                            <label class="cart-check-row"><input type="checkbox" class="cart-check" id="selectAll" ${allSelected ? 'checked' : ''} /> 全选</label>
+                            <button class="btn btn--ghost btn--small" id="batchRemove">删除选中</button>
+                        </div>
+                        <div class="cart-layout">
+                            <div class="cart-main">
+                                <div class="cart-list">${rows}</div>
                             </div>
+                            <aside class="summary-card cart-summary-card">
+                                <div class="row"><span>已选 <b class="selected-count">${count}</b> 件</span></div>
+                                <div class="row total"><span>合计</span><strong>${formatPrice(subtotal)}</strong></div>
+                                <a class="btn btn--primary" id="checkoutBtn" href="#">去结算</a>
+                            </aside>
+                        </div>
+                        <div class="mobile-cart-bar">
+                            <label class="cart-check-row"><input type="checkbox" id="mSelectAll" class="cart-check" ${allSelected ? 'checked' : ''} /> 全选</label>
+                            <div class="m-total"><span>合计</span><strong>${formatPrice(subtotal)}</strong></div>
+                            <button class="btn btn--primary" id="mCheckout">去结算</button>
                         </div>
                     </div>`;
 
-                content.querySelectorAll('.remove').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        removeFromCart(btn.dataset.key);
+                bind();
+            }
+
+            function bind() {
+                content.querySelectorAll('[data-check]').forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        const sel = getSelected();
+                        const key = cb.dataset.check;
+                        const i = sel.indexOf(key);
+                        if (cb.checked && i < 0) sel.push(key); else if (!cb.checked && i >= 0) sel.splice(i, 1);
+                        saveSelected(sel); render();
+                    });
+                });
+
+                [content.querySelector('#selectAll'), content.querySelector('#mSelectAll')].filter(Boolean).forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        saveSelected(cb.checked ? items.map(i => i.key) : []);
                         render();
                     });
                 });
 
-                content.querySelectorAll('[data-minus]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const item = Store.cart.find(i => i.key === btn.dataset.minus);
-                        if (item) { setCartQty(btn.dataset.minus, item.qty - 1); render(); }
-                    });
+                content.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => { removeFromCart(b.dataset.remove); syncSelection(); render(); }));
+                content.querySelectorAll('[data-minus]').forEach(b => b.addEventListener('click', () => { const it = items.find(i => i.key === b.dataset.minus); if (it) { setCartQty(b.dataset.minus, it.qty - 1); render(); } }));
+                content.querySelectorAll('[data-plus]').forEach(b => b.addEventListener('click', () => { const it = items.find(i => i.key === b.dataset.plus); if (it) { setCartQty(b.dataset.plus, it.qty + 1); render(); } }));
+
+                const batch = content.querySelector('#batchRemove');
+                if (batch) batch.addEventListener('click', async () => {
+                    const sel = getSelected();
+                    if (!sel.length) return toast('请先选择商品', 'err');
+                    const ok = await confirmDialog({ title: '删除选中商品', message: `确定删除选中的 ${sel.length} 件商品吗？`, okText: '删除', danger: true });
+                    if (!ok) return;
+                    Store.cart = Store.cart.filter(i => !sel.includes(i.key));
+                    saveCart(); saveSelected([]); render();
                 });
 
-                content.querySelectorAll('[data-plus]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const item = Store.cart.find(i => i.key === btn.dataset.plus);
-                        if (item) { setCartQty(btn.dataset.plus, item.qty + 1); render(); }
-                    });
-                });
-
-                document.getElementById('clearCartBtn').addEventListener('click', () => {
-                    if (!confirm('确认清空购物车？')) return;
-                    clearCart();
-                    render();
-                });
-
-                document.getElementById('checkoutBtn').addEventListener('click', () => {
-                    if (!isLoggedIn()) {
-                        toast('请先登录', 'err');
-                        setTimeout(() => { location.href = 'login.html?redirect=checkout.html'; }, 600);
-                        return;
-                    }
-                    location.href = 'checkout.html';
+                [content.querySelector('#checkoutBtn'), content.querySelector('#mCheckout')].filter(Boolean).forEach(btn => {
+                    btn.addEventListener('click', (e) => { e.preventDefault(); goCheckout(); });
                 });
             }
 
-            render();
+            function syncSelection() {
+                const keys = items.map(i => i.key);
+                saveSelected(getSelected().filter(k => keys.includes(k)));
+            }
+
+            function goCheckout() {
+                const sel = getSelected();
+                if (!sel.length) { toast('请先选择商品', 'err'); return; }
+                if (!isLoggedIn()) { toast('请先登录', 'err'); setTimeout(() => { location.href = 'login.html?redirect=checkout.html'; }, 600); return; }
+                location.href = 'checkout.html?sel=1';
+            }
         })();
     </script>
 </body>

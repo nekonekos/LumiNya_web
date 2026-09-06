@@ -62,6 +62,13 @@ export async function handleAdmin(request, env, url) {
   const codeMatch = path.match(/^\/api\/admin\/codes\/([^/]+)$/);
   if (codeMatch && method === 'DELETE') return adminDeleteCode(env, codeMatch[1]);
 
+  // 运费模板
+  if (path === '/api/admin/shipping-templates' && method === 'GET') return adminShippingTemplates(env);
+  if (path === '/api/admin/shipping-templates' && method === 'POST') return adminCreateShippingTemplate(request, env);
+  const shipTplMatch = path.match(/^\/api\/admin\/shipping-templates\/([^/]+)$/);
+  if (shipTplMatch && method === 'PUT') return adminUpdateShippingTemplate(request, env, shipTplMatch[1]);
+  if (shipTplMatch && method === 'DELETE') return adminDeleteShippingTemplate(env, shipTplMatch[1]);
+
   return error('Not Found', 404);
 }
 
@@ -481,4 +488,44 @@ async function adminAddCodes(request, env) {
 async function adminDeleteCode(env, id) {
   const res = await env.DB.prepare('DELETE FROM activation_codes WHERE id = ?1').bind(id).run();
   return res.meta.changes ? json({ ok: true }) : error('激活码不存在', 404);
+}
+
+// ---------- 运费模板 ----------
+
+async function adminShippingTemplates(env) {
+  const { results } = await env.DB.prepare('SELECT * FROM shipping_templates ORDER BY created_at DESC').all();
+  return json({ templates: results });
+}
+
+async function adminCreateShippingTemplate(request, env) {
+  const body = await readJson(request);
+  const name = String(body?.name || '').trim();
+  if (!name) return error('模板名称不能为空', 400);
+  const baseFee = Math.max(0, parseInt(body?.base_fee, 10) || 0);
+  const freeThreshold = Math.max(0, parseInt(body?.free_threshold, 10) || 0);
+  const id = randomId('st');
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.prepare(
+    'INSERT INTO shipping_templates (id, name, base_fee, free_threshold, created_at) VALUES (?1, ?2, ?3, ?4, ?5)'
+  ).bind(id, name, baseFee, freeThreshold, now).run();
+  return json({ id }, 201);
+}
+
+async function adminUpdateShippingTemplate(request, env, id) {
+  const body = await readJson(request);
+  const tpl = await env.DB.prepare('SELECT * FROM shipping_templates WHERE id = ?1').bind(id).first();
+  if (!tpl) return error('模板不存在', 404);
+  const name = body?.name !== undefined ? String(body.name).trim() : tpl.name;
+  const baseFee = body?.base_fee !== undefined ? Math.max(0, parseInt(body.base_fee, 10) || 0) : tpl.base_fee;
+  const freeThreshold = body?.free_threshold !== undefined ? Math.max(0, parseInt(body.free_threshold, 10) || 0) : tpl.free_threshold;
+  if (!name) return error('模板名称不能为空', 400);
+  await env.DB.prepare(
+    'UPDATE shipping_templates SET name = ?1, base_fee = ?2, free_threshold = ?3 WHERE id = ?4'
+  ).bind(name, baseFee, freeThreshold, id).run();
+  return json({ ok: true });
+}
+
+async function adminDeleteShippingTemplate(env, id) {
+  const res = await env.DB.prepare('DELETE FROM shipping_templates WHERE id = ?1').bind(id).run();
+  return res.meta.changes ? json({ ok: true }) : error('模板不存在', 404);
 }
