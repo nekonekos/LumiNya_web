@@ -36,7 +36,6 @@
             const username = document.getElementById('usernameInput').value.trim();
             const password = document.getElementById('passwordInput').value;
 
-            if (!server) { showError(window.LD.i18n.errors.serverRequired); return; }
             if (!username || !password) { showError('请输入用户名和密码'); return; }
 
             loginBtn.disabled = true;

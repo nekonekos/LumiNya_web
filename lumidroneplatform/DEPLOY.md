@@ -1,6 +1,6 @@
 # LumiDrone 平台部署指南
 
-本平台为「只读」无人机运营监管平台：后端接收 4G DTU 转发的 MAVLink2 遥测并入库/告警/推送，前端部署在 Cloudflare Pages，后端地址由用户在浏览器中手动填写。
+本平台为「只读」无人机运营监管平台：后端接收 4G DTU 转发的 MAVLink2 遥测并入库/告警/推送，前端部署在 Cloudflare Pages（含 Pages Functions 反向代理），后端地址默认走同源代理，也可手动填写。
 
 ## 架构
 
@@ -9,7 +9,9 @@ ArduPilot 飞控 → 4G DTU(串口转TCP客户端) ──TCP:5760──> 阿里�
                                                               │
                                               REST :8000 + WebSocket /ws
                                                               │
-                                              Cloudflare Pages(静态前端, 用户填后端地址)
+                              Cloudflare Pages Functions 同源代理 (/api/*, /ws)
+                                                              │
+                                       Cloudflare Pages(前端, 默认走代理)
 ```
 
 - 后端：Python FastAPI + uvicorn + SQLite + pymavlink，部署在阿里云 ECS。
@@ -155,11 +157,12 @@ curl http://127.0.0.1:8000/api/health
 # {"status":"ok","commands_enabled":false,"drones_online":0,"drones_known":0}
 ```
 
-### 8. HTTPS（推荐）
+### 8. 让 HTTPS 前端访问后端（解决「混合内容」）
 
-前端托管在 Cloudflare Pages（HTTPS），若后端用 HTTP，浏览器会因「混合内容」拦截 API 请求。两种方案：
+前端托管在 Cloudflare Pages（HTTPS），若后端用 HTTP，浏览器会因「混合内容（Mixed Content）」拦截 API 请求（前端是 HTTPS、目标是 `http://` 时，Chrome/Edge/Firefox 会直接阻止）。三种方案：
 
-- **方案 A（简单）**：后端域名套 Cloudflare 代理，用户填 `https://drone-api.example.com`；Cloudflare 已提供 TLS。
+- **方案 C（推荐，不备案、直连 HTTP 后端）**：用 Cloudflare Pages Functions 把前端的 `/api/*`、`/ws` **同源代理**到后端。浏览器只与本站（HTTPS 同源）通信，Cloudflare 边缘节点再把请求转发到 `http://<后端IP>:8000`。后端无需对外暴露 80/443、无需备案、无需证书。详见下文「三、前端部署」。
+- **方案 A（简单）**：后端套 Cloudflare 代理（橙色云朵）或已配 HTTPS，用户填 `https://drone-api.example.com`；Cloudflare 已提供 TLS。
 - **方案 B**：ECS 上用 nginx + certbot 配置 HTTPS 反向代理到 `127.0.0.1:8000`，同时转发 WebSocket：
 
 ```nginx
@@ -203,14 +206,23 @@ DTU 的 `5760` 端口保持纯 TCP，勿走 HTTP 代理。
 
 ## 三、前端部署（Cloudflare Pages）
 
-前端为纯静态站点，无构建步骤：
+前端为纯静态站点 + Cloudflare Pages Functions 反向代理：
 
-1. 将 `lumidroneplatform/frontend/` 目录整个部署为站点根目录（`index.html` 位于根）。
+1. 将 `lumidroneplatform/frontend/` 目录整个部署为站点根目录（`index.html` 位于根）。`functions/` 子目录会被 Cloudflare 识别为 Functions，不会作为静态文件下发。
 2. Cloudflare Pages 两种方式：
    - **直接上传**：Dashboard → Workers & Pages → Create → Direct Upload，拖入 `frontend/` 内容。
    - **连接 Git**：构建命令留空，输出目录填 `lumidroneplatform/frontend`。
-3. 无需环境变量、无需构建。
-4. 用户打开站点 → `index.html` 按本地 token 自动跳转 `login.html` / `dashboard.html`；在登录页填写后端服务器地址（存于本机浏览器 localStorage）。
+3. **配置后端地址（环境变量）**：项目 Settings → Environment variables 添加：
+   ```
+   BACKEND_URL = http://8.138.29.44:8000
+   ```
+   未设置时 Functions 回退到该默认值。
+4. **绑定域名**（可选，推荐）：绑定 `api.drone.luminya.cn`（或任一自定义域名）为该 Page 的自定义域名；`functions/` 会在该域名上自动生效，前端与 `/api`、`/ws` 同源，无混合内容、无跨域问题。
+5. **登录页后端地址**：默认**留空**即可，前端会自动走本站同源代理（`/api/...`、`/ws`）。若需直连某后端，可填 `https://...` 完整地址（请务必带 `https://`；填 `http://` 会被浏览器拦截）。
+
+> 说明：`functions/api/[[path]].js` 代理 `/api/*`，`functions/ws.js` 代理 WebSocket `/ws`。它们将请求转发到 `BACKEND_URL`。若你的后端 IP/端口不同，只改环境变量即可，无需改代码。
+
+> ⚠️ 后端防火请：既然前端通过 Pages Functions 访问后端，后端 `8000` 端口需允许来自 Cloudflare 边缘 IP 的入站（或临时全放行）；`5760` 端口仅放行 DTU 出口 IP。
 
 ---
 

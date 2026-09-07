@@ -13,12 +13,7 @@
     }
 
     async function request(path, options) {
-        const base = window.LD.getServer();
-        if (!base) {
-            window.LD.toast(window.LD.i18n.errors.serverRequired, 'error');
-            window.location.href = './login.html';
-            throw new Error('no_server');
-        }
+        const base = window.LD.getApiBase();
         const opts = options || {};
         const headers = Object.assign(authHeaders(), opts.headers || {});
         let res;

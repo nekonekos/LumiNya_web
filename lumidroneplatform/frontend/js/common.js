@@ -76,10 +76,21 @@
         else localStorage.removeItem(LS_SERVER);
         return u;
     };
+    // 后端 API 基址：
+    //  - 若用户在登录页手工填写了服务器地址，则用该地址（兼容直连）。
+    //  - 否则返回空串，前端用相对路径 /api/... 走本站同源代理
+    //    （Cloudflare Pages Functions 会把 /api/* 转发到后端），
+    //    从而避免 HTTPS 页面请求 HTTP 的混合内容错误。
+    LD.getApiBase = function () {
+        return LD.getServer();
+    };
+
     LD.wsUrl = function () {
         const s = LD.getServer();
-        if (!s) return '';
-        return s.replace(/^http/i, 'ws') + '/ws';
+        if (s) return s.replace(/^http/i, 'ws') + '/ws';
+        // 未填服务器 => 走同源代理：wss://<当前域名>/ws
+        const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        return proto + '://' + window.location.host + '/ws';
     };
 
     // ---------------------------------------------------------------- auth
