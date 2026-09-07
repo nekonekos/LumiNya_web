@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LumiDrone · 无人机运营监管平台</title>
+    <script>
+        (function () {
+            'use strict';
+            var token = localStorage.getItem('lumidrone-token');
+            if (token) window.location.replace('./dashboard.html');
+            else window.location.replace('./login.html');
+        })();
+    </script>
+</head>
+<body></body>
+</html>

@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 环境与密钥
+.env
+
+# 本地数据库（运行时生成，勿提交）
+*.db
+*.db-shm
+*.db-wal
+
+# 系统文件
+.DS_Store
+Thumbs.db

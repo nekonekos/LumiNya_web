@@ -1,0 +1,75 @@
+{
+  "title": "无人机详情",
+  "back": "返回总览",
+  "attitude": {
+    "title": "飞行姿态",
+    "roll": "横滚",
+    "pitch": "俯仰",
+    "yaw": "航向"
+  },
+  "data": {
+    "title": "实时数据",
+    "armed": "解锁状态",
+    "mode": "飞行模式",
+    "systemStatus": "系统状态",
+    "battery": "电量",
+    "voltage": "电压",
+    "current": "电流",
+    "alt": "海拔高度",
+    "relAlt": "相对高度",
+    "heading": "航向",
+    "groundspeed": "地速",
+    "airspeed": "空速",
+    "climb": "爬升率",
+    "throttle": "油门",
+    "satellites": "卫星数",
+    "fixType": "定位类型",
+    "gps": "GPS 状态",
+    "lastSeen": "最后心跳",
+    "ok": "正常",
+    "bad": "异常"
+  },
+  "fixTypes": {
+    "0": "无定位",
+    "1": "无定位",
+    "2": "2D 定位",
+    "3": "3D 定位",
+    "4": "RTK 浮点",
+    "5": "RTK 固定"
+  },
+  "map": {
+    "title": "实时位置",
+    "noPosition": "暂无 GPS 定位数据"
+  },
+  "alerts": {
+    "title": "告警",
+    "empty": "当前无告警",
+    "time": "时间",
+    "level": "级别",
+    "message": "内容"
+  },
+  "history": {
+    "title": "遥测历史",
+    "empty": "暂无遥测记录",
+    "time": "时间",
+    "battery": "电量",
+    "alt": "高度",
+    "mode": "模式",
+    "armed": "解锁"
+  },
+  "commands": {
+    "title": "远程控制",
+    "readonlyNote": "当前为只读模式：指令接口已保留，但后端不会下发任何 MAVLink 指令。",
+    "arm": "解锁",
+    "disarm": "上锁",
+    "takeoff": "起飞",
+    "land": "降落",
+    "rtl": "返航",
+    "set_mode": "切换模式",
+    "goto": "飞往坐标",
+    "confirm": "确认",
+    "cancel": "取消"
+  },
+  "loading": "正在加载无人机数据…",
+  "notFound": "未找到该无人机"
+}

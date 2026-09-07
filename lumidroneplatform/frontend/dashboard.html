@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>机队总览 · LumiDrone</title>
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/dashboard.css" />
+</head>
+<body>
+    <nav class="nav" id="topNav" aria-label="主导航"></nav>
+
+    <main class="page">
+        <header class="page__head">
+            <h1 class="page__title" id="pageTitle">机队总览</h1>
+            <p class="page__subtitle" id="pageSubtitle"></p>
+        </header>
+
+        <section class="stats" id="statsBar" aria-label="机队统计"></section>
+
+        <div class="toolbar">
+            <span class="toolbar__hint" id="connHint"></span>
+            <button class="btn btn--ghost" id="refreshBtn" type="button">刷新</button>
+        </div>
+
+        <section class="drone-grid" id="droneGrid" aria-live="polite"></section>
+    </main>
+
+    <script src="./js/common.js"></script>
+    <script src="./js/api.js"></script>
+    <script src="./js/dashboard.js"></script>
+</body>
+</html>

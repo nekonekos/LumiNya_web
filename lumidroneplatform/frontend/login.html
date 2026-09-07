@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>登录 · LumiDrone</title>
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/auth.css" />
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="auth-card__brand">
+                <span class="auth-card__dot"></span>
+                <span id="authAppName">LumiDrone</span>
+            </div>
+            <p class="auth-card__tagline" id="authTagline">无人机运营监管平台</p>
+
+            <form id="loginForm" novalidate>
+                <label class="field">
+                    <span class="field__label">后端服务器地址</span>
+                    <input class="field__input" id="serverInput" type="text"
+                           placeholder="https://your-server.com 或 IP:端口"
+                           autocomplete="url" required />
+                    <span class="field__hint">后端部署地址（IP 或域名），将保存在本机浏览器</span>
+                </label>
+
+                <label class="field">
+                    <span class="field__label">用户名</span>
+                    <input class="field__input" id="usernameInput" type="text"
+                           placeholder="请输入用户名" autocomplete="username" required />
+                </label>
+
+                <label class="field">
+                    <span class="field__label">密码</span>
+                    <input class="field__input" id="passwordInput" type="password"
+                           placeholder="请输入密码" autocomplete="current-password" required />
+                </label>
+
+                <div class="auth-card__error" id="loginError" hidden></div>
+
+                <button class="btn btn--primary btn--block" id="loginBtn" type="submit">
+                    登 录
+                </button>
+            </form>
+
+            <p class="auth-card__note">账号由管理员预建，本平台不开放注册。</p>
+        </div>
+
+        <div class="auth-page__footer">
+            <button id="themeToggle" class="btn btn--ghost" type="button">
+                <span class="theme-icon" aria-hidden="true"></span> 切换主题
+            </button>
+        </div>
+    </div>
+
+    <script src="./js/common.js"></script>
+    <script src="./js/api.js"></script>
+    <script src="./js/auth.js"></script>
+</body>
+</html>

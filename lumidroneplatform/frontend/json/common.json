@@ -1,0 +1,61 @@
+{
+  "appName": "LumiDrone",
+  "tagline": "无人机运营监管平台",
+  "nav": {
+    "dashboard": "机队总览",
+    "logout": "退出登录"
+  },
+  "status": {
+    "online": "在线",
+    "offline": "离线",
+    "armed": "已解锁",
+    "disarmed": "已上锁",
+    "enabled": "启用",
+    "disabled": "停用"
+  },
+  "alertLevels": {
+    "info": { "label": "提示", "color": "#3b82f6" },
+    "warning": { "label": "警告", "color": "#f59e0b" },
+    "critical": { "label": "严重", "color": "#ef4444" }
+  },
+  "alertRules": {
+    "link_lost": "链路丢失",
+    "low_battery": "低电量",
+    "gps_lost": "GPS 丢星",
+    "mode_failsafe": "失控保护",
+    "attitude_limit": "姿态越限"
+  },
+  "modes": {
+    "STABILIZE": "自稳",
+    "ACRO": "特技",
+    "ALT_HOLD": "定高",
+    "AUTO": "自动",
+    "GUIDED": "引导",
+    "LOITER": "悬停",
+    "RTL": "返航",
+    "CIRCLE": "绕圈",
+    "LAND": "降落",
+    "DRIFT": "漂移",
+    "SPORT": "运动",
+    "FLIP": "翻转",
+    "AUTOTUNE": "自动调参",
+    "POSHOLD": "定点",
+    "BRAKE": "刹车",
+    "THROW": "抛飞",
+    "AVOID_ADSB": "避让",
+    "GUIDED_NOGPS": "无 GPS 引导",
+    "SMART_RTL": "智能返航",
+    "FLOWHOLD": "光流悬停",
+    "FOLLOW": "跟随",
+    "ZIGZAG": "Z 字形",
+    "SYSTEMID": "系统识别",
+    "AUTOROTATE": "自旋降落",
+    "UNKNOWN": "未知"
+  },
+  "errors": {
+    "network": "无法连接到后端服务器，请检查地址与网络",
+    "unauthorized": "登录已过期，请重新登录",
+    "serverRequired": "请先填写后端服务器地址",
+    "loadFailed": "数据加载失败，请稍后重试"
+  }
+}

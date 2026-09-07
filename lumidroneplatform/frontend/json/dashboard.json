@@ -1,0 +1,28 @@
+{
+  "title": "机队总览",
+  "subtitle": "实时监控所有接入的无人机",
+  "stats": {
+    "online": "在线",
+    "known": "已登记",
+    "alerting": "告警中"
+  },
+  "card": {
+    "battery": "电量",
+    "alt": "高度",
+    "mode": "模式",
+    "satellites": "卫星",
+    "speed": "地速",
+    "voltage": "电压",
+    "noPosition": "暂无定位",
+    "lastSeen": "最后心跳"
+  },
+  "actions": {
+    "detail": "查看详情",
+    "refresh": "刷新"
+  },
+  "empty": {
+    "title": "暂无无人机数据",
+    "desc": "等待 DTU 接入，或联系管理员登记无人机。接入后此处会实时显示机队状态。"
+  },
+  "loading": "正在加载机队数据…"
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>无人机详情 · LumiDrone</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/drone.css" />
+</head>
+<body>
+    <nav class="nav" id="topNav" aria-label="主导航"></nav>
+
+    <main class="page">
+        <header class="page__head">
+            <a class="page__back" id="backLink" href="./dashboard.html">← 返回总览</a>
+            <h1 class="page__title" id="droneName">无人机详情</h1>
+            <p class="page__subtitle" id="droneMeta"></p>
+        </header>
+
+        <div class="detail-grid">
+            <section class="panel" id="attitudePanel">
+                <h2 class="panel__title">飞行姿态</h2>
+                <div class="attitude" id="attitudeIndicator"></div>
+                <div class="attitude-readouts" id="attitudeReadouts"></div>
+            </section>
+
+            <section class="panel" id="mapPanel">
+                <h2 class="panel__title">实时位置</h2>
+                <div class="map" id="map"></div>
+            </section>
+
+            <section class="panel" id="dataPanel">
+                <h2 class="panel__title">实时数据</h2>
+                <div class="kv" id="dataList"></div>
+            </section>
+
+            <section class="panel" id="alertsPanel">
+                <h2 class="panel__title">告警</h2>
+                <div class="alert-list" id="alertList"></div>
+            </section>
+        </div>
+
+        <section class="panel panel--commands" id="commandsPanel">
+            <h2 class="panel__title">远程控制</h2>
+            <p class="commands__note" id="commandsNote"></p>
+            <div class="commands" id="commandButtons"></div>
+        </section>
+
+        <section class="panel" id="historyPanel">
+            <h2 class="panel__title">遥测历史</h2>
+            <div class="table-wrap">
+                <table class="table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>时间</th><th>电量</th><th>高度</th><th>模式</th><th>解锁</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="./js/common.js"></script>
+    <script src="./js/api.js"></script>
+    <script src="./js/drone.js"></script>
+</body>
+</html>
