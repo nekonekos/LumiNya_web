@@ -33,6 +33,10 @@
             let allOrders = [];
             let tab = new URLSearchParams(location.search).get('status') || 'all';
 
+            const TABS = [
+                ['all', '全部'], ['pending', '待付款'], ['paid', '待发货'], ['shipped', '待收货'], ['completed', '已完成'], ['after', '售后']
+            ];
+
             content.innerHTML = `
                 <div class="section-wrapper">
                     <div class="section-header"><h2 class="section-title">我的订单</h2></div>
@@ -42,10 +46,6 @@
                 </div>`;
 
             await loadOrders();
-
-            const TABS = [
-                ['all', '全部'], ['pending', '待付款'], ['paid', '待发货'], ['shipped', '待收货'], ['completed', '已完成'], ['after', '售后']
-            ];
 
             function statusLine(o) {
                 if (['applied', 'processing'].includes(o.after_sale_status)) return 'after';
