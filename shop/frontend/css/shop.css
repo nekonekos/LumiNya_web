@@ -796,7 +796,7 @@ body.is-mobile .container { max-width: 100%; }
 .tl-step::before { content: ''; position: absolute; top: 0.5em; left: 0; right: 0; height: 2px; background: var(--border-light); }
 .tl-step:first-child::before { left: 50%; }
 .tl-step:last-child::before { right: 50%; }
-.tl-step .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--border-light); margin: 0 auto 0.3rem; position: relative; z-index: 1; }
+.tl-step .dot { display: block; width: 12px; height: 12px; border-radius: 50%; background: var(--border-light); margin: 0 auto 0.3rem; position: relative; z-index: 1; }
 .tl-step.done .dot { background: var(--ok); }
 .tl-step.done { color: var(--text-medium); }
 .tl-step.active .dot { background: var(--primary-blue); box-shadow: 0 0 0 4px rgba(107,159,212,0.2); }
