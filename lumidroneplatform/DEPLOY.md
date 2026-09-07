@@ -23,11 +23,23 @@ ArduPilot 飞控 → 4G DTU(串口转TCP客户端) ──TCP:5760──> 阿里�
 
 ### 1. 环境要求
 
-- 系统：Ubuntu 20.04+ / Debian / CentOS（示例以 Ubuntu 为准）
+- 系统：Ubuntu 20.04+ / Debian / CentOS / **Alibaba Cloud Linux 3**（推荐；示例以 Alibaba Cloud Linux 3 为准）
 - Python：**3.8+**（推荐 3.10/3.11；代码已兼容 3.8）
-- 开放端口（安全组入方向）：
+- 开放端口（安全组入方向 + 实例内防火墙，见「5. 防火墙」）：
   - `8000`：REST/WebSocket API（如走反向代理 TLS，可仅对代理开放）
   - `5760`：DTU TCP 接入端口（仅限你的 DTU 出口 IP，尽量收紧）
+
+#### Alibaba Cloud Linux 3 安装 Python/venv
+
+Alibaba Cloud Linux 3 基于 RHEL 8，使用 `dnf`，默认 `python3` 版本较低，建议安装较新版本：
+
+```bash
+sudo dnf -y update
+sudo dnf -y install python3 python3-pip python3-devel gcc gcc-c++
+# 若需要更新 Python，可用 dnf 安装 python3.11：
+#   sudo dnf -y install python3.11 python3.11-pip
+python3 --version
+```
 
 ### 2. 上传代码
 
@@ -39,7 +51,7 @@ ArduPilot 飞控 → 4G DTU(串口转TCP客户端) ──TCP:5760──> 阿里�
 cd /opt/lumidrone/backend
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -U pip
+python -m pip install -U pip
 pip install -r requirements.txt
 ```
 
@@ -47,35 +59,59 @@ pip install -r requirements.txt
 
 ### 4. 配置环境变量
 
-编辑 `/opt/lumidrone/backend/.env`（或直接 export）：
+编辑 `/opt/lumidrone/backend/.env`（或直接 export）。**环境变量名必须带 `LUMIDRONE_` 前缀**，与 `app/config.py` 一致：
+
+> 注意：直接 `export` 的写法用于交互式 shell；若用下方 systemd 的 `EnvironmentFile=/opt/lumidrone/backend/.env`，该文件每行应**去掉 `export`**（即 `LUMIDRONE_API_PORT=8000` 这种 `KEY=value` 格式）。
 
 ```bash
-export JWT_SECRET="换成一段足够长的随机字符串"
-export ALLOW_COMMANDS="false"          # 只读底线，勿随意开启
-export HOST="0.0.0.0"
-export PORT="8000"
-export DTU_PORT="5760"
-export TELEMETRY_ENABLED="true"
-export TELEMETRY_INTERVAL_SECONDS="2"
+export LUMIDRONE_API_HOST="0.0.0.0"
+export LUMIDRONE_API_PORT="8000"
+export LUMIDRONE_DTU_HOST="0.0.0.0"
+export LUMIDRONE_DTU_PORT="5760"
+export LUMIDRONE_JWT_SECRET="换成一段足够长的随机字符串"
+export LUMIDRONE_DB_PATH="/opt/lumidrone/backend/lumidrone.db"
+export LUMIDRONE_ALLOW_COMMANDS="false"        # 只读底线，勿随意开启
+export LUMIDRONE_TELEMETRY_ENABLED="true"
+export LUMIDRONE_TELEMETRY_INTERVAL="2"
+export LUMIDRONE_LINK_LOST_SECONDS="15"        # 链路丢失告警阈值
 ```
 
-`JWT_SECRET` 必须为强随机值，勿使用默认值上线。
+`LUMIDRONE_JWT_SECRET` 必须为强随机值，勿使用默认值上线。生成随机密钥：
 
-### 5. 初始化管理员账号
+```bash
+openssl rand -base64 48
+```
+
+### 5. 防火墙（Alibaba Cloud Linux 3）
+
+除 ECS 控制台安全组放行 `8000`、`5760` 外，实例内需用 `firewalld` 放行：
+
+```bash
+sudo systemctl enable --now firewalld
+sudo firewall-cmd --permanent --add-port=8000/tcp
+# 仅放行 DTU 出口 IP（更安全），替换 <DTU_IP>：
+sudo firewall-cmd --permanent --add-rich-rule='rule family=ipv4 source address=<DTU_IP> port port=5760 protocol=tcp accept'
+sudo firewall-cmd --reload
+sudo firewall-cmd --list-ports
+```
+
+### 6. 初始化管理员账号
+
+`manage.py` 直接在命令行传入用户名与密码（非交互式）：
 
 ```bash
 cd /opt/lumidrone/backend
-.venv/bin/python manage.py create-admin admin
-# 按提示输入密码
+.venv/bin/python manage.py create-admin admin '一个强密码'
 ```
 
 也可创建只读账号：
 
 ```bash
-.venv/bin/python manage.py create-user viewer
+.venv/bin/python manage.py create-user viewer '密码' viewer
+.venv/bin/python manage.py list-drones      # 查看已登记无人机
 ```
 
-### 6. 启动服务
+### 7. 启动服务
 
 开发调试：
 
@@ -84,6 +120,8 @@ cd /opt/lumidrone/backend
 ```
 
 生产建议用 systemd。创建 `/etc/systemd/system/lumidrone.service`：
+
+> Alibaba Cloud Linux 3 默认无 `www-data` 用户，可用 `root` 或专设运行用户；若用 `root`，去掉下面 `User=` 行即可。
 
 ```ini
 [Unit]
@@ -96,7 +134,9 @@ EnvironmentFile=/opt/lumidrone/backend/.env
 ExecStart=/opt/lumidrone/backend/.venv/bin/python run.py
 Restart=always
 RestartSec=3
-User=www-data
+# Alibaba Cloud Linux 3 无 www-data 用户：去掉下行注释则用 root 运行，
+# 更推荐新建专用用户（useradd -r lumidrone）并取消注释 User=lumidrone。
+# User=www-data
 
 [Install]
 WantedBy=multi-user.target
@@ -115,7 +155,7 @@ curl http://127.0.0.1:8000/api/health
 # {"status":"ok","commands_enabled":false,"drones_online":0,"drones_known":0}
 ```
 
-### 7. HTTPS（推荐）
+### 8. HTTPS（推荐）
 
 前端托管在 Cloudflare Pages（HTTPS），若后端用 HTTP，浏览器会因「混合内容」拦截 API 请求。两种方案：
 

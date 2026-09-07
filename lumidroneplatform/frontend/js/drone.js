@@ -136,6 +136,24 @@
         html += kvRow(t.gps, d.gps_ok
             ? '<span class="kv__val--ok">' + esc(t.ok) + '</span>'
             : '<span class="kv__val--bad">' + esc(t.bad) + '</span>');
+        html += kvRow(t.localPos,
+            (d.local_x == null) ? '--'
+                : 'X ' + window.LD.fmt(d.local_x, 2) + ' / Y ' + window.LD.fmt(d.local_y, 2) + ' / Z ' + window.LD.fmt(d.local_z, 2) + ' m',
+            'kv__val--mono');
+        html += kvRow(t.vibration,
+            (d.vibration_x == null) ? '--'
+                : 'X ' + window.LD.fmt(d.vibration_x, 2) + ' / Y ' + window.LD.fmt(d.vibration_y, 2) + ' / Z ' + window.LD.fmt(d.vibration_z, 2),
+            'kv__val--mono');
+        html += kvRow(t.range, d.range_m == null ? '--' : window.LD.fmt(d.range_m, 2) + ' m');
+        html += kvRow(t.mcuTemp, d.mcu_temp == null ? '--' : window.LD.fmt(d.mcu_temp, 1) + ' °C', d.mcu_temp != null && d.mcu_temp > 75 ? 'kv__val--warn' : '');
+        html += kvRow(t.mcuVoltage, d.mcu_voltage == null ? '--' : window.LD.fmt(d.mcu_voltage, 2) + ' V');
+        html += kvRow(t.rssi, d.rssi == null ? '--' : window.LD.fmtInt(d.rssi) + ' dBm', d.rssi != null && d.rssi < -90 ? 'kv__val--bad' : '');
+        html += kvRow(t.load, d.load == null ? '--' : window.LD.fmt(d.load, 1) + ' %');
+        html += kvRow(t.windSpeed, window.LD.fmtSpeed(d.wind_speed));
+        html += kvRow(t.ekf, d.ekf_ok
+            ? '<span class="kv__val--ok">' + esc(t.ok) + '</span>'
+            : (d.ekf_ok == null ? '--' : '<span class="kv__val--bad">' + esc(t.bad) + '</span>'));
+        html += kvRow(t.groundDistance, d.ground_distance == null ? '--' : window.LD.fmt(d.ground_distance, 2) + ' m');
         html += kvRow(t.lastSeen, window.LD.relTime(d.last_seen));
         document.getElementById('dataList').innerHTML = html;
     }

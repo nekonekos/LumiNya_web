@@ -33,15 +33,21 @@ CREATE TABLE IF NOT EXISTS drones (
 );
 
 CREATE TABLE IF NOT EXISTS telemetry (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    drone_id   INTEGER NOT NULL,
-    ts         REAL NOT NULL,
-    lat        REAL, lon REAL, alt REAL,
-    heading    REAL, pitch REAL, roll REAL, yaw REAL,
-    battery    REAL, voltage REAL, current REAL,
-    mode       TEXT, armed INTEGER,
-    satellites INTEGER, fix_type INTEGER,
-    gps_ok     INTEGER, link_ok INTEGER
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    drone_id    INTEGER NOT NULL,
+    ts          REAL NOT NULL,
+    lat         REAL, lon REAL, alt REAL,
+    heading     REAL, pitch REAL, roll REAL, yaw REAL,
+    battery     REAL, voltage REAL, current REAL,
+    mode        TEXT, armed INTEGER,
+    satellites  INTEGER, fix_type INTEGER,
+    gps_ok      INTEGER, link_ok INTEGER,
+    range_m     REAL,
+    vibration_x REAL, vibration_y REAL, vibration_z REAL,
+    mcu_temp    REAL,
+    local_x     REAL, local_y REAL, local_z REAL,
+    wind_speed  REAL, rssi REAL, load REAL,
+    ekf_ok      INTEGER, temperature REAL, ground_distance REAL
 );
 CREATE INDEX IF NOT EXISTS idx_telemetry_drone_ts ON telemetry (drone_id, ts);
 
@@ -79,11 +85,32 @@ def _connect() -> sqlite3.Connection:
     return conn
 
 
+# Columns added to the telemetry table after its initial release. Adding them
+# here keeps databases created before the real-world alignment working without
+# a manual rebuild.
+_TELEMETRY_ADDED_COLUMNS = {
+    "range_m": "REAL", "vibration_x": "REAL", "vibration_y": "REAL",
+    "vibration_z": "REAL", "mcu_temp": "REAL", "local_x": "REAL",
+    "local_y": "REAL", "local_z": "REAL", "wind_speed": "REAL",
+    "rssi": "REAL", "load": "REAL", "ekf_ok": "INTEGER",
+    "temperature": "REAL", "ground_distance": "REAL",
+}
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Idempotently add telemetry columns missing from older databases."""
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(telemetry)")}
+    for name, coltype in _TELEMETRY_ADDED_COLUMNS.items():
+        if name not in existing:
+            conn.execute("ALTER TABLE telemetry ADD COLUMN %s %s" % (name, coltype))
+
+
 def get_conn() -> sqlite3.Connection:
     global _conn
     if _conn is None:
         _conn = _connect()
         _conn.executescript(_SCHEMA)
+        _migrate(_conn)
         _conn.commit()
     return _conn
 
