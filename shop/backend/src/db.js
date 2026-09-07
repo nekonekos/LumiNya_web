@@ -38,7 +38,7 @@ export async function listProducts(env, { category, search, page = 1, size = 12,
     params.push(category);
   }
   if (search) {
-    conditions.push('(title LIKE ?' + (params.length + 1) + ' OR summary LIKE ?' + (params.length + 1) + ')');
+    conditions.push('(title LIKE ?' + (params.length + 1) + ' OR summary LIKE ?' + (params.length + 2) + ')');
     params.push(`%${search}%`, `%${search}%`);
   }
   const min = Number(priceMin);
