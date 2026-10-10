@@ -47,7 +47,14 @@ export async function onRequestPut({ request, env }) {
             'INSERT INTO files (id, name, size, content_type, ip, country, city, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)'
         ).bind(id, name, size, contentType, meta.ip, meta.country, meta.city, createdAt).run();
 
-        return json({ ok: true, id, name, size }, 201);
+        return json({
+            ok: true,
+            id,
+            name,
+            size,
+            created_at: createdAt,
+            source: { ip: meta.ip, country: meta.country, city: meta.city }
+        }, 201);
     } catch (error) {
         console.error(error);
         // 写入 D1 失败时回滚已落地的对象，避免留下「孤儿文件」

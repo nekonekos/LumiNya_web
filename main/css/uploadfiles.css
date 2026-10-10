@@ -176,6 +176,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
     font-size: 0.82rem;
     color: var(--text-medium);
 }
@@ -188,6 +190,10 @@
 .queue-item--failed .queue-item__status {
     color: #E06C75;
     font-weight: 600;
+}
+
+.queue-item--failed .progress__bar {
+    background: #E06C75;
 }
 
 .queue-item__remove {
@@ -223,6 +229,89 @@
     color: #E06C75;
 }
 
+/* ===== 上传结果：总览 + 请求/响应详情 ===== */
+.run-summary {
+    font-size: 0.88rem;
+    color: var(--text-medium);
+    line-height: 1.6;
+}
+
+.run-summary:empty {
+    display: none;
+}
+
+.report {
+    margin-top: 0.7rem;
+    padding-top: 0.6rem;
+    border-top: 1px dashed var(--border-light);
+    font-size: 0.82rem;
+}
+
+.report > summary {
+    cursor: pointer;
+    color: var(--primary-blue);
+    font-weight: 600;
+    list-style: none;
+}
+
+.report > summary::-webkit-details-marker {
+    display: none;
+}
+
+.report > summary::before {
+    content: '▸ ';
+    display: inline-block;
+}
+
+.report[open] > summary::before {
+    content: '▾ ';
+}
+
+.report__block {
+    margin-top: 0.6rem;
+}
+
+.report__title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-medium);
+    margin-bottom: 0.3rem;
+}
+
+.report__pre {
+    margin: 0;
+    padding: 0.7rem 0.85rem;
+    border-radius: 12px;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-light);
+    color: var(--text-medium);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.76rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 280px;
+    overflow: auto;
+}
+
+.report__copy {
+    margin-top: 0.6rem;
+    padding: 0.3rem 0.9rem;
+    border: 1px solid var(--border-light);
+    border-radius: 99px;
+    background: none;
+    color: var(--text-medium);
+    font-family: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.report__copy:hover {
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+}
+
 @media (max-width: 640px) {
     .panel-card {
         padding: 1.3rem;
@@ -230,5 +319,10 @@
 
     .dropzone {
         padding: 1.6rem 1rem;
+    }
+
+    .queue-item__foot {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

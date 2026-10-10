@@ -58,6 +58,7 @@
                 <button id="clearBtn" class="btn btn--outline" type="button" hidden>清空列表</button>
             </div>
 
+            <p id="summary" class="run-summary" role="status"></p>
             <p id="error" class="form-error" role="alert"></p>
         </section>
     </div>
@@ -105,6 +106,7 @@
             queue: document.getElementById('queue'),
             uploadBtn: document.getElementById('uploadBtn'),
             clearBtn: document.getElementById('clearBtn'),
+            summary: document.getElementById('summary'),
             error: document.getElementById('error')
         };
 
@@ -134,11 +136,58 @@
                     showError(`「${file.name}」超过 100MB 上限，已跳过`);
                     continue;
                 }
-                items.push({ file, status: 'pending', progress: 0, message: '' });
+                items.push({ file, status: 'pending', progress: 0, message: '', request: null, response: null });
                 added.push(file.name);
             }
             if (added.length) showError('');
             renderQueue();
+        }
+
+        // 返回码 -> 人话，方便在外面不看后台也能判断到底成没成
+        const STATUS_HINT = {
+            200: '请求成功',
+            201: '上传成功，服务端已保存',
+            204: '成功，但没有返回内容',
+            400: '请求有问题：缺少文件名或文件内容',
+            401: '口令不正确',
+            403: '没有权限',
+            404: '接口不存在，或文件已被删除',
+            405: '请求方法不对',
+            413: '文件超过 100MB 上限',
+            429: '请求太频繁，稍后再试',
+            500: '服务端出错，可稍后在后台确认是否已收到',
+            502: '网关错误',
+            503: '服务暂不可用',
+            0: '请求没有送达，请检查网络后重试'
+        };
+
+        function httpLine(response) {
+            const statusText = response.statusText ? ` ${response.statusText}` : '';
+            const hint = STATUS_HINT[response.status];
+            return `HTTP ${response.status}${statusText}${hint ? ` · ${hint}` : ''}`;
+        }
+
+        function httpShort(response) {
+            return `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
+        }
+
+        function statusLabel(item) {
+            if (item.status === 'uploading') return `上传中 ${item.progress}%`;
+            if (item.status === 'pending') return '等待上传';
+            if (item.status === 'done') return `✓ 上传成功 · ${httpShort(item.response)}`;
+            if (item.status === 'failed') return `✗ ${item.message || '上传失败'}`;
+            return '';
+        }
+
+        function isOk(response) {
+            return response.status >= 200 && response.status < 300 && Boolean(response.body && response.body.ok === true);
+        }
+
+        function failureMessage(response) {
+            if (response.status === 0) return '请求未送达：网络错误或连接被中断';
+            if (response.body && response.body.error) return `${response.body.error}（HTTP ${response.status}）`;
+            const hint = STATUS_HINT[response.status];
+            return hint ? `${hint}（HTTP ${response.status}）` : `上传失败（HTTP ${response.status}）`;
         }
 
         function renderQueue() {
@@ -149,27 +198,42 @@
             items.forEach((item, index) => {
                 const li = document.createElement('li');
                 li.className = `queue-item queue-item--${item.status}`;
-                li.innerHTML = `
-                    <div class="queue-item__row">
-                        <span class="queue-item__name"></span>
-                        <span class="queue-item__size">${formatSize(item.file.size)}</span>
-                    </div>
-                    <div class="progress"><div class="progress__bar"></div></div>
-                    <div class="queue-item__foot">
-                        <span class="queue-item__status"></span>
-                        <button class="queue-item__remove" type="button" data-index="${index}" hidden>移除</button>
-                    </div>
-                `;
-                li.querySelector('.queue-item__name').textContent = item.file.name;
-                const statusText = {
-                    pending: '等待上传',
-                    uploading: `上传中 ${item.progress}%`,
-                    done: '✓ 已上传',
-                    failed: `✗ ${item.message || '上传失败'}`
-                }[item.status] || '';
-                li.querySelector('.queue-item__status').textContent = statusText;
-                li.querySelector('.progress__bar').style.width = `${item.status === 'done' ? 100 : item.progress}%`;
-                if (!uploading) li.querySelector('.queue-item__remove').hidden = false;
+
+                const row = document.createElement('div');
+                row.className = 'queue-item__row';
+                const name = document.createElement('span');
+                name.className = 'queue-item__name';
+                name.textContent = item.file.name;
+                const size = document.createElement('span');
+                size.className = 'queue-item__size';
+                size.textContent = formatSize(item.file.size);
+                row.append(name, size);
+                li.appendChild(row);
+
+                const progress = document.createElement('div');
+                progress.className = 'progress';
+                const bar = document.createElement('div');
+                bar.className = 'progress__bar';
+                bar.style.width = `${item.status === 'done' ? 100 : item.progress}%`;
+                progress.appendChild(bar);
+                li.appendChild(progress);
+
+                const foot = document.createElement('div');
+                foot.className = 'queue-item__foot';
+                const status = document.createElement('span');
+                status.className = 'queue-item__status';
+                status.textContent = statusLabel(item);
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'queue-item__remove';
+                remove.textContent = '移除';
+                remove.dataset.index = String(index);
+                remove.hidden = uploading;
+                foot.append(status, remove);
+                li.appendChild(foot);
+
+                if (item.request || item.response) li.appendChild(buildReport(item));
+
                 els.queue.appendChild(li);
             });
 
@@ -177,25 +241,166 @@
             els.uploadBtn.textContent = uploading ? '上传中…' : '开始上传';
         }
 
-        function uploadFile(file, passphrase, onProgress) {
-            return new Promise((resolve, reject) => {
+        /** 进度更新只改当前那一行，避免整表重绘把已展开的详情收起来 */
+        function patchProgress(item, percent) {
+            item.progress = percent;
+            const index = items.indexOf(item);
+            const li = els.queue.children[index];
+            if (!li) return;
+            const status = li.querySelector('.queue-item__status');
+            const bar = li.querySelector('.progress__bar');
+            if (status) status.textContent = statusLabel(item);
+            if (bar) bar.style.width = `${percent}%`;
+        }
+
+        function buildReport(item) {
+            const details = document.createElement('details');
+            details.className = 'report';
+            details.open = Boolean(item.reportOpen);
+            details.addEventListener('toggle', () => { item.reportOpen = details.open; });
+
+            const summary = document.createElement('summary');
+            summary.textContent = '请求 / 响应详情';
+            details.appendChild(summary);
+
+            if (item.request) details.appendChild(reportBlock('请求', requestText(item)));
+            if (item.response) details.appendChild(reportBlock(`响应 · ${httpLine(item.response)}`, responseText(item)));
+
+            if (item.response) {
+                const copy = document.createElement('button');
+                copy.type = 'button';
+                copy.className = 'report__copy';
+                copy.textContent = '复制这份报告';
+                copy.addEventListener('click', () => copyReport(item, copy));
+                details.appendChild(copy);
+            }
+
+            return details;
+        }
+
+        function reportBlock(title, text) {
+            const block = document.createElement('div');
+            block.className = 'report__block';
+            const head = document.createElement('h4');
+            head.className = 'report__title';
+            head.textContent = title;
+            const pre = document.createElement('pre');
+            pre.className = 'report__pre';
+            pre.textContent = text;
+            block.append(head, pre);
+            return block;
+        }
+
+        function requestText(item) {
+            const req = item.request;
+            const lines = [
+                `${req.method} ${req.url}`,
+                ...req.headers.map(([key, value]) => `${key}: ${value}`)
+            ];
+            const body = req.preview ? `\n\n请求体预览（${req.bodyNote}）：\n${req.preview}` : `\n\n请求体：${req.bodyNote}`;
+            return lines.join('\n') + body;
+        }
+
+        function responseText(item) {
+            const res = item.response;
+            const head = `${httpLine(res)}${res.elapsed != null ? ` · 耗时 ${res.elapsed} ms` : ''}`;
+            if (!res.body) return `${head}\n\n（没有返回 JSON，可能被网关拦截或请求未完成）`;
+            return `${head}\n\n${JSON.stringify(res.body, null, 2)}`;
+        }
+
+        function reportText(item) {
+            const parts = [
+                'LumiNya 上传报告',
+                `文件：${item.file.name}（${formatSize(item.file.size)}）`,
+                `时间：${new Date().toLocaleString('zh-CN', { hour12: false })}`
+            ];
+            if (item.request) parts.push('', '【请求】', requestText(item));
+            if (item.response) parts.push('', '【响应】', responseText(item));
+            return parts.join('\n');
+        }
+
+        async function copyReport(item, button) {
+            const text = reportText(item);
+            let copied = false;
+            try {
+                await navigator.clipboard.writeText(text);
+                copied = true;
+            } catch (_) {
+                const area = document.createElement('textarea');
+                area.value = text;
+                area.setAttribute('readonly', 'readonly');
+                area.style.position = 'fixed';
+                area.style.top = '-1000px';
+                document.body.appendChild(area);
+                area.select();
+                try { copied = document.execCommand('copy'); } catch (__) { copied = false; }
+                area.remove();
+            }
+            button.textContent = copied ? '已复制 ✓' : '复制失败，请手动选中';
+            setTimeout(() => { button.textContent = '复制这份报告'; }, 2200);
+        }
+
+        function looksTextual(type, name) {
+            if (type.startsWith('text/')) return true;
+            if (/json|xml|javascript|ecmascript|csv|x-yaml/.test(type)) return true;
+            return /\.(txt|md|markdown|json|csv|tsv|log|ini|conf|yml|yaml|xml|html|css|js|mjs|ts|py|sh|svg)$/i.test(name);
+        }
+
+        /** 文本文件给一小段请求体预览，二进制只说明类型与大小 */
+        async function textPreview(file, type) {
+            if (!looksTextual(type, file.name)) return null;
+            try {
+                const text = await file.slice(0, 300).text();
+                return text.length >= 300 ? `${text}…` : text;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        async function buildRequestInfo(file) {
+            const type = file.type || '';
+            const preview = await textPreview(file, type);
+            return {
+                method: 'PUT',
+                url: `${API}/put?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(type)}`,
+                headers: [
+                    ['X-Upload-Pass', '••••••••（已发送，不回显）'],
+                    ['Content-Type', type || 'application/octet-stream'],
+                    ['Content-Length', `${file.size}（${formatSize(file.size)}）`]
+                ],
+                preview,
+                bodyNote: preview
+                    ? '文本内容，仅预览前 300 个字符'
+                    : `${type || '未知类型'} · ${formatSize(file.size)}，二进制内容不展开`
+            };
+        }
+
+        function uploadFile(item, passphrase, onProgress) {
+            return new Promise((resolve) => {
+                const startedAt = Date.now();
                 const xhr = new XMLHttpRequest();
-                xhr.open('PUT', `${API}/put?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.type || '')}`);
+                xhr.open('PUT', item.request.url);
                 xhr.setRequestHeader('X-Upload-Pass', passphrase);
                 xhr.upload.onprogress = (event) => {
                     if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
                 };
-                xhr.onload = () => {
-                    let data = null;
-                    try { data = JSON.parse(xhr.responseText); } catch (_) { data = null; }
-                    if (xhr.status >= 200 && xhr.status < 300 && data && data.ok) {
-                        resolve(data);
-                    } else {
-                        reject(new Error((data && data.error) || `上传失败（HTTP ${xhr.status}）`));
-                    }
+                const finish = (body) => {
+                    resolve({
+                        status: xhr.status,
+                        statusText: xhr.statusText || '',
+                        elapsed: Date.now() - startedAt,
+                        body
+                    });
                 };
-                xhr.onerror = () => reject(new Error('网络错误，请检查连接后重试'));
-                xhr.send(file);
+                xhr.onload = () => {
+                    let body = null;
+                    try { body = JSON.parse(xhr.responseText); } catch (_) { body = null; }
+                    finish(body);
+                };
+                xhr.onerror = () => finish(null);
+                xhr.ontimeout = () => finish(null);
+                xhr.onabort = () => finish(null);
+                xhr.send(item.file);
             });
         }
 
@@ -212,47 +417,69 @@
 
             uploading = true;
             showError('');
+            els.summary.textContent = '';
             renderQueue();
+
+            let ok = 0;
+            let failed = 0;
 
             for (const item of pending) {
                 item.status = 'uploading';
                 item.progress = 0;
+                item.message = '';
+                item.response = null;
+                item.request = await buildRequestInfo(item.file);
                 renderQueue();
-                try {
-                    await uploadFile(item.file, passphrase, (percent) => {
-                        item.progress = percent;
-                        renderQueue();
-                    });
+
+                const response = await uploadFile(item, passphrase, (percent) => patchProgress(item, percent));
+                item.response = response;
+
+                if (isOk(response)) {
                     item.status = 'done';
                     item.progress = 100;
-                } catch (error) {
+                    ok += 1;
+                } else {
                     item.status = 'failed';
-                    item.message = error.message;
-                    if (error.message.includes('口令')) {
-                        showError('上传口令错误，请确认后重试');
-                        uploading = false;
-                        renderQueue();
-                        return;
-                    }
+                    item.message = failureMessage(response);
+                    failed += 1;
                 }
                 renderQueue();
+
+                if (response.status === 401) {
+                    showError('上传口令错误，请确认后重试');
+                    break;
+                }
             }
 
             uploading = false;
-            items = items.filter((item) => item.status !== 'done');
             renderQueue();
+            els.summary.textContent = summarize(ok, failed, pending.length - ok - failed);
+        }
+
+        function summarize(ok, failed, skipped) {
+            if (!ok && !failed && !skipped) return '';
+            const parts = [`成功 ${ok} 个`, `失败 ${failed} 个`];
+            if (skipped > 0) parts.push(`未尝试 ${skipped} 个`);
+            const tail = '点开每个文件下方的「请求 / 响应详情」可以看到请求体预览、返回内容与返回码含义。';
+            if (!failed && !skipped) return `✓ 全部完成（${parts[0]}）· HTTP 201 Created。${tail}`;
+            if (!ok) return `✗ ${parts.slice(1).join('、')}。${tail}`;
+            return `${parts.join('、')}。${tail}`;
         }
 
         async function checkStatus() {
             try {
                 const response = await fetch(`${API}/status`);
-                const data = await response.json();
-                if (!data.configured) {
+                const data = await response.json().catch(() => null);
+                if (response.ok && data && data.configured === false) {
                     els.passHint.hidden = false;
                     els.passHint.textContent = '站主还没有设置上传口令，暂时无法上传文件。';
+                } else if (!response.ok) {
+                    els.passHint.hidden = false;
+                    els.passHint.textContent = `暂时读不到上传状态（HTTP ${response.status}），上传时仍会尝试。`;
                 }
             } catch (_) {
-                // 状态查询失败不阻塞页面，上传时仍会由后端校验
+                els.passHint.hidden = false;
+                els.passHint.textContent = '暂时连不上服务，请检查网络后再试。';
             }
         }
 
