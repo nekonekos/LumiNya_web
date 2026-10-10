@@ -1,0 +1,234 @@
+/* ===== /uploadfiles 上传页 =====
+   复用 main.css 的设计变量 / 组件，仅补充本页专属样式 */
+
+/* hidden 属性要压过组件自身的 display（如 .btn / .queue / #deskPanel），否则隐藏会失效 */
+[hidden] {
+    display: none !important;
+}
+
+.upload-container {
+    max-width: 720px;
+}
+
+/* ===== 标题区 ===== */
+.page-hero {
+    margin-bottom: 2rem;
+}
+
+.page-title {
+    font-size: clamp(2rem, 5vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    background: var(--hero-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.page-subtitle {
+    margin-top: 0.5rem;
+    color: var(--text-medium);
+    font-size: 1rem;
+}
+
+/* ===== 玻璃拟态卡片 ===== */
+.panel-card {
+    background: var(--widget-bg);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border-light);
+    border-radius: 24px;
+    box-shadow: var(--shadow-light);
+    padding: 1.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+/* ===== 表单 ===== */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.field-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-medium);
+}
+
+.field input {
+    width: 100%;
+    padding: 0.8rem 1.1rem;
+    border-radius: 14px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-soft);
+    color: var(--text-dark);
+    font-family: inherit;
+    font-size: 1rem;
+    transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.field input:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 4px rgba(107, 159, 212, 0.15);
+}
+
+.field-hint {
+    font-size: 0.85rem;
+    color: var(--primary-coral);
+}
+
+/* ===== 拖拽区 ===== */
+.dropzone {
+    border: 2px dashed var(--text-light);
+    border-radius: 20px;
+    padding: 2.2rem 1.2rem;
+    text-align: center;
+    cursor: pointer;
+    background: var(--bg-soft);
+    transition: border-color 0.25s, background 0.25s, transform 0.25s;
+}
+
+.dropzone:hover,
+.dropzone--active {
+    border-color: var(--primary-blue);
+    transform: translateY(-2px);
+}
+
+.dropzone--active {
+    background: rgba(107, 159, 212, 0.12);
+}
+
+.dropzone-icon {
+    font-size: 2rem;
+    line-height: 1;
+    margin-bottom: 0.6rem;
+}
+
+.dropzone-title {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.dropzone-hint {
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+/* ===== 待上传列表 ===== */
+.queue {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    margin: 0;
+    padding: 0;
+}
+
+.queue-item {
+    background: var(--bg-soft);
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    padding: 0.9rem 1rem;
+}
+
+.queue-item__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: baseline;
+}
+
+.queue-item__name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    overflow-wrap: anywhere;
+}
+
+.queue-item__size {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    flex-shrink: 0;
+}
+
+.progress {
+    margin: 0.6rem 0 0.4rem;
+    height: 6px;
+    border-radius: 99px;
+    background: var(--border-light);
+    overflow: hidden;
+}
+
+.progress__bar {
+    height: 100%;
+    width: 0;
+    border-radius: 99px;
+    background: var(--btn-gradient);
+    transition: width 0.25s ease;
+}
+
+.queue-item__foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+    color: var(--text-medium);
+}
+
+.queue-item--done .queue-item__status {
+    color: var(--primary-mint);
+    font-weight: 600;
+}
+
+.queue-item--failed .queue-item__status {
+    color: #E06C75;
+    font-weight: 600;
+}
+
+.queue-item__remove {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-light);
+    font-size: 0.82rem;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.queue-item__remove:hover {
+    color: var(--primary-coral);
+}
+
+/* ===== 操作区 ===== */
+.actions {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.actions .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.form-error {
+    min-height: 1.2rem;
+    font-size: 0.88rem;
+    color: #E06C75;
+}
+
+@media (max-width: 640px) {
+    .panel-card {
+        padding: 1.3rem;
+    }
+
+    .dropzone {
+        padding: 1.6rem 1rem;
+    }
+}

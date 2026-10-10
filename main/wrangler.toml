@@ -1,0 +1,15 @@
+# LumiNya 主站（Cloudflare Pages）+ /uploadfiles 上传器后端
+# 绑定 R2（文件）与 D1（元数据 / 上传口令哈希）
+
+name = "luminya-web"
+compatibility_date = "2026-03-01"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "luminya-uploader"
+database_id = "67a758fc-47ca-42ef-8fdd-e75d124d1c85"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "luminya-uploader"

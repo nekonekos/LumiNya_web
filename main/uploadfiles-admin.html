@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>LumiNya · 上传后台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/css/uploadfiles.css" />
+    <link rel="stylesheet" href="/css/uploadfiles-admin.css" />
+</head>
+<body>
+
+    <!-- 装饰性模糊图形 -->
+    <div class="blob blob--1"></div>
+    <div class="blob blob--2"></div>
+    <div class="blob blob--3"></div>
+
+    <div class="container admin-container">
+        <header>
+            <a href="/index.html" class="logo">Lumi<span>Nya</span></a>
+            <div class="nav-wrapper">
+                <ul class="nav-links">
+                    <li><a href="/index.html">返回主页</a></li>
+                    <li><a href="/uploadfiles">上传页</a></li>
+                </ul>
+                <button class="theme-toggle" id="themeToggle" aria-label="切换深浅色">
+                    <span class="icon-sun">☀️</span>
+                    <span class="icon-moon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <section class="page-hero">
+            <h1 class="page-title">上传后台</h1>
+            <p class="page-subtitle">管理上传口令，查看并下载已上传的文件。</p>
+        </section>
+
+        <section id="loginPanel" class="panel-card">
+            <label class="field" for="token">
+                <span class="field-label">管理口令</span>
+                <input id="token" type="password" autocomplete="current-password" placeholder="请输入 ADMIN_TOKEN" />
+            </label>
+            <div class="actions">
+                <button id="loginBtn" class="btn btn--primary" type="button">进入后台</button>
+            </div>
+            <p id="loginError" class="form-error" role="alert"></p>
+        </section>
+
+        <section id="deskPanel" hidden>
+            <div class="panel-card">
+                <div class="card-head">
+                    <h2 class="card-title">上传口令</h2>
+                    <span id="passState" class="badge">—</span>
+                </div>
+                <p class="card-desc">口令只以 SHA-256 哈希保存在数据库里，无法查看原文，只能重置。</p>
+                <label class="field" for="newPass">
+                    <span class="field-label">新口令（6-128 位）</span>
+                    <input id="newPass" type="password" autocomplete="new-password" placeholder="输入新的上传口令" />
+                </label>
+                <div class="actions">
+                    <button id="savePassBtn" class="btn btn--primary" type="button">保存新口令</button>
+                    <button id="clearPassBtn" class="btn btn--outline" type="button">清除口令</button>
+                </div>
+                <p id="passMsg" class="form-hint" role="status"></p>
+            </div>
+
+            <div class="panel-card">
+                <div class="card-head">
+                    <h2 class="card-title">文件清单</h2>
+                    <button id="refreshBtn" class="btn btn--outline btn--small" type="button">刷新</button>
+                </div>
+                <div class="table-wrap">
+                    <table class="file-table">
+                        <thead>
+                            <tr>
+                                <th>文件名</th>
+                                <th>大小</th>
+                                <th>上传位置</th>
+                                <th>时间</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="fileBody"></tbody>
+                    </table>
+                </div>
+                <p id="tableEmpty" class="empty" hidden>还没有上传过任何文件。</p>
+                <div class="actions">
+                    <button id="moreBtn" class="btn btn--outline btn--small" type="button" hidden>加载更多</button>
+                    <button id="logoutBtn" class="btn btn--outline btn--small" type="button">退出登录</button>
+                </div>
+                <p id="fileError" class="form-error" role="alert"></p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // ===== 主题：与主站共用 theme-preference =====
+        const THEME_KEY = 'theme-preference';
+        const root = document.documentElement;
+
+        function getPreferredTheme() {
+            const stored = localStorage.getItem(THEME_KEY);
+            if (stored === 'dark' || stored === 'light') return stored;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                root.setAttribute('data-theme', 'dark');
+            } else {
+                root.removeAttribute('data-theme');
+            }
+            localStorage.setItem(THEME_KEY, theme);
+        }
+
+        function initTheme() {
+            setTheme(getPreferredTheme());
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                setTheme(current === 'dark' ? 'light' : 'dark');
+            });
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
+                if (!localStorage.getItem(THEME_KEY)) setTheme(event.matches ? 'dark' : 'light');
+            });
+        }
+
+        // ===== 后台逻辑 =====
+        const API = '/api/uploadfiles';
+        const TOKEN_KEY = 'uploadfiles-admin-token';
+        const PAGE_SIZE = 20;
+
+        const els = {
+            loginPanel: document.getElementById('loginPanel'),
+            deskPanel: document.getElementById('deskPanel'),
+            token: document.getElementById('token'),
+            loginBtn: document.getElementById('loginBtn'),
+            loginError: document.getElementById('loginError'),
+            passState: document.getElementById('passState'),
+            newPass: document.getElementById('newPass'),
+            savePassBtn: document.getElementById('savePassBtn'),
+            clearPassBtn: document.getElementById('clearPassBtn'),
+            passMsg: document.getElementById('passMsg'),
+            fileBody: document.getElementById('fileBody'),
+            tableEmpty: document.getElementById('tableEmpty'),
+            fileError: document.getElementById('fileError'),
+            refreshBtn: document.getElementById('refreshBtn'),
+            moreBtn: document.getElementById('moreBtn'),
+            logoutBtn: document.getElementById('logoutBtn')
+        };
+
+        let token = sessionStorage.getItem(TOKEN_KEY) || '';
+        let loaded = [];
+        let total = 0;
+
+        function formatSize(bytes) {
+            if (!bytes && bytes !== 0) return '未知';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let value = bytes;
+            let unit = 0;
+            while (value >= 1024 && unit < units.length - 1) {
+                value /= 1024;
+                unit += 1;
+            }
+            return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
+        }
+
+        function formatTime(ms) {
+            return new Date(ms).toLocaleString('zh-CN', { hour12: false });
+        }
+
+        function formatPlace(file) {
+            const parts = [file.country, file.city].filter(Boolean);
+            const place = parts.join(' · ');
+            if (place && file.ip) return `${place}（${file.ip}）`;
+            return place || file.ip || '未知';
+        }
+
+        async function api(path, options = {}) {
+            const response = await fetch(`${API}${path}`, {
+                ...options,
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    ...(options.headers || {})
+                }
+            });
+            let data = null;
+            try { data = await response.json(); } catch (_) { data = null; }
+            if (!response.ok) {
+                const error = new Error((data && data.error) || `请求失败（HTTP ${response.status}）`);
+                error.status = response.status;
+                throw error;
+            }
+            return data || {};
+        }
+
+        function showDesk() {
+            els.loginPanel.hidden = true;
+            els.deskPanel.hidden = false;
+            loadPassphrase();
+            loadFiles(true);
+        }
+
+        function backToLogin(message) {
+            sessionStorage.removeItem(TOKEN_KEY);
+            token = '';
+            els.deskPanel.hidden = true;
+            els.loginPanel.hidden = false;
+            els.loginError.textContent = message || '';
+        }
+
+        async function login() {
+            const value = els.token.value.trim();
+            if (!value) {
+                els.loginError.textContent = '请输入管理口令';
+                return;
+            }
+            els.loginError.textContent = '';
+            try {
+                const response = await fetch(`${API}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: value })
+                });
+                if (!response.ok) {
+                    els.loginError.textContent = '口令错误';
+                    return;
+                }
+                token = value;
+                sessionStorage.setItem(TOKEN_KEY, token);
+                els.token.value = '';
+                showDesk();
+            } catch (_) {
+                els.loginError.textContent = '网络错误，请稍后重试';
+            }
+        }
+
+        async function loadPassphrase() {
+            try {
+                const data = await api('/passphrase');
+                setPassState(data.configured);
+            } catch (error) {
+                if (error.status === 401) backToLogin('登录已失效，请重新输入口令');
+            }
+        }
+
+        function setPassState(configured) {
+            els.passState.textContent = configured ? '已设置' : '未设置';
+            els.passState.className = `badge ${configured ? 'badge--ok' : 'badge--warn'}`;
+        }
+
+        async function loadFiles(reset = false) {
+            if (reset) {
+                loaded = [];
+                els.fileBody.innerHTML = '';
+            }
+            els.fileError.textContent = '';
+            try {
+                const data = await api(`/files?limit=${PAGE_SIZE}&offset=${loaded.length}`);
+                loaded = loaded.concat(data.files || []);
+                total = data.total || loaded.length;
+                renderFiles();
+            } catch (error) {
+                if (error.status === 401) {
+                    backToLogin('登录已失效，请重新输入口令');
+                    return;
+                }
+                els.fileError.textContent = error.message;
+            }
+        }
+
+        function renderFiles() {
+            els.fileBody.innerHTML = '';
+            els.tableEmpty.hidden = loaded.length > 0;
+            els.moreBtn.hidden = loaded.length >= total;
+
+            loaded.forEach((file) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="cell-name"></td>
+                    <td class="cell-muted"></td>
+                    <td class="cell-muted"></td>
+                    <td class="cell-muted"></td>
+                    <td class="cell-actions">
+                        <button class="btn btn--primary btn--small" type="button" data-action="download">下载</button>
+                        <button class="btn btn--outline btn--small" type="button" data-action="delete">删除</button>
+                    </td>
+                `;
+                tr.querySelector('.cell-name').textContent = file.name;
+                const cells = tr.querySelectorAll('.cell-muted');
+                cells[0].textContent = formatSize(file.size);
+                cells[1].textContent = formatPlace(file);
+                cells[2].textContent = formatTime(file.created_at);
+                tr.querySelector('[data-action="download"]').addEventListener('click', () => download(file));
+                tr.querySelector('[data-action="delete"]').addEventListener('click', () => remove(file));
+                els.fileBody.appendChild(tr);
+            });
+        }
+
+        async function download(file) {
+            els.fileError.textContent = '';
+            try {
+                const response = await fetch(`${API}/file/${file.id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (response.status === 401) {
+                    backToLogin('登录已失效，请重新输入口令');
+                    return;
+                }
+                if (!response.ok) {
+                    let data = null;
+                    try { data = await response.json(); } catch (_) { data = null; }
+                    throw new Error((data && data.error) || `下载失败（HTTP ${response.status}）`);
+                }
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = file.name;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                els.fileError.textContent = error.message;
+            }
+        }
+
+        async function remove(file) {
+            if (!confirm(`确定删除「${file.name}」？此操作不可恢复。`)) return;
+            els.fileError.textContent = '';
+            try {
+                await api(`/files/${file.id}`, { method: 'DELETE' });
+                loaded = loaded.filter((item) => item.id !== file.id);
+                total = Math.max(total - 1, loaded.length);
+                renderFiles();
+            } catch (error) {
+                if (error.status === 401) {
+                    backToLogin('登录已失效，请重新输入口令');
+                    return;
+                }
+                els.fileError.textContent = error.message;
+            }
+        }
+
+        async function savePassphrase() {
+            const passphrase = els.newPass.value;
+            els.passMsg.textContent = '';
+            try {
+                await api('/passphrase', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ passphrase })
+                });
+                els.newPass.value = '';
+                els.passMsg.textContent = '上传口令已更新';
+                setPassState(true);
+            } catch (error) {
+                if (error.status === 401) {
+                    backToLogin('登录已失效，请重新输入口令');
+                    return;
+                }
+                els.passMsg.textContent = error.message;
+            }
+        }
+
+        async function clearPassphrase() {
+            if (!confirm('清除后上传页将无法上传，确定继续？')) return;
+            els.passMsg.textContent = '';
+            try {
+                await api('/passphrase', { method: 'DELETE' });
+                els.passMsg.textContent = '已清除上传口令';
+                setPassState(false);
+            } catch (error) {
+                if (error.status === 401) {
+                    backToLogin('登录已失效，请重新输入口令');
+                    return;
+                }
+                els.passMsg.textContent = error.message;
+            }
+        }
+
+        els.loginBtn.addEventListener('click', login);
+        els.token.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') login();
+        });
+        els.savePassBtn.addEventListener('click', savePassphrase);
+        els.clearPassBtn.addEventListener('click', clearPassphrase);
+        els.refreshBtn.addEventListener('click', () => loadFiles(true));
+        els.moreBtn.addEventListener('click', () => loadFiles(false));
+        els.logoutBtn.addEventListener('click', () => backToLogin(''));
+
+        initTheme();
+        if (token) showDesk();
+    </script>
+</body>
+</html>

@@ -47,6 +47,11 @@ LumiNya_web
 │   ├── novel.html        #    小说阅读器
 │   ├── cfg/              #    📦 config.html 的展示文件目录
 │   ├── books/novel1/     #    📚 小说章节数据
+│   ├── uploadfiles.html  #    📤 应急文件上传页（口令进入，需 Cloudflare）
+│   ├── uploadfiles-admin.html  # 🗂️ 上传后台（管理口令 / 文件 / 上传 IP）
+│   ├── functions/        #    ☁️ Pages Functions（/uploadfiles 后端接口）
+│   ├── schema.sql        #    🗃️ 上传器的 D1 表结构
+│   ├── wrangler.toml     #    ⚙️ Pages 绑定（R2 桶 + D1 数据库）
 │   ├── css/              #    🎨 全部样式
 │   └── js/               #    ⚙️ 游戏脚本等
 ├── archive/legacy/       # 🗄️ 旧版网页归档（怀旧用）
@@ -103,6 +108,17 @@ LumiNya_web
 - 三种阅读主题：浅色 / 夜间 / 护眼绿
 - 侧边栏目录、字号调节、进度记忆，移动端与桌面端都适配
 
+### 📤 `/uploadfiles` · 应急文件上传
+
+在外面需要临时传资料时的应急入口，只有知道地址、并且有口令的人才能用：
+
+- 打开 `https://luminya.cc/uploadfiles`，输入口令即可上传，支持多选、单个文件最大 100MB
+- 上传页 `main/uploadfiles.html`，后台页 `main/uploadfiles-admin.html`（地址 `/uploadfiles/admin`）
+- 文件存 **R2** 桶，文件清单与口令哈希存 **D1** 数据库，与主站同属一个 Pages 项目
+- 后台可以重置上传口令、下载 / 删除文件，并查看每次上传的来源 IP 与国家 / 城市
+- 上传接口走「裸流直写 R2」，不解析 multipart，所以不会把大文件读进内存
+- 详细部署与运维见 [main/UPLOADFILES.md](main/UPLOADFILES.md)
+
 ### 🔀 `redirect/` · asy.wiki 短链接系统
 
 - 部署在 **Cloudflare Pages**，由 `functions/api/` 下的 Serverless Functions 处理：
@@ -132,6 +148,9 @@ python3 -m http.server 8787
 ```
 
 部署到任意静态托管（Pages / Vercel / Netlify / GitHub Pages）时，把 `main/` 设为站点根目录即可。
+
+> ⚠️ `/uploadfiles` 依赖 Cloudflare Pages Functions + R2 + D1，只在 **Cloudflare Pages** 上可用；
+> 换到别的静态托管时这一功能会失效（其余页面不受影响）。配置说明见 [main/UPLOADFILES.md](main/UPLOADFILES.md)。
 
 ### 短链接（`redirect/` 目录）
 

@@ -1,0 +1,3 @@
+# Cloudflare / Wrangler 本地状态与本地密钥
+.wrangler/
+.dev.vars

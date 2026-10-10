@@ -1,0 +1,139 @@
+/* ===== /uploadfiles/admin 上传后台 =====
+   复用 main.css + uploadfiles.css，仅补充后台专属样式 */
+
+.admin-container {
+    max-width: 1000px;
+}
+
+#deskPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ===== 卡片头部 ===== */
+.card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    letter-spacing: -0.01em;
+}
+
+.card-desc {
+    font-size: 0.88rem;
+    color: var(--text-medium);
+}
+
+/* ===== 状态徽标 ===== */
+.badge {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.25rem 0.7rem;
+    border-radius: 99px;
+    border: 1px solid var(--border-light);
+    color: var(--text-medium);
+    background: var(--bg-soft);
+}
+
+.badge--ok {
+    color: var(--primary-mint);
+    border-color: rgba(117, 191, 167, 0.4);
+}
+
+.badge--warn {
+    color: var(--primary-coral);
+    border-color: rgba(240, 184, 168, 0.5);
+}
+
+/* ===== 小号按钮 ===== */
+.btn--small {
+    padding: 0.45rem 1.1rem;
+    font-size: 0.85rem;
+}
+
+/* ===== 文件表格 ===== */
+.table-wrap {
+    overflow-x: auto;
+    border-radius: 16px;
+    border: 1px solid var(--border-light);
+}
+
+.file-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 640px;
+}
+
+.file-table th,
+.file-table td {
+    padding: 0.75rem 0.9rem;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.file-table th {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-light);
+    background: var(--bg-soft);
+    white-space: nowrap;
+}
+
+.file-table tbody tr {
+    border-top: 1px solid var(--border-light);
+    transition: background 0.2s;
+}
+
+.file-table tbody tr:hover {
+    background: var(--bg-soft);
+}
+
+.file-table .cell-name {
+    color: var(--text-dark);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    max-width: 320px;
+}
+
+.file-table .cell-muted {
+    color: var(--text-medium);
+    white-space: nowrap;
+}
+
+.file-table .cell-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+.empty {
+    text-align: center;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    padding: 1.4rem 0;
+}
+
+.form-hint {
+    min-height: 1.2rem;
+    font-size: 0.88rem;
+    color: var(--primary-mint);
+}
+
+@media (max-width: 640px) {
+    .file-table .cell-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

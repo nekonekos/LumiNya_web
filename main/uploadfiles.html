@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>LumiNya · 临时上传</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/uploadfiles.css" />
+</head>
+<body>
+
+    <!-- 装饰性模糊图形 -->
+    <div class="blob blob--1"></div>
+    <div class="blob blob--2"></div>
+    <div class="blob blob--3"></div>
+
+    <div class="container upload-container">
+        <header>
+            <a href="./index.html" class="logo">Lumi<span>Nya</span></a>
+            <div class="nav-wrapper">
+                <ul class="nav-links">
+                    <li><a href="./index.html">返回主页</a></li>
+                </ul>
+                <button class="theme-toggle" id="themeToggle" aria-label="切换深浅色">
+                    <span class="icon-sun">☀️</span>
+                    <span class="icon-moon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <section class="page-hero">
+            <h1 class="page-title">紧急文件上传</h1>
+            <p class="page-subtitle">输入口令后即可上传文件，文件会暂存在云端，由站主稍后统一处理。</p>
+        </section>
+
+        <section class="panel-card">
+            <label class="field" for="passphrase">
+                <span class="field-label">上传口令</span>
+                <input id="passphrase" type="password" autocomplete="off" placeholder="请输入上传口令" />
+            </label>
+            <p class="field-hint" id="passHint" hidden></p>
+
+            <div class="dropzone" id="dropzone">
+                <input id="fileInput" type="file" multiple hidden />
+                <div class="dropzone-icon">📎</div>
+                <p class="dropzone-title">点击选择文件，或把文件拖到这里</p>
+                <p class="dropzone-hint">单个文件最大 100MB · 支持多选</p>
+            </div>
+
+            <ul class="queue" id="queue" hidden></ul>
+
+            <div class="actions">
+                <button id="uploadBtn" class="btn btn--primary" type="button" disabled>开始上传</button>
+                <button id="clearBtn" class="btn btn--outline" type="button" hidden>清空列表</button>
+            </div>
+
+            <p id="error" class="form-error" role="alert"></p>
+        </section>
+    </div>
+
+    <script>
+        // ===== 主题：与主站共用 theme-preference，行为保持一致 =====
+        const THEME_KEY = 'theme-preference';
+        const root = document.documentElement;
+
+        function getPreferredTheme() {
+            const stored = localStorage.getItem(THEME_KEY);
+            if (stored === 'dark' || stored === 'light') return stored;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                root.setAttribute('data-theme', 'dark');
+            } else {
+                root.removeAttribute('data-theme');
+            }
+            localStorage.setItem(THEME_KEY, theme);
+        }
+
+        function initTheme() {
+            setTheme(getPreferredTheme());
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                setTheme(current === 'dark' ? 'light' : 'dark');
+            });
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
+                if (!localStorage.getItem(THEME_KEY)) setTheme(event.matches ? 'dark' : 'light');
+            });
+        }
+
+        // ===== 上传逻辑 =====
+        const MAX_SIZE = 100 * 1024 * 1024;
+        const API = '/api/uploadfiles';
+
+        const els = {
+            passphrase: document.getElementById('passphrase'),
+            passHint: document.getElementById('passHint'),
+            dropzone: document.getElementById('dropzone'),
+            fileInput: document.getElementById('fileInput'),
+            queue: document.getElementById('queue'),
+            uploadBtn: document.getElementById('uploadBtn'),
+            clearBtn: document.getElementById('clearBtn'),
+            error: document.getElementById('error')
+        };
+
+        let items = [];
+        let uploading = false;
+
+        function formatSize(bytes) {
+            if (!bytes && bytes !== 0) return '未知';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let value = bytes;
+            let unit = 0;
+            while (value >= 1024 && unit < units.length - 1) {
+                value /= 1024;
+                unit += 1;
+            }
+            return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
+        }
+
+        function showError(message) {
+            els.error.textContent = message || '';
+        }
+
+        function addFiles(fileList) {
+            const added = [];
+            for (const file of fileList) {
+                if (file.size > MAX_SIZE) {
+                    showError(`「${file.name}」超过 100MB 上限，已跳过`);
+                    continue;
+                }
+                items.push({ file, status: 'pending', progress: 0, message: '' });
+                added.push(file.name);
+            }
+            if (added.length) showError('');
+            renderQueue();
+        }
+
+        function renderQueue() {
+            els.queue.innerHTML = '';
+            els.queue.hidden = items.length === 0;
+            els.clearBtn.hidden = items.length === 0 || uploading;
+
+            items.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = `queue-item queue-item--${item.status}`;
+                li.innerHTML = `
+                    <div class="queue-item__row">
+                        <span class="queue-item__name"></span>
+                        <span class="queue-item__size">${formatSize(item.file.size)}</span>
+                    </div>
+                    <div class="progress"><div class="progress__bar"></div></div>
+                    <div class="queue-item__foot">
+                        <span class="queue-item__status"></span>
+                        <button class="queue-item__remove" type="button" data-index="${index}" hidden>移除</button>
+                    </div>
+                `;
+                li.querySelector('.queue-item__name').textContent = item.file.name;
+                const statusText = {
+                    pending: '等待上传',
+                    uploading: `上传中 ${item.progress}%`,
+                    done: '✓ 已上传',
+                    failed: `✗ ${item.message || '上传失败'}`
+                }[item.status] || '';
+                li.querySelector('.queue-item__status').textContent = statusText;
+                li.querySelector('.progress__bar').style.width = `${item.status === 'done' ? 100 : item.progress}%`;
+                if (!uploading) li.querySelector('.queue-item__remove').hidden = false;
+                els.queue.appendChild(li);
+            });
+
+            els.uploadBtn.disabled = uploading || items.length === 0;
+            els.uploadBtn.textContent = uploading ? '上传中…' : '开始上传';
+        }
+
+        function uploadFile(file, passphrase, onProgress) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', `${API}/put?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.type || '')}`);
+                xhr.setRequestHeader('X-Upload-Pass', passphrase);
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+                };
+                xhr.onload = () => {
+                    let data = null;
+                    try { data = JSON.parse(xhr.responseText); } catch (_) { data = null; }
+                    if (xhr.status >= 200 && xhr.status < 300 && data && data.ok) {
+                        resolve(data);
+                    } else {
+                        reject(new Error((data && data.error) || `上传失败（HTTP ${xhr.status}）`));
+                    }
+                };
+                xhr.onerror = () => reject(new Error('网络错误，请检查连接后重试'));
+                xhr.send(file);
+            });
+        }
+
+        async function startUpload() {
+            const passphrase = els.passphrase.value;
+            if (!passphrase) {
+                showError('请先输入上传口令');
+                els.passphrase.focus();
+                return;
+            }
+
+            const pending = items.filter((item) => item.status !== 'done');
+            if (!pending.length) return;
+
+            uploading = true;
+            showError('');
+            renderQueue();
+
+            for (const item of pending) {
+                item.status = 'uploading';
+                item.progress = 0;
+                renderQueue();
+                try {
+                    await uploadFile(item.file, passphrase, (percent) => {
+                        item.progress = percent;
+                        renderQueue();
+                    });
+                    item.status = 'done';
+                    item.progress = 100;
+                } catch (error) {
+                    item.status = 'failed';
+                    item.message = error.message;
+                    if (error.message.includes('口令')) {
+                        showError('上传口令错误，请确认后重试');
+                        uploading = false;
+                        renderQueue();
+                        return;
+                    }
+                }
+                renderQueue();
+            }
+
+            uploading = false;
+            items = items.filter((item) => item.status !== 'done');
+            renderQueue();
+        }
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API}/status`);
+                const data = await response.json();
+                if (!data.configured) {
+                    els.passHint.hidden = false;
+                    els.passHint.textContent = '站主还没有设置上传口令，暂时无法上传文件。';
+                }
+            } catch (_) {
+                // 状态查询失败不阻塞页面，上传时仍会由后端校验
+            }
+        }
+
+        els.dropzone.addEventListener('click', () => els.fileInput.click());
+        els.fileInput.addEventListener('change', () => {
+            addFiles(els.fileInput.files);
+            els.fileInput.value = '';
+        });
+
+        ['dragenter', 'dragover'].forEach((type) => {
+            els.dropzone.addEventListener(type, (event) => {
+                event.preventDefault();
+                els.dropzone.classList.add('dropzone--active');
+            });
+        });
+        ['dragleave', 'drop'].forEach((type) => {
+            els.dropzone.addEventListener(type, (event) => {
+                event.preventDefault();
+                els.dropzone.classList.remove('dropzone--active');
+            });
+        });
+        els.dropzone.addEventListener('drop', (event) => {
+            if (event.dataTransfer && event.dataTransfer.files) addFiles(event.dataTransfer.files);
+        });
+
+        els.queue.addEventListener('click', (event) => {
+            const button = event.target.closest('.queue-item__remove');
+            if (!button || uploading) return;
+            items.splice(Number(button.dataset.index), 1);
+            renderQueue();
+        });
+
+        els.uploadBtn.addEventListener('click', startUpload);
+        els.clearBtn.addEventListener('click', () => {
+            items = [];
+            showError('');
+            renderQueue();
+        });
+
+        initTheme();
+        checkStatus();
+    </script>
+</body>
+</html>

@@ -47,6 +47,11 @@ LumiNya_web
 │   ├── novel.html        #    Novel reader
 │   ├── cfg/              #    📦 Files displayed by config.html
 │   ├── books/novel1/     #    📚 Novel chapter data
+│   ├── uploadfiles.html  #    📤 Emergency upload page (passphrase, needs Cloudflare)
+│   ├── uploadfiles-admin.html  # 🗂️ Upload admin (passphrase / files / upload IP)
+│   ├── functions/        #    ☁️ Pages Functions (/uploadfiles backend API)
+│   ├── schema.sql        #    🗃️ D1 schema for the uploader
+│   ├── wrangler.toml     #    ⚙️ Pages bindings (R2 bucket + D1 database)
 │   ├── css/              #    🎨 All stylesheets
 │   └── js/               #    ⚙️ Game scripts and more
 ├── archive/legacy/       # 🗄️ Old page archive (for nostalgia)
@@ -103,6 +108,17 @@ My latest favorite! A **read-only** online blog + file viewer:
 - Three reading themes: light / night / eye-care green
 - Sidebar TOC, font-size controls, reading progress memory — works on mobile and desktop
 
+### 📤 `/uploadfiles` · Emergency File Upload
+
+An emergency drop for when you need to send yourself files while out — only people who know the URL and passphrase can use it:
+
+- Open `https://luminya.cc/uploadfiles`, enter the passphrase and upload; multi-select supported, 100MB per file
+- Upload page `main/uploadfiles.html`, admin page `main/uploadfiles-admin.html` (served at `/uploadfiles/admin`)
+- Files live in an **R2** bucket; the file list and passphrase hash live in a **D1** database, in the same Pages project
+- The admin panel can reset the passphrase, download/delete files, and show each upload's source IP and country/city
+- Uploads are streamed straight into R2 (no multipart parsing), so large files never get buffered in memory
+- See [main/UPLOADFILES.md](main/UPLOADFILES.md) for setup and operations
+
 ### 🔀 `redirect/` · asy.wiki Short-Link System
 
 - Deployed on **Cloudflare Pages**, handled by Serverless Functions under `functions/api/`:
@@ -132,6 +148,9 @@ python3 -m http.server 8787
 ```
 
 To deploy on any static host (Pages / Vercel / Netlify / GitHub Pages), set `main/` as the site root.
+
+> ⚠️ `/uploadfiles` relies on Cloudflare Pages Functions + R2 + D1, so it only works on **Cloudflare Pages**.
+> On other static hosts that one feature is unavailable (every other page is unaffected). See [main/UPLOADFILES.md](main/UPLOADFILES.md).
 
 ### Short links (`redirect/` directory)
 
