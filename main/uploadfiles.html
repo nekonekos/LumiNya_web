@@ -38,9 +38,25 @@
         </section>
 
         <section class="panel-card">
-            <label class="field" for="passphrase">
+            <label class="field" for="accessKey">
                 <span class="field-label">上传口令</span>
-                <input id="passphrase" type="password" autocomplete="off" placeholder="请输入上传口令" />
+                <!-- 一次性口令：不让浏览器自动填充或提示保存；
+                     readonly 到聚焦为止，避免 Chrome 刷新时回填旧值 -->
+                <input
+                    id="accessKey"
+                    name="access-key"
+                    type="password"
+                    autocomplete="new-password"
+                    autocapitalize="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                    readonly
+                    data-lpignore="true"
+                    data-1p-ignore
+                    data-bwignore
+                    data-form-type="other"
+                    placeholder="请输入上传口令"
+                />
             </label>
             <p class="field-hint" id="passHint" hidden></p>
 
@@ -55,7 +71,7 @@
 
             <div class="actions">
                 <button id="uploadBtn" class="btn btn--primary" type="button" disabled>开始上传</button>
-                <button id="clearBtn" class="btn btn--outline" type="button" hidden>清空列表</button>
+                <button id="clearBtn" class="btn btn--outline" type="button" hidden>清空全部</button>
             </div>
 
             <p id="summary" class="run-summary" role="status"></p>
@@ -99,7 +115,7 @@
         const API = '/api/uploadfiles';
 
         const els = {
-            passphrase: document.getElementById('passphrase'),
+            key: document.getElementById('accessKey'),
             passHint: document.getElementById('passHint'),
             dropzone: document.getElementById('dropzone'),
             fileInput: document.getElementById('fileInput'),
@@ -193,7 +209,7 @@
         function renderQueue() {
             els.queue.innerHTML = '';
             els.queue.hidden = items.length === 0;
-            els.clearBtn.hidden = items.length === 0 || uploading;
+            els.clearBtn.hidden = uploading || (items.length === 0 && els.key.value === '');
 
             items.forEach((item, index) => {
                 const li = document.createElement('li');
@@ -405,10 +421,10 @@
         }
 
         async function startUpload() {
-            const passphrase = els.passphrase.value;
+            const passphrase = els.key.value;
             if (!passphrase) {
                 showError('请先输入上传口令');
-                els.passphrase.focus();
+                els.key.focus();
                 return;
             }
 
@@ -513,11 +529,31 @@
         });
 
         els.uploadBtn.addEventListener('click', startUpload);
-        els.clearBtn.addEventListener('click', () => {
-            items = [];
-            showError('');
-            renderQueue();
+        els.clearBtn.addEventListener('click', wipe);
+
+        // 机房 / 公共电脑：口令框先只读，有交互后才允许输入
+        // （readonly 是为了挡住浏览器在加载时自动回填旧口令）
+        const unlockKey = () => els.key.removeAttribute('readonly');
+        ['pointerdown', 'keydown', 'focus'].forEach((type) => {
+            els.key.addEventListener(type, unlockKey, { once: true });
         });
+        els.key.addEventListener('input', () => {
+            els.clearBtn.hidden = uploading || (items.length === 0 && els.key.value === '');
+        });
+
+        /** 清空口令与文件列表，刷新、前进后退、关闭页面都会触发 */
+        function wipe() {
+            els.key.value = '';
+            items = [];
+            uploading = false;
+            showError('');
+            els.summary.textContent = '';
+            renderQueue();
+        }
+
+        // pagehide 让往返缓存里不留口令，pageshow 兜住刷新与“后退”恢复的页面
+        window.addEventListener('pagehide', wipe);
+        window.addEventListener('pageshow', wipe);
 
         initTheme();
         checkStatus();
